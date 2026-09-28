@@ -112,6 +112,14 @@
 с тестами на фикстурах старых версий.
 
 ## 10. Performance budget (mid-range Android, например Snapdragon 6-серии)
+Тестовое устройство пользователя — **Samsung Galaxy S22 Ultra** (флагман 2022; экран 120 Гц; dpr 2.81 в FHD+
+по умолчанию / 3.75 в WQHD+; чипсет Snapdragon 8 Gen 1 или Exynos 2200 — зависит от региона).
+Бюджет остаётся рассчитанным на mid-range. На S22 Ultra цель — FPS не ниже 60 (или частоты экрана при
+энергосбережении) после 10 минут игры (троттлинг). При каждом замере записывать: чипсет, режим разрешения,
+частоту экрана, энергосбережение — `?debug=1` показывает `devicePixelRatio`.
+Прокси mid-range: CPU — Chrome DevTools CPU throttling 4×; GPU/fill-rate — принудительно `pixelRatio 1` +
+профиль `low` на S22 и замер на встроенной графике ноутбука. pixelRatio ограничен 2.
+
 | Метрика | Бюджет |
 |---|---|
 | FPS | цель 60, минимум 30 |
@@ -129,6 +137,6 @@
 - Визуальная проверка агентом: скриншоты ключевых экранов в PR.
 
 ## 12. Деплой
-- `main` → GitHub Actions → сборка → **превью-хостинг** (GitHub Pages при публичном репо / платном плане;
-  иначе Cloudflare Pages или Netlify — решение ADR-0003 в M0).
+- `main` → GitHub Actions → сборка → **GitHub Pages** `https://adxfighter.github.io/Dungeon_Monsters/` (ADR-0003).
+  PR — сборка как CI artifact.
 - Релиз: Capacitor Android (AAB) → Google Play internal testing; iOS — при наличии Mac/аккаунта.
