@@ -1,0 +1,10 @@
+{
+  // Pure game logic: no DOM, no browser/Node globals (see ARCHITECTURE §3).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/core", "src/content", "src/shared"],
+  "exclude": ["src/**/*.test.ts"]
+}
