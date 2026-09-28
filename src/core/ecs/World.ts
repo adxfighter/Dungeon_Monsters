@@ -7,13 +7,17 @@ export type Entity = number;
 
 /** Typed component key. Create one per component with `defineComponent`. */
 export interface ComponentType<T> {
+  /** Unique per defineComponent call; used for query cache keys. */
+  readonly id: number;
   readonly name: string;
   /** Phantom field that carries the data type; never set at runtime. */
   readonly __data?: T;
 }
 
+let nextComponentId = 1;
+
 export function defineComponent<T>(name: string): ComponentType<T> {
-  return { name };
+  return { id: nextComponentId++, name };
 }
 
 type AnyComponent = ComponentType<unknown>;
@@ -82,7 +86,8 @@ export class World {
    */
   query(...types: AnyComponent[]): readonly Entity[] {
     if (types.length === 0) throw new Error('World.query: at least one component type is required');
-    const key = types.map((t) => t.name).join('|');
+    let key = '';
+    for (const t of types) key += `${t.id},`;
     const cached = this.queryCache.get(key);
     if (cached && cached.version === this.version) return cached.result;
 

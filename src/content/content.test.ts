@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CharacterSchema, LocaleSchema, RoomTemplateSchema, characters, locales, rooms } from './index';
+import { characters, locales, rooms } from './index';
+import { CharacterSchema, LocaleSchema, RoomTemplateSchema } from './schemas';
+import { validateContent } from './validate';
 
 describe('content', () => {
   it.each(Object.entries(rooms))('room %s matches the schema', (_, room) => {
@@ -8,6 +10,10 @@ describe('content', () => {
 
   it.each(Object.entries(characters))('character %s matches the schema', (id, character) => {
     expect(CharacterSchema.parse(character).id).toBe(id);
+  });
+
+  it('validateContent accepts everything shipped', () => {
+    expect(() => validateContent()).not.toThrow();
   });
 
   it('room schema rejects broken templates', () => {

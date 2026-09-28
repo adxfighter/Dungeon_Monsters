@@ -36,7 +36,7 @@ export class EntityViews {
         const rig = createChibi(character);
         this.group.add(rig.root);
         this.views.set(event.entity, { object: rig.root, rig });
-      } else {
+      } else if (event.type === 'EntityDespawned') {
         const view = this.views.get(event.entity);
         if (!view) continue;
         this.group.remove(view.object);

@@ -117,17 +117,32 @@ function start(): void {
     },
   });
 
-  const onVisibility = (): void => loop.setPaused(document.hidden);
-  // Mobile browsers drop the GL context when backgrounded; three restores resources on 'restored'.
+  // Paused while hidden OR while the GL context is lost (mobile browsers drop it when backgrounded;
+  // three re-uploads resources on 'restored'). Both conditions are combined so neither event unpauses early.
+  let contextLost = false;
+  const updatePause = (): void => loop.setPaused(document.hidden || contextLost);
+  const onVisibility = (): void => {
+    // A finger held while the app is backgrounded may never send pointerup/cancel.
+    if (document.hidden) input.releaseTouch();
+    updatePause();
+  };
   const onContextLost = (event: Event): void => {
     event.preventDefault();
-    loop.setPaused(true);
+    contextLost = true;
+    updatePause();
   };
-  const onContextRestored = (): void => loop.setPaused(document.hidden);
+  const onContextRestored = (): void => {
+    contextLost = false;
+    updatePause();
+  };
   document.addEventListener('visibilitychange', onVisibility);
   canvas.addEventListener('webglcontextlost', onContextLost);
   canvas.addEventListener('webglcontextrestored', onContextRestored);
   renderer.three.setAnimationLoop((now: number) => loop.frame(now));
+
+  if (import.meta.env.DEV) {
+    void import('@content/validate').then(({ validateContent }) => validateContent());
+  }
 
   if (import.meta.env.DEV && game) {
     const g = game;

@@ -73,6 +73,16 @@ describe('World', () => {
     expect(world.query(Pos)).toEqual([]);
   });
 
+  it('keeps components with the same name apart', () => {
+    const world = new World();
+    const A = defineComponent<number>('Same');
+    const B = defineComponent<number>('Same');
+    const e = world.create();
+    world.add(e, A, 1);
+    expect(world.query(A)).toEqual([e]);
+    expect(world.query(B)).toEqual([]);
+  });
+
   it('requires at least one component in a query', () => {
     expect(() => new World().query()).toThrow();
   });
