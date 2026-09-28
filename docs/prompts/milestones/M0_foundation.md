@@ -33,7 +33,8 @@
    `onBeforeCompile`), `render/outline.ts` (inverted hull, толщина в мировых единицах, настраиваемый цвет).
    Тестовая сцена: пол, 3 примитива разного цвета, «чиби-болванка» (сфера-голова + капсула-тело), вращение,
    направленный свет + hemisphere.
-6. **Dev-оверлей** `?debug=1`: FPS (сглаженный), draw calls, triangles, geometries/textures из `renderer.info`.
+6. **Dev-оверлей** `?debug=1`: FPS (сглаженный), draw calls, triangles, geometries/textures из `renderer.info`,
+   `devicePixelRatio` и фактический pixelRatio рендера; параметр `?pr=1` принудительно ставит pixelRatio 1 (GPU-прокси).
 7. **Мобильная база**: `index.html` с `viewport-fit=cover`, запрет zoom/скролла/выделения, `touch-action: none`
    на canvas, safe-area CSS-переменные, портрет; иконка-заглушка, `manifest.webmanifest`.
 8. **Тесты**: Vitest настроен (`environment: node` для core); Playwright с проектом `mobile` (390×844, `hasTouch`,
@@ -41,12 +42,18 @@
    В headless CI без GPU: `launchOptions.args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']`.
 9. **CI** `.github/workflows/ci.yml`: на PR и push в main: `npm ci`, typecheck, lint, test, build, e2e (chromium),
    загрузка `dist` как artifact. Кэш npm.
-10. **Превью-деплой**: репозиторий приватный. Проверить доступность GitHub Pages
-    (`gh api repos/adxfighter/Dungeon_Monsters/pages`). Если недоступно — предложить пользователю варианты
-    (сделать репозиторий публичным / Cloudflare Pages / Netlify) и **спросить**, не создавая аккаунтов.
-    Решение оформить ADR-0003. Пока ответа нет — сборка доступна как CI artifact и через `npm run preview -- --host`
-    в локальной сети (зафиксировать инструкцию в `docs/README.md`).
-11. **Документация**: `README.md` в корне (как запустить, как открыть на телефоне в локальной сети),
+10. **Превью-деплой (ADR-0003, решено: GitHub Pages)**: репозиторий публичный.
+    - Vite: `base: command === 'build' ? '/Dungeon_Monsters/' : '/'` (dev/preview/Playwright остаются на `/`);
+      в манифесте `start_url: "."`, `scope: "."`; ассеты — через `import.meta.env.BASE_URL`.
+    - Workflow `.github/workflows/deploy.yml`: push в main → build → `actions/upload-pages-artifact` →
+      `actions/deploy-pages`; `permissions: {contents: read, pages: write, id-token: write}`;
+      job деплоя с `environment: {name: github-pages, url: ${{ steps.deployment.outputs.page_url }}}`;
+      `concurrency: {group: pages, cancel-in-progress: false}`.
+    - Включить Pages: сначала `gh api repos/adxfighter/Dungeon_Monsters/pages`. 404 → `gh api -X POST
+      repos/adxfighter/Dungeon_Monsters/pages -f build_type=workflow`; `build_type: legacy` → то же с `-X PUT`.
+    Проверить, что `https://adxfighter.github.io/Dungeon_Monsters/` открывается. Дополнительно — локальная сеть
+    через `npm run preview -- --host` (инструкция в README).
+11. **Документация**: `README.md` в корне (как запустить, ссылка на Pages, как открыть на телефоне),
     обновить STATUS, CHANGELOG, DECISIONS_LOG.
 
 ## Definition of Done
@@ -55,7 +62,7 @@
 - [ ] Тестовая сцена в браузере-превью 390×844 выглядит «аниме»: 3 ступени тени, rim, чёрный контур. Скриншот в PR.
 - [ ] Dev-оверлей показывает FPS/draw calls.
 - [ ] Стартовый бандл gzip ≤ 1 МБ (Three.js tree-shaken), размер записан в PR.
-- [ ] Инструкция открытия на телефоне в README; ADR-0003 (хостинг) принят или вопрос задан пользователю.
+- [ ] Сборка открывается по `https://adxfighter.github.io/Dungeon_Monsters/`; пользователь проверил её на Samsung S22 Ultra.
 - [ ] Независимое ревью: APPROVE. Документация обновлена. Тег `v0.0.0` на squash-коммит в main.
 
 ## Не делать в M0
