@@ -3,12 +3,13 @@ import { parseLaunchParams } from './params';
 
 describe('parseLaunchParams', () => {
   it('defaults to no debug and adaptive pixel ratio', () => {
-    expect(parseLaunchParams('')).toEqual({ debug: false, forcedPixelRatio: undefined });
+    expect(parseLaunchParams('')).toEqual({ debug: false, demo: false, forcedPixelRatio: undefined });
   });
 
   it('reads debug and pr', () => {
-    expect(parseLaunchParams('?debug=1&pr=1')).toEqual({ debug: true, forcedPixelRatio: 1 });
+    expect(parseLaunchParams('?debug=1&pr=1')).toEqual({ debug: true, demo: false, forcedPixelRatio: 1 });
     expect(parseLaunchParams('?debug=0').debug).toBe(false);
+    expect(parseLaunchParams('?demo=1').demo).toBe(true);
   });
 
   it('clamps pr and ignores invalid values', () => {

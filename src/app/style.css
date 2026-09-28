@@ -33,6 +33,42 @@ body {
   inset: 0;
 }
 
+/* Preact overlay: transparent to touches except where a component opts in. */
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ui-root {
+  position: absolute;
+  inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+.fatal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: calc(var(--safe-top) + 24px) 24px calc(var(--safe-bottom) + 24px);
+  color: #fff4e0;
+  font:
+    16px/1.4 system-ui,
+    sans-serif;
+  text-align: center;
+}
+
+.fatal h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.fatal p {
+  margin: 0;
+  max-width: 32ch;
+}
+
 #game {
   display: block;
   width: 100%;

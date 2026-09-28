@@ -1,2 +1,2 @@
-// ui — Preact overlay (HUD, joystick, menus, cooking mini-games); talks to core only via commands/selectors. Starts in M1.
-export {};
+// ui — Preact overlay (HUD, joystick, menus, cooking mini-games). Talks to core only via commands/selectors.
+export { UiRoot } from './UiRoot';

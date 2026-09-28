@@ -41,4 +41,17 @@ GDD §4.1, §4.3, §5; STORY §4 (Пролог, Акт I).
 - [ ] Ревью APPROVE, документация (бестиарий-черновик в GDD/контенте), тег `v0.2.0`.
 
 ## Уточнения
-_(дописывается по итогам M1)_
+_По итогам M1 (2026-09-29):_
+- ECS: `core/ecs/World.ts` (`defineComponent`, `add/get/require/remove`, кэшируемый `query`; id не переиспользуются).
+  Компоненты — `core/components.ts`. Новые системы вызывать из `Game.step` в явном порядке
+  (snapshot → steering → physics → combat …). Координаты и `rot` — ARCHITECTURE §5.
+- События: `core/state/events.ts` (`GameEvent`), `Game.drainEvents()` раз в кадр в `app/main.tsx` → `RoomScene.handleEvents`.
+  `EntityDespawned` уже поддержан в `EntityViews` (dispose вью) — использовать для смерти монстров.
+- Ввод: кнопки добавлять битами в `shared/input.ts` (`Buttons`) и в `InputController`; правая половина экрана
+  свободна (джойстик захватывает только первый палец слева). Кнопки — Preact в `ui/`, ≥ 48 dp.
+- Коллизии: `core/systems/collision.ts` (`moveCircle`, `resolveCircleVsTiles`) — переиспользовать для монстров.
+- Вью монстров: по аналогии с `render/models/chibi.ts` (`createChibi` → `{ root, update }`), выбор фабрики — по
+  `Kind.kind` в `EntityViews.handle`. Бюджет: комната+герой = 18 draw calls; на монстра ≤ 6.
+- i18n: `platform/i18n` (`createI18n`) + словари `content/i18n/{ru,en}.ts`; тест проверяет совпадение ключей.
+- Контент: Zod-схемы в `content/schemas.ts`, тест `content/content.test.ts` — добавить схемы монстров туда же.
+- Демо-сцена M0 доступна по `?demo=1`.

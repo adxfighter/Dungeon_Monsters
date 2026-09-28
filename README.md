@@ -2,11 +2,12 @@
 
 Мобильная 3D-игра в аниме-стиле: спустись в живое подземелье, победи монстров, приготовь из них ужин и спустись глубже.
 
-Статус: M0 «Фундамент» — каркас проекта и тестовая toon-сцена. Подробности — [docs/STATUS.md](docs/STATUS.md).
+Статус: M1 «Движение и мир» — героиня ходит по тайловой комнате. Подробности — [docs/STATUS.md](docs/STATUS.md).
 
 **Играть (свежая сборка `main`):** https://adxfighter.github.io/Dungeon_Monsters/
-Dev-оверлей: добавить `?debug=1` (FPS, draw calls, треугольники, pixelRatio); `?pr=1` — принудительный pixelRatio 1
-(прокси mid-range GPU).
+Управление: палец в **левой половине** экрана — плавающий джойстик; на компьютере — WASD/стрелки или перетаскивание мышью.
+Dev-параметры: `?debug=1` — оверлей (FPS, draw calls, треугольники, pixelRatio); `?pr=1` — принудительный pixelRatio 1
+(прокси mid-range GPU); `?demo=1` — тестовая toon-сцена M0.
 
 - Дизайн: [docs/GDD.md](docs/GDD.md) · Сюжет: [docs/STORY.md](docs/STORY.md)
 - Архитектура: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Дорожная карта: [docs/ROADMAP.md](docs/ROADMAP.md)

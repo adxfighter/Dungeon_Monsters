@@ -44,7 +44,7 @@ export default tseslint.config(
 
   // --- Layer boundaries ---
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.{ts,tsx}'],
     plugins: { boundaries },
     settings: {
       'import/resolver': {
@@ -70,7 +70,8 @@ export default tseslint.config(
             // Node built-ins (node:*) are never allowed in game code.
             { disallow: { to: { module: { origin: 'core' } } } },
             ...Object.entries(RESTRICTED_PACKAGES).map(([pkg, layers]) => ({
-              from: { element: { type: `!{${layers.join(',')}}` } },
+              // micromatch does not expand a one-item brace list, so '!{content}' would match nothing.
+              from: { element: { type: layers.length === 1 ? `!${layers[0]}` : `!{${layers.join(',')}}` } },
               disallow: { to: { module: { origin: 'external', source: [pkg, `${pkg}/**`] } } },
             })),
           ],
@@ -81,7 +82,7 @@ export default tseslint.config(
 
   // --- Pure core: determinism and no platform access ---
   {
-    files: ['src/core/**/*.ts', 'src/content/**/*.ts', 'src/shared/**/*.ts'],
+    files: ['src/core/**/*.{ts,tsx}', 'src/content/**/*.{ts,tsx}', 'src/shared/**/*.{ts,tsx}'],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-globals': [
@@ -127,7 +128,12 @@ export default tseslint.config(
 
   // --- Browser layers: Node globals type-check (tsconfig includes node types for tooling) but crash at runtime ---
   {
-    files: ['src/app/**/*.ts', 'src/render/**/*.ts', 'src/ui/**/*.ts', 'src/platform/**/*.ts'],
+    files: [
+      'src/app/**/*.{ts,tsx}',
+      'src/render/**/*.{ts,tsx}',
+      'src/ui/**/*.{ts,tsx}',
+      'src/platform/**/*.{ts,tsx}',
+    ],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-globals': [

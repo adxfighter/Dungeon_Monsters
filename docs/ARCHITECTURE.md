@@ -87,6 +87,14 @@
 - Порядок кадра: `input → commands → core.step(dt_fixed) × n → events → render.sync(alpha) → ui`.
 - `core` порождает **события** (`DamageDealt`, `MonsterKilled`, `DishCooked`...), на которые подписаны
   render (VFX), ui (попапы), audio. Core ничего не знает о подписчиках.
+- Реализация (M1): `app/GameLoop.ts` (clamp кадра ≤ 0.25 с, пауза по `visibilitychange` и потере WebGL-контекста),
+  `core/Game.ts` (`step(input, dt)`: snapshot → steering → physics), `render/EntityViews.ts` (интерполяция
+  `PrevTransform → Transform` по `alpha`, вью создаются по `EntitySpawned/Despawned`). Ввод сэмплируется на каждом
+  шаге симуляции (`platform/input` → `shared/input.InputState`) — задержка ≤ 1 шага.
+- **Координаты:** симуляция 2D, 1 единица = 1 тайл; `x` — вправо по экрану, `y` — к камере (вниз по экрану);
+  тайл (tx, ty) = [tx, tx+1) × [ty, ty+1), строка 0 шаблона — дальняя. Мир three: (x, y) → (x, 0, y).
+  `rot` — угол взгляда, направление (sin rot, cos rot); в three это `rotation.y = rot`.
+  Камера фиксированной ориентации смотрит с +Z под 52°, поэтому экранные направления джойстика = оси симуляции.
 
 ## 6. ECS-lite
 Собственная минимальная ECS: сущность = number; компоненты = typed-объекты в `Map`/массивах; системы —
