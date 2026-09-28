@@ -3,14 +3,15 @@
 Обновлено: 2026-09-28
 
 ## Текущий milestone
-**M0 — Фундамент** · в работе, 5/7 пунктов DoD. Ветка `m0/foundation`, PR https://github.com/adxfighter/Dungeon_Monsters/pull/2.
+**M0 — Фундамент** · в работе, 6/7 пунктов DoD (+ тег). Ветка `m0/foundation`, PR https://github.com/adxfighter/Dungeon_Monsters/pull/2.
 - [x] typecheck, lint, test (33), build, e2e (3) — зелёные локально и в CI
 - [x] нарушение границ слоя ловится линтом (проверено автором и ревьюером)
 - [x] тестовая сцена 390×844 в toon-стиле (3 ступени, rim, контур) — скриншоты `npm run screenshot`
 - [x] dev-оверлей `?debug=1` (FPS, draw calls, tris, geo/tex, dpr/pr), `?pr=1`
 - [x] стартовый бандл: JS 136 КБ gzip (бюджет 1 МБ)
 - [ ] Pages: включён (`build_type: workflow`), деплой после merge; **пользователь проверяет на S22 Ultra**
-- [~] ревью: APPROVE (0 blocker/major, 9 minor/nit — 7 исправлены, 2 в бэклоге); после merge — тег `v0.0.0`
+- [x] ревью: APPROVE (2026-09-28, повторное — на a268ae5; 0 blocker/major, 9 minor/nit — 7 исправлены, 2 в бэклоге)
+- [ ] тег `v0.0.0` на squash-коммит после merge
 
 ## Сделано
 - 2026-09-28 — Сессия планирования: GDD, сценарий, архитектура, дорожная карта M0–M16, ADR-0001 (веб-стек),
