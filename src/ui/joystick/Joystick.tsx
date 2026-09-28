@@ -35,8 +35,21 @@ export function Joystick({ input }: Props) {
     setVisible(false);
   };
 
-  // Stop steering if the component goes away mid-drag.
-  useEffect(() => () => input.releaseTouch(), [input]);
+  useEffect(() => {
+    // Backgrounding may swallow pointerup/cancel: drop the stick so the next touch starts a new one.
+    const onVisibility = (): void => {
+      if (!document.hidden || !active.current) return;
+      active.current = null;
+      input.releaseTouch();
+      setVisible(false);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      // Stop steering if the component goes away mid-drag.
+      input.releaseTouch();
+    };
+  }, [input]);
 
   const onPointerDown = (event: PointerEvent): void => {
     if (active.current) return;

@@ -92,3 +92,33 @@ test('keyboard WASD moves the hero (desktop fallback)', async ({ page }) => {
   const end = await playerPos(page);
   expect(start.x - end.x).toBeGreaterThan(0.5);
 });
+
+test('backgrounding mid-drag resets the joystick so the next touch works', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await touch(cdp, 'touchStart', [{ x: 100, y: 600, id: 1 }]);
+  await touch(cdp, 'touchMove', [{ x: 170, y: 600, id: 1 }]);
+  // Simulate the app going to background without any pointerup/cancel reaching the page.
+  const setHidden = (hidden: boolean): Promise<void> =>
+    page.evaluate((h) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  await setHidden(true);
+  await setHidden(false);
+  await expect(page.locator('.joystick-base')).toBeHidden();
+
+  const start = await playerPos(page);
+  // New finger (new id) drags left: must steer even though finger 1 never "lifted".
+  await touch(cdp, 'touchStart', [
+    { x: 170, y: 600, id: 1 },
+    { x: 150, y: 650, id: 2 },
+  ]);
+  await touch(cdp, 'touchMove', [
+    { x: 170, y: 600, id: 1 },
+    { x: 80, y: 650, id: 2 },
+  ]);
+  await page.waitForTimeout(600);
+  const end = await playerPos(page);
+  await touch(cdp, 'touchEnd', []);
+  expect(start.x - end.x).toBeGreaterThan(0.5);
+});
