@@ -86,9 +86,19 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': [
         'error',
-        ...['window', 'document', 'navigator', 'globalThis', 'self', 'localStorage', 'performance'].map(
-          (name) => ({ name, message: 'core/content/shared must stay platform-free (ARCHITECTURE §3).' }),
-        ),
+        ...[
+          'window',
+          'document',
+          'navigator',
+          'globalThis',
+          'self',
+          'localStorage',
+          'performance',
+          'process',
+        ].map((name) => ({
+          name,
+          message: 'core/content/shared must stay platform-free (ARCHITECTURE §3).',
+        })),
       ],
       'no-restricted-properties': [
         'error',
@@ -100,11 +110,32 @@ export default tseslint.config(
         'error',
         {
           patterns: [
-            { group: ['three', 'three/*'], message: 'core must not depend on three (render only).' },
-            { group: ['preact', 'preact/*'], message: 'core must not depend on preact (ui only).' },
+            {
+              group: ['three', 'three/*'],
+              message: 'core/content/shared must not depend on three (render only).',
+            },
+            {
+              group: ['preact', 'preact/*'],
+              message: 'core/content/shared must not depend on preact (ui only).',
+            },
             { group: ['@render/*', '@ui/*', '@app/*', '@platform/*'], message: 'Layer violation.' },
           ],
         },
+      ],
+    },
+  },
+
+  // --- Browser layers: Node globals type-check (tsconfig includes node types for tooling) but crash at runtime ---
+  {
+    files: ['src/app/**/*.ts', 'src/render/**/*.ts', 'src/ui/**/*.ts', 'src/platform/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['process', 'Buffer', 'require', '__dirname'].map((name) => ({
+          name,
+          message: 'Node globals are not available in the browser; use import.meta.env.',
+        })),
       ],
     },
   },

@@ -115,6 +115,21 @@ describe('Rng', () => {
     restored.setState(state);
     expect(take(restored, 10)).toEqual(expected);
   });
+
+  it('restored generators fork the same streams as the original', () => {
+    const original = new Rng(5);
+    take(original, 3);
+    const restored = Rng.fromState(original.getState());
+    expect(restored.seed).toBe(5);
+    expect(take(restored.fork('loot'), 10)).toEqual(take(original.fork('loot'), 10));
+  });
+
+  it('setState rejects corrupt state', () => {
+    const rng = new Rng(1);
+    expect(() => rng.setState({ seed: -1, words: [1, 2, 3, 4] })).toThrow(RangeError);
+    expect(() => rng.setState({ seed: 1, words: [1, 2, 3, 1.5] })).toThrow(RangeError);
+    expect(() => rng.setState({ seed: 1, words: [1, 2, 3, 2 ** 32] })).toThrow(RangeError);
+  });
 });
 
 describe('hashString', () => {

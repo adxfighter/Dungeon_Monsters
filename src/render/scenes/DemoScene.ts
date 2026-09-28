@@ -20,6 +20,9 @@ import { addOutline } from '../outline';
 /** Rotation speed of the showcase objects, rad/s. */
 const SPIN_SPEED = 0.6;
 const LANDSCAPE_V_FOV_DEG = 45;
+
+/** smooth: one smooth surface; hard-edges: smooth sides + flat caps; flat: only flat faces. */
+type Shading = 'smooth' | 'hard-edges' | 'flat';
 const PORTRAIT_H_FOV_DEG = 60;
 
 /**
@@ -36,7 +39,8 @@ export class DemoScene {
   constructor() {
     this.scene.background = new Color(0x2b2438);
     this.camera.position.set(0, 3.4, 5.6);
-    this.camera.lookAt(0, 0.7, 0);
+    // Aim below the stage centre so it sits in the middle of a portrait screen.
+    this.camera.lookAt(0, 0.1, 0);
 
     const hemi = new HemisphereLight(0xfff4e0, 0x4a3b5c, 0.5);
     const sun = new DirectionalLight(0xffffff, 3);
@@ -52,9 +56,9 @@ export class DemoScene {
     addOutline(floor, { thickness: 0.04, smoothNormals: true });
     this.scene.add(floor);
 
-    this.addSpinning('box', new BoxGeometry(0.9, 0.9, 0.9), 0xe0584f, -1.6, 0.45, 0.5, true);
-    this.addSpinning('knot', new TorusKnotGeometry(0.4, 0.14, 96, 12), 0x4fa3e0, 1.6, 0.75, 0.5, false);
-    this.addSpinning('cone', new ConeGeometry(0.5, 1.1, 24), 0x7fcf5a, -0.9, 0.55, -1.4, true);
+    this.addSpinning('box', new BoxGeometry(0.9, 0.9, 0.9), 0xe0584f, -1.6, 0.45, 0.5, 'flat');
+    this.addSpinning('knot', new TorusKnotGeometry(0.4, 0.14, 96, 12), 0x4fa3e0, 1.6, 0.75, 0.5, 'smooth');
+    this.addSpinning('cone', new ConeGeometry(0.5, 1.1, 24), 0x7fcf5a, -0.9, 0.55, -1.4, 'hard-edges');
 
     this.buildChibi();
     this.scene.add(this.chibi);
@@ -67,12 +71,16 @@ export class DemoScene {
     x: number,
     y: number,
     z: number,
-    smoothOutline: boolean,
+    shading: Shading,
   ): void {
-    const mesh = new Mesh(geometry, createToonMaterial({ color }));
+    // View-space rim lights whole flat faces at grazing angles, so flat-shaded meshes skip it.
+    const mesh = new Mesh(
+      geometry,
+      createToonMaterial(shading === 'flat' ? { color, rimStrength: 0 } : { color }),
+    );
     mesh.name = name;
     mesh.position.set(x, y, z);
-    addOutline(mesh, { smoothNormals: smoothOutline });
+    addOutline(mesh, { smoothNormals: shading !== 'smooth' });
     this.scene.add(mesh);
     this.spinning.push(mesh);
   }

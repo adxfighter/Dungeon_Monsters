@@ -38,7 +38,7 @@ export interface ToonMaterialOptions {
   color: ColorRepresentation;
   /** Rim light color. Default white. */
   rimColor?: ColorRepresentation;
-  /** Rim intensity, 0 disables. Default 0.5. */
+  /** Rim intensity, 0 disables (use 0 for flat-shaded meshes: rim is N·V based). Default 0.5. */
   rimStrength?: number;
   /** Rim width: fraction of the silhouette (0..1) that gets the rim. Default 0.3. */
   rimWidth?: number;

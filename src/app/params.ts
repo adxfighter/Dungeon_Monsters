@@ -1,3 +1,5 @@
+import { MAX_PIXEL_RATIO } from '@render/Renderer';
+
 /** Dev/test switches read from the page URL. */
 export interface LaunchParams {
   /** `?debug=1` — show the dev overlay. */
@@ -7,7 +9,8 @@ export interface LaunchParams {
 }
 
 const PR_MIN = 0.5;
-const PR_MAX = 3;
+/** Same cap as adaptive rendering (ARCHITECTURE §7). */
+const PR_MAX = MAX_PIXEL_RATIO;
 
 export function parseLaunchParams(search: string): LaunchParams {
   const params = new URLSearchParams(search);

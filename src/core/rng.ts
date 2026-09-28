@@ -3,8 +3,13 @@
  * The only source of randomness allowed in core (ARCHITECTURE §3).
  */
 
-/** Serializable generator state (for saves / replays). */
-export type RngState = readonly [number, number, number, number];
+/** Serializable generator state (for saves / replays). The seed is kept so forks survive a restore. */
+export interface RngState {
+  readonly seed: number;
+  readonly words: readonly [number, number, number, number];
+}
+
+const isUint32 = (value: number): boolean => Number.isInteger(value) && value >= 0 && value <= 0xffffffff;
 
 /** 32-bit FNV-1a hash of a string. */
 export function hashString(text: string): number {
@@ -27,22 +32,33 @@ function mix32(value: number): number {
 const GOLDEN = 0x9e3779b9;
 
 export class Rng {
-  /** Seed this generator was created from; forks derive from it, not from the current state. */
-  readonly seed: number;
+  private seedValue: number;
   private a = 0;
   private b = 0;
   private c = 0;
   private d = 0;
 
   constructor(seed: number | string) {
-    this.seed = typeof seed === 'string' ? hashString(seed) : seed >>> 0;
-    let s = this.seed;
+    this.seedValue = typeof seed === 'string' ? hashString(seed) : seed >>> 0;
+    let s = this.seedValue;
     this.a = mix32((s = (s + GOLDEN) >>> 0));
     this.b = mix32((s = (s + GOLDEN) >>> 0));
     this.c = mix32((s = (s + GOLDEN) >>> 0));
     this.d = mix32((s + GOLDEN) >>> 0);
     // Warm up to decorrelate nearby seeds.
     for (let i = 0; i < 12; i++) this.nextUint32();
+  }
+
+  /** Restores a generator saved with `getState()`, including its fork streams. */
+  static fromState(state: RngState): Rng {
+    const rng = new Rng(0);
+    rng.setState(state);
+    return rng;
+  }
+
+  /** Seed this generator was created from; forks derive from it, not from the current state. */
+  get seed(): number {
+    return this.seedValue;
   }
 
   /** Next unsigned 32-bit integer (sfc32). */
@@ -95,10 +111,15 @@ export class Rng {
   }
 
   getState(): RngState {
-    return [this.a, this.b, this.c, this.d];
+    return { seed: this.seedValue, words: [this.a, this.b, this.c, this.d] };
   }
 
+  /** Replaces seed and stream position. Throws if any value is not a uint32 (corrupt save). */
   setState(state: RngState): void {
-    [this.a, this.b, this.c, this.d] = state;
+    if (!isUint32(state.seed) || state.words.length !== 4 || !state.words.every(isUint32)) {
+      throw new RangeError('Rng.setState: state must contain uint32 values');
+    }
+    this.seedValue = state.seed;
+    [this.a, this.b, this.c, this.d] = state.words;
   }
 }
