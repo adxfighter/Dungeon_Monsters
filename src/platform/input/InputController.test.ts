@@ -1,0 +1,70 @@
+import { describe, expect, it } from 'vitest';
+import { createInputState } from '@shared/input';
+import { InputController } from './InputController';
+
+function key(type: 'keydown' | 'keyup', code: string): Event {
+  return Object.assign(new Event(type), { code });
+}
+
+describe('InputController', () => {
+  it('is idle by default', () => {
+    expect(new InputController().sample(createInputState()).move).toEqual({ x: 0, y: 0 });
+  });
+
+  it('maps WASD/arrows and normalizes diagonals', () => {
+    const input = new InputController();
+    const target = new EventTarget();
+    input.attachKeyboard(target);
+    target.dispatchEvent(key('keydown', 'KeyW'));
+    expect(input.sample(createInputState()).move).toEqual({ x: 0, y: -1 });
+    target.dispatchEvent(key('keydown', 'ArrowRight'));
+    const move = input.sample(createInputState()).move;
+    expect(move.x).toBeCloseTo(Math.SQRT1_2);
+    expect(move.y).toBeCloseTo(-Math.SQRT1_2);
+    target.dispatchEvent(key('keyup', 'KeyW'));
+    target.dispatchEvent(key('keyup', 'ArrowRight'));
+    expect(input.sample(createInputState()).move).toEqual({ x: 0, y: 0 });
+  });
+
+  it('opposite keys cancel out; unknown keys are ignored', () => {
+    const input = new InputController();
+    const target = new EventTarget();
+    input.attachKeyboard(target);
+    target.dispatchEvent(key('keydown', 'KeyA'));
+    target.dispatchEvent(key('keydown', 'KeyD'));
+    target.dispatchEvent(key('keydown', 'Space'));
+    expect(input.sample(createInputState()).move).toEqual({ x: 0, y: 0 });
+  });
+
+  it('clears held keys on blur and on detach', () => {
+    const input = new InputController();
+    const target = new EventTarget();
+    const detach = input.attachKeyboard(target);
+    target.dispatchEvent(key('keydown', 'KeyS'));
+    target.dispatchEvent(new Event('blur'));
+    expect(input.sample(createInputState()).move).toEqual({ x: 0, y: 0 });
+    target.dispatchEvent(key('keydown', 'KeyS'));
+    detach();
+    target.dispatchEvent(key('keydown', 'KeyD'));
+    expect(input.sample(createInputState()).move).toEqual({ x: 0, y: 0 });
+  });
+
+  it('touch joystick overrides the keyboard while active', () => {
+    const input = new InputController();
+    const target = new EventTarget();
+    input.attachKeyboard(target);
+    target.dispatchEvent(key('keydown', 'KeyD'));
+    input.setTouchMove(0, 0.5);
+    expect(input.sample(createInputState()).move).toEqual({ x: 0, y: 0.5 });
+    input.releaseTouch();
+    expect(input.sample(createInputState()).move).toEqual({ x: 1, y: 0 });
+  });
+
+  it('writes into the given state without allocating a new one', () => {
+    const input = new InputController();
+    const state = createInputState();
+    const move = state.move;
+    expect(input.sample(state)).toBe(state);
+    expect(state.move).toBe(move);
+  });
+});

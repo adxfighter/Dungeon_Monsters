@@ -5,8 +5,9 @@ import { expect, test } from '@playwright/test';
  * Add a line per new screen as milestones introduce them.
  */
 const SCREENS = [
-  { name: 'demo', path: '/' },
-  { name: 'demo-debug', path: '/?debug=1' },
+  { name: 'room', path: '/' },
+  { name: 'room-debug', path: '/?debug=1' },
+  { name: 'demo', path: '/?demo=1' },
 ];
 
 for (const screen of SCREENS) {

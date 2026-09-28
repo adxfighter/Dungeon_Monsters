@@ -1,0 +1,44 @@
+.joystick-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* Positioned by transform at the touch point (fixed, so zone offsets don't matter). */
+.joystick-base {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.joystick-base::before,
+.joystick-knob {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+
+.joystick-base::before {
+  width: calc(var(--stick-radius) * 2);
+  height: calc(var(--stick-radius) * 2);
+  left: calc(var(--stick-radius) * -1);
+  top: calc(var(--stick-radius) * -1);
+  background: rgb(255 244 224 / 12%);
+  border: 3px solid rgb(255 244 224 / 45%);
+}
+
+.joystick-knob {
+  width: 56px;
+  height: 56px;
+  left: -28px;
+  top: -28px;
+  background: rgb(255 244 224 / 70%);
+  border: 3px solid #1a1414;
+}

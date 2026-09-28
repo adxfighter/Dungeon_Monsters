@@ -1,4 +1,12 @@
-import { BackSide, type BufferGeometry, Color, type ColorRepresentation, Mesh, ShaderMaterial } from 'three';
+import {
+  BackSide,
+  type BufferGeometry,
+  Color,
+  type ColorRepresentation,
+  InstancedMesh,
+  Mesh,
+  ShaderMaterial,
+} from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const OUTLINE_DEFAULT_COLOR = 0x1a1414;
@@ -19,8 +27,13 @@ export interface OutlineOptions {
 const vertexShader = /* glsl */ `
   uniform float uThickness;
   void main() {
-    vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
-    vec3 worldNormal = normalize( mat3( modelMatrix ) * normal );
+    #ifdef USE_INSTANCING
+      mat4 toWorld = modelMatrix * instanceMatrix;
+    #else
+      mat4 toWorld = modelMatrix;
+    #endif
+    vec4 worldPosition = toWorld * vec4( position, 1.0 );
+    vec3 worldNormal = normalize( mat3( toWorld ) * normal );
     worldPosition.xyz += worldNormal * uThickness;
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
   }
@@ -60,13 +73,22 @@ function hullGeometry(source: BufferGeometry, smooth: boolean): BufferGeometry {
 
 /**
  * Adds an inverted-hull outline as a child of `mesh` (so it follows its transform).
+ * For an `InstancedMesh` the hull is instanced too and shares the instance matrices
+ * (set them before calling, or flag `instanceMatrix.needsUpdate` later — it is the same attribute).
  * The hull mesh is marked `userData.outline = true`; dispose it with `disposeObject`.
  */
 export function addOutline(mesh: Mesh, options: OutlineOptions = {}): Mesh {
-  const outline = new Mesh(
-    hullGeometry(mesh.geometry, options.smoothNormals ?? false),
-    createOutlineMaterial(options),
-  );
+  const geometry = hullGeometry(mesh.geometry, options.smoothNormals ?? false);
+  const material = createOutlineMaterial(options);
+  let outline: Mesh;
+  if (mesh instanceof InstancedMesh) {
+    const instanced = new InstancedMesh(geometry, material, mesh.count);
+    instanced.instanceMatrix = mesh.instanceMatrix;
+    instanced.frustumCulled = mesh.frustumCulled;
+    outline = instanced;
+  } else {
+    outline = new Mesh(geometry, material);
+  }
   outline.name = `${mesh.name || 'mesh'}:outline`;
   outline.userData['outline'] = true;
   outline.castShadow = false;

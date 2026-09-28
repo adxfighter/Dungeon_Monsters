@@ -75,6 +75,8 @@ export class Renderer {
   /** Feeds the smoothed FPS; lowers the pixel ratio after sustained low FPS. */
   adapt(fps: number, dtSeconds: number): void {
     if (this.forcedPixelRatio !== undefined || this.pixelRatio <= MIN_PIXEL_RATIO) return;
+    // 0 = not measured yet (hidden tab, only pause-length frames) — not evidence of a slow GPU.
+    if (!(fps > 0)) return;
     this.lowFpsTime = fps < ADAPT_LOW_FPS ? this.lowFpsTime + dtSeconds : 0;
     if (this.lowFpsTime < ADAPT_WINDOW_S) return;
     this.lowFpsTime = 0;

@@ -21,6 +21,10 @@ export default defineConfig(({ command, isPreview }) => ({
       '@shared': src('shared'),
     },
   },
+  // Preact automatic JSX runtime (no plugin needed with Vite's built-in Oxc transform).
+  oxc: {
+    jsx: { runtime: 'automatic', importSource: 'preact' },
+  },
   build: {
     target: 'es2022',
     // three is one ~540 kB (136 kB gzip) chunk; the real budget (1 MB gzip) is checked in PR notes.
