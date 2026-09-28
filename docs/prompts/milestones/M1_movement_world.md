@@ -49,4 +49,13 @@ GDD §4.1, §6; ARCHITECTURE §5, §6, §7; STORY §2 (внешность Тав
 - [ ] Unit + e2e зелёные, ревью APPROVE, документация, тег `v0.1.0`.
 
 ## Уточнения
-_(дописывается по итогам M0)_
+_По итогам M0 (2026-09-28):_
+- Игровой цикл уже есть в `src/app/main.ts`: `FixedClock` (`core/clock.ts`, 30 Гц, `advance(dt)` → число шагов,
+  `alpha` для интерполяции) вызывается каждый кадр, но шаг симуляции пустой — подключить сюда `core.step`.
+- Демо-сцена `render/scenes/DemoScene.ts` — заменить комнатой M1 (или оставить за флагом `?demo=1`). Материалы:
+  `createToonMaterial` (`render/materials/toon.ts`), контур `addOutline(mesh, { smoothNormals })` (`render/outline.ts`),
+  освобождение ресурсов — `disposeObject` (`render/dispose.ts`).
+- Preact ещё не установлен: `npm i preact` + `@preact/preset-vite`; boundaries уже разрешают `preact` только в `ui`/`app`.
+- Готовность страницы для e2e/скриншотов — `document.body.dataset.ready === '1'`; новый экран → строка в
+  `tests/screens/screens.spec.ts`.
+- Playwright запускается в 1 воркер (SwiftShader); держать e2e короткими.
