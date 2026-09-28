@@ -20,7 +20,6 @@ import { addOutline } from '../outline';
 /** Rotation speed of the showcase objects, rad/s. */
 const SPIN_SPEED = 0.6;
 const LANDSCAPE_V_FOV_DEG = 45;
-
 const PORTRAIT_H_FOV_DEG = 60;
 
 /** smooth: one smooth surface; hard-edges: smooth sides + flat caps; flat: only flat faces. */
