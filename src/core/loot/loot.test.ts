@@ -8,7 +8,7 @@ import { Game } from '../Game';
 import type { GameEvent } from '../state/events';
 import { lootableCarcass } from '../systems/loot';
 import { pouncer } from '../testing/monsters';
-import { addToBackpack, backpackWeight, removeFromBackpack, type BackpackData } from './backpack';
+import { addToBackpack, backpackWeight, canFitOne, removeFromBackpack, type BackpackData } from './backpack';
 import { ingredientStars } from './quality';
 
 const DT = 1 / 30;
@@ -65,6 +65,18 @@ describe('backpack', () => {
     addToBackpack(c, catalog, 'herb', 2, 1);
     expect(addToBackpack(c, catalog, 'herb', 3, 1)).toBe(0); // both slots used
     expect(addToBackpack(c, catalog, 'herb', 1, 1)).toBe(1); // an existing stack still grows
+  });
+
+  it('canFitOne agrees with addToBackpack: slots full → only a matching stack fits; weight full → nothing', () => {
+    const b = bag();
+    addToBackpack(b, catalog, 'herb', 1, 1);
+    addToBackpack(b, catalog, 'herb', 2, 1);
+    expect(canFitOne(b, catalog, 'herb', 1)).toBe(true); // existing stack
+    expect(canFitOne(b, catalog, 'herb', 3)).toBe(false); // would need a third slot
+    expect(canFitOne(b, catalog, 'meat', 2)).toBe(false);
+    const heavy = bag();
+    addToBackpack(heavy, catalog, 'meat', 2, 5); // 10 / 10
+    expect(canFitOne(heavy, catalog, 'meat', 2)).toBe(false);
   });
 
   it('throws pieces away; an empty stack frees its slot', () => {
