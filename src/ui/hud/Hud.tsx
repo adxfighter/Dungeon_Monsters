@@ -43,7 +43,6 @@ export function Hud(props: Props) {
   const { difficulties, onPickDifficulty, arenas, arena, onPickArena, onInteract, onBackpack, onDiscard } =
     props;
   const state = useHud(hud);
-  const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
   const [vibrationStatus, setVibrationStatus] = useState<'idle' | 'sent' | 'unsupported'>('idle');
   const change = (next: Settings) => {
@@ -57,10 +56,17 @@ export function Hud(props: Props) {
     input.pressButton(bit);
   };
   const hpPct = Math.max(0, Math.min(1, state.hp / state.maxHp)) * 100;
+  const setPaused = (paused: boolean) => {
+    // A thumb held on the joystick would keep steering the hero after the pause.
+    if (paused) input.releaseTouch();
+    // Keys pressed while paused (e.g. Space on the focused ⏸) must not fire on resume.
+    else input.clearPending();
+    hud.setPaused(paused);
+  };
 
   return (
     <>
-      <div class="hud-top">
+      <div class={state.paused ? 'hud-top paused' : 'hud-top'}>
         <div
           class="hp-bar"
           role="meter"
@@ -78,6 +84,7 @@ export function Hud(props: Props) {
           class="gear bag"
           aria-label={t('hud.backpack')}
           data-testid="btn-backpack"
+          disabled={state.paused}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => onBackpack(true)}
         >
@@ -86,12 +93,17 @@ export function Hud(props: Props) {
         <button
           type="button"
           class="gear"
-          aria-label={t('hud.settings')}
-          data-testid="btn-settings"
+          aria-label={t(state.paused ? 'hud.resume' : 'hud.pause')}
+          aria-pressed={state.paused}
+          data-testid="btn-pause"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setOpen(!open)}
+          onClick={(e) => {
+            // Keep keyboard focus off the button: Space is also the Attack key.
+            e.currentTarget.blur();
+            setPaused(!state.paused);
+          }}
         >
-          ⚙
+          {state.paused ? '▶' : '⏸'}
         </button>
         {state.waveTotal > 0 && (
           <div class="wave" data-testid="wave">
@@ -99,7 +111,7 @@ export function Hud(props: Props) {
           </div>
         )}
       </div>
-      {state.grabbed && state.status === 'playing' && (
+      {state.grabbed && state.status === 'playing' && !state.paused && (
         <div class="grab-hint" role="status" data-testid="grab-hint">
           {t('hud.grabbed')}
         </div>
@@ -186,53 +198,65 @@ export function Hud(props: Props) {
         </button>
       </div>
 
-      {open && (
-        <div class="settings" role="dialog" data-testid="settings" onPointerDown={(e) => e.stopPropagation()}>
-          <label>
-            <input type="checkbox" checked={current.shake} onChange={() => toggle('shake')} />
-            {t('settings.shake')}
-          </label>
-          <label>
-            <input type="checkbox" checked={current.haptics} onChange={() => toggle('haptics')} />
-            {t('settings.haptics')}
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={current.butcherTaps}
-              data-testid="toggle-butcher-taps"
-              onChange={() => change({ ...current, butcherTaps: !current.butcherTaps })}
-            />
-            {t('settings.butcherTaps')}
-          </label>
-          <button
-            type="button"
-            class="settings-btn"
-            data-testid="btn-test-vibration"
-            onClick={() => setVibrationStatus(onTestVibration() ? 'sent' : 'unsupported')}
-          >
-            {t('settings.testVibration')}
-          </button>
-          {vibrationStatus !== 'idle' && (
-            <p class="settings-note" data-testid="vibration-status">
-              {t(vibrationStatus === 'sent' ? 'settings.vibrationSent' : 'settings.vibrationUnsupported')}
-            </p>
-          )}
-          <div class="settings-row">
-            <span>{t('settings.buttonsSide')}</span>
-            <div class="segmented" role="radiogroup">
-              {(['left', 'right'] as const).map((side) => (
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={current.buttonsSide === side}
-                  class={current.buttonsSide === side ? 'on' : ''}
-                  data-testid={`side-${side}`}
-                  onClick={() => change({ ...current, buttonsSide: side })}
-                >
-                  {t(`settings.side.${side}`)}
-                </button>
-              ))}
+      {state.paused && (
+        <div class="pause-backdrop" data-testid="pause-menu" onPointerDown={(e) => e.stopPropagation()}>
+          <div class="settings" role="dialog" aria-label={t('hud.pause')} data-testid="settings">
+            <h2 class="pause-title">{t('hud.pause')}</h2>
+            <button
+              type="button"
+              class="resume-btn"
+              data-testid="btn-resume"
+              onClick={() => setPaused(false)}
+            >
+              {t('hud.resume')}
+            </button>
+            <h3 class="settings-title">{t('hud.settings')}</h3>
+            <label>
+              <input type="checkbox" checked={current.shake} onChange={() => toggle('shake')} />
+              {t('settings.shake')}
+            </label>
+            <label>
+              <input type="checkbox" checked={current.haptics} onChange={() => toggle('haptics')} />
+              {t('settings.haptics')}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={current.butcherTaps}
+                data-testid="toggle-butcher-taps"
+                onChange={() => change({ ...current, butcherTaps: !current.butcherTaps })}
+              />
+              {t('settings.butcherTaps')}
+            </label>
+            <button
+              type="button"
+              class="settings-btn"
+              data-testid="btn-test-vibration"
+              onClick={() => setVibrationStatus(onTestVibration() ? 'sent' : 'unsupported')}
+            >
+              {t('settings.testVibration')}
+            </button>
+            {vibrationStatus !== 'idle' && (
+              <p class="settings-note" data-testid="vibration-status">
+                {t(vibrationStatus === 'sent' ? 'settings.vibrationSent' : 'settings.vibrationUnsupported')}
+              </p>
+            )}
+            <div class="settings-row">
+              <span>{t('settings.buttonsSide')}</span>
+              <div class="segmented" role="radiogroup">
+                {(['left', 'right'] as const).map((side) => (
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={current.buttonsSide === side}
+                    class={current.buttonsSide === side ? 'on' : ''}
+                    data-testid={`side-${side}`}
+                    onClick={() => change({ ...current, buttonsSide: side })}
+                  >
+                    {t(`settings.side.${side}`)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -18,6 +18,7 @@ import type { MonsterDef } from '@content/schemas';
 import { createToonMaterial } from '../materials/toon';
 import { addOutline } from '../outline';
 import { createBlobShadow } from './blobShadow';
+import { Legs } from './legs';
 import { easeOut, type Rig } from './pose';
 
 /**
@@ -297,17 +298,27 @@ function bonegnaw(def: MonsterDef): Rig {
   );
   jaw.name = 'bonegnaw-mandibles';
   mandibles.add(jaw);
-  const legs = new Mesh(
-    merge([
-      ...pair(() => new CapsuleGeometry(0.02, 0.18, 3, 6), 0.22, 0.08, 0.14, 0, 1.1),
-      ...pair(() => new CapsuleGeometry(0.02, 0.18, 3, 6), 0.24, 0.08, -0.02, 0, 1.2),
-      ...pair(() => new CapsuleGeometry(0.02, 0.18, 3, 6), 0.22, 0.08, -0.18, 0, 1.1),
-    ]),
+  // Six legs from the sides of the shell, bent down to the floor; a tripod gait (front and back of one side with
+  // the middle of the other) like a real beetle.
+  const yaws = [-0.5, Math.PI + 0.5, 0, Math.PI, 0.5, Math.PI - 0.5];
+  const legs = new Legs(
+    placed(new CapsuleGeometry(0.02, 0.18, 3, 6), 0.1, -0.03, 0, 0, 0, Math.PI / 2 - 0.4),
     shell,
+    [
+      [0.14, 0.12, 0.14],
+      [-0.14, 0.12, 0.14],
+      [0.16, 0.12, -0.02],
+      [-0.16, 0.12, -0.02],
+      [0.14, 0.12, -0.18],
+      [-0.14, 0.12, -0.18],
+    ],
+    [0, Math.PI, Math.PI, 0, 0, Math.PI],
+    0.45,
+    { yaws, lift: 0.5 },
   );
-  legs.name = 'bonegnaw-legs';
+  legs.mesh.name = 'bonegnaw-legs';
   const eyes = new Mesh(merge(pair(() => new SphereGeometry(0.025, 8, 6), 0.07, 0.25, 0.36)), bone);
-  body.add(carapace, mandibles, legs, eyes);
+  body.add(carapace, mandibles, legs.mesh, eyes);
   root.add(createBlobShadow(0.3));
 
   let t = 0;
@@ -317,7 +328,7 @@ function bonegnaw(def: MonsterDef): Rig {
     update(dt, speed01, pose) {
       t += dt;
       body.position.y = Math.abs(Math.sin(t * 22)) * 0.02 * speed01;
-      legs.rotation.y = Math.sin(t * 22) * 0.12 * speed01;
+      legs.update(dt, speed01, 0, 16);
       // Chomping: fast while eating, snapping in the attack windup.
       const chomp = pose.eating ? Math.abs(Math.sin(t * 14)) : pose.phase === 'windup' ? pose.t01 : 0.2;
       mandibles.scale.set(1 + chomp * 0.6, 1, 1);

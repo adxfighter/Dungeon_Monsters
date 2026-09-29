@@ -147,10 +147,63 @@
   order: 2;
 }
 
-.settings {
+/* Pause menu: dims the frozen fight; the ⏸/▶ button in the top bar stays above it. */
+.pause-backdrop {
   position: absolute;
-  top: 58px;
-  right: 12px;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(16 12 16 / 55%);
+  pointer-events: auto;
+}
+
+/* Only while paused: the ⏸/▶ button stays above the dimmed backdrop (other screens still cover the bar). */
+.hud-top.paused {
+  z-index: 2;
+}
+
+/* Opaque card: nothing of the screen below (e.g. the difficulty picker) shows through. */
+.pause-backdrop .settings {
+  background: #2a2128;
+}
+
+.pause-title {
+  margin: 0;
+  text-align: center;
+  font:
+    800 24px/1.2 system-ui,
+    sans-serif;
+}
+
+.settings-title {
+  margin: 6px 0 0;
+  font:
+    700 15px/1.2 system-ui,
+    sans-serif;
+  color: #d9c8a8;
+}
+
+.resume-btn {
+  min-height: 56px;
+  border: 2px solid #1a1414;
+  border-radius: 12px;
+  background: #f2c14e;
+  color: #1a1414;
+  font:
+    800 18px/1 system-ui,
+    sans-serif;
+}
+
+.gear:disabled {
+  opacity: 0.45;
+}
+
+.settings {
+  width: min(100%, 340px);
+  max-height: 100%;
+  overflow-y: auto;
   display: grid;
   gap: 10px;
   padding: 12px 14px;

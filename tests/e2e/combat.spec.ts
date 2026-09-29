@@ -55,7 +55,7 @@ test('HUD shows hero HP, wave counter and Russian action buttons', async ({ page
   await expect(page.getByTestId('btn-dodge')).toHaveText('Рывок');
   const attack = await page.getByTestId('btn-attack').boundingBox();
   expect(attack?.width).toBeGreaterThanOrEqual(64); // ≥ 64 dp touch target
-  const gear = await page.getByTestId('btn-settings').boundingBox();
+  const gear = await page.getByTestId('btn-pause').boundingBox();
   expect(gear?.width).toBeGreaterThanOrEqual(48); // ≥ 48 dp
   expect(gear?.height).toBeGreaterThanOrEqual(48);
   const bag = await page.getByTestId('btn-backpack').boundingBox();
@@ -149,9 +149,9 @@ test('a killed monster leaves a carcass: Butcher puts its parts in the backpack 
 
 test('simplified butchery: tap the dots; a miss costs a star but does not skip a dot', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
-  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-pause').click();
   await page.getByTestId('toggle-butcher-taps').check();
-  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-pause').click();
   await page.evaluate(() => {
     window.__debug?.setHeroHp(100000);
     window.__debug?.spawnMonster('yak', 6.5, 6.1);
@@ -275,7 +275,7 @@ test('enemies show HP bars and hits pop damage numbers', async ({ page }) => {
 });
 
 test('settings toggle shake and vibration and persist across reloads', async ({ page }) => {
-  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-pause').click();
   const panel = page.getByTestId('settings');
   await expect(panel).toContainText('Тряска камеры');
   const shake = panel.getByRole('checkbox').first();
@@ -283,7 +283,7 @@ test('settings toggle shake and vibration and persist across reloads', async ({ 
   await shake.click();
   await expect(shake).not.toBeChecked();
   await startArena(page);
-  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-pause').click();
   await expect(page.getByTestId('settings').getByRole('checkbox').first()).not.toBeChecked();
 });
 
@@ -296,7 +296,7 @@ test('action buttons: right by default, dodge above attack, side switch persists
   expect(dodge.y + dodge.height).toBeLessThanOrEqual(attack.y); // dodge stacked above
   expect(attack.width).toBeGreaterThan(dodge.width);
 
-  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-pause').click();
   await page.getByTestId('side-left').click();
   const moved = await page.getByTestId('btn-attack').boundingBox();
   expect((moved?.x ?? 0) + (moved?.width ?? 0) / 2).toBeLessThan(vw / 2);
@@ -305,8 +305,34 @@ test('action buttons: right by default, dodge above attack, side switch persists
   expect((after?.x ?? 0) + (after?.width ?? 0) / 2).toBeLessThan(vw / 2);
 });
 
+test('pause button freezes the fight; Resume and the button itself continue it', async ({ page }) => {
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.spawnMonster('yak', 3, 3);
+  });
+  await page.getByTestId('btn-pause').click();
+  await expect(page.getByTestId('pause-menu')).toBeVisible();
+  await expect(page.getByTestId('pause-menu')).toContainText('Пауза');
+  await expect(page.getByTestId('btn-backpack')).toBeDisabled();
+  const frozen = await page.evaluate(() => window.__debug?.getTick());
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.__debug?.getTick())).toBe(frozen);
+  // Taps on the dimmed fight do not reach the game.
+  await page.mouse.click(195, 600);
+  expect(await page.evaluate(() => window.__debug?.getMoveTarget()?.active ?? false)).toBe(false);
+
+  await page.getByTestId('btn-resume').click();
+  await expect(page.getByTestId('pause-menu')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.__debug?.getTick() ?? 0)).toBeGreaterThan(frozen ?? 0);
+
+  await page.getByTestId('btn-pause').click();
+  await expect(page.getByTestId('pause-menu')).toBeVisible();
+  await page.getByTestId('btn-pause').click();
+  await expect(page.getByTestId('pause-menu')).toHaveCount(0);
+});
+
 test('the vibration test explains the result', async ({ page }) => {
-  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-pause').click();
   await page.getByTestId('btn-test-vibration').click();
   // Headless Chromium has the Vibration API, so the "sent" hint shows.
   await expect(page.getByTestId('vibration-status')).toBeVisible();

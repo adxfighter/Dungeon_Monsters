@@ -9,10 +9,8 @@ import {
   Euler,
   Float32BufferAttribute,
   Group,
-  InstancedMesh,
   Matrix4,
   Mesh,
-  Object3D,
   MeshBasicMaterial,
   SphereGeometry,
 } from 'three';
@@ -21,6 +19,7 @@ import type { HazardDef, MonsterDef } from '@content/schemas';
 import { createToonMaterial } from '../materials/toon';
 import { addOutline } from '../outline';
 import { createBlobShadow } from './blobShadow';
+import { Legs } from './legs';
 import { easeOut, type Rig } from './pose';
 
 /**
@@ -85,52 +84,6 @@ export function painted(): ReturnType<typeof createToonMaterial> {
   return m;
 }
 
-/**
- * Walking legs: one InstancedMesh (1 draw call) of a leg hanging down from its hip, each instance swung about X.
- * `phases` offsets the gait per leg (diagonal pairs for quadrupeds, opposite for bipeds).
- */
-class Legs {
-  readonly mesh: InstancedMesh;
-  private readonly dummy = new Object3D();
-  private clock = 0;
-  private readonly hips: readonly (readonly [number, number, number])[];
-  private readonly phases: readonly number[];
-  private readonly stride: number;
-
-  constructor(
-    geometry: BufferGeometry,
-    material: ReturnType<typeof createToonMaterial>,
-    hips: readonly (readonly [number, number, number])[],
-    phases: readonly number[],
-    stride: number,
-  ) {
-    this.hips = hips;
-    this.phases = phases;
-    this.stride = stride;
-    this.mesh = new InstancedMesh(geometry, material, hips.length);
-    this.mesh.frustumCulled = false; // instances move around their hips; the default bounds would clip them
-    this.update(0, 0, 0);
-  }
-
-  /** `speed01` drives the stride; `cadence` is steps per second at full speed; `bend` adds a pose-driven tilt. */
-  update(dt: number, speed01: number, bend: number, cadence = 7): void {
-    const move = Math.min(2, speed01);
-    this.clock += dt * cadence * (0.3 + move);
-    for (let i = 0; i < this.hips.length; i++) {
-      const [x, y, z] = this.hips[i] ?? [0, 0, 0];
-      this.dummy.position.set(x, y, z);
-      this.dummy.rotation.set(
-        Math.sin(this.clock + (this.phases[i] ?? 0)) * this.stride * Math.min(1, move) + bend,
-        0,
-        0,
-      );
-      this.dummy.updateMatrix();
-      this.mesh.setMatrixAt(i, this.dummy.matrix);
-    }
-    this.mesh.instanceMatrix.needsUpdate = true;
-  }
-}
-
 const DARK = '#1a1414';
 const WHITE = '#f7f4ee';
 
@@ -153,8 +106,6 @@ function skunk(def: MonsterDef): Rig {
       ...both(() => new SphereGeometry(0.035, 8, 6), WHITE, 0.06, 0.33, 0.35),
       ...both(() => new SphereGeometry(0.02, 6, 4), DARK, 0.062, 0.335, 0.38),
       part(new SphereGeometry(0.03, 8, 6), '#f29aa0', 0, 0.28, 0.38),
-      ...both(() => new CapsuleGeometry(0.04, 0.08, 3, 6), fur, 0.1, 0.07, 0.12),
-      ...both(() => new CapsuleGeometry(0.04, 0.08, 3, 6), fur, 0.1, 0.07, -0.14),
     ]),
     mat,
   );
@@ -176,7 +127,21 @@ function skunk(def: MonsterDef): Rig {
   tailMesh.name = 'skunk-tail';
   addOutline(tailMesh, { thickness: 0.02 });
   tail.add(tailMesh);
-  body.add(torso, tail);
+  // Four short paws; diagonal pairs step together (a quick waddle).
+  const legs = new Legs(
+    part(new CapsuleGeometry(0.04, 0.08, 3, 6), fur, 0, -0.07, 0),
+    mat,
+    [
+      [0.1, 0.14, 0.12],
+      [-0.1, 0.14, 0.12],
+      [0.1, 0.14, -0.14],
+      [-0.1, 0.14, -0.14],
+    ],
+    [0, Math.PI, Math.PI, 0],
+    0.7,
+  );
+  legs.mesh.name = 'skunk-legs';
+  body.add(torso, tail, legs.mesh);
   root.add(createBlobShadow(0.34));
 
   /** The huge brush: larger than the body. */
@@ -189,6 +154,7 @@ function skunk(def: MonsterDef): Rig {
       t += dt;
       body.position.y = Math.abs(Math.sin(t * 12)) * 0.03 * speed01;
       body.rotation.z = 0;
+      legs.update(dt, speed01, 0, 12);
       tail.rotation.x = 0.1 + Math.sin(t * 2) * 0.06; // carried high over the back
       tail.rotation.z = Math.sin(t * 1.6) * 0.1;
       tail.scale.setScalar(TAIL);
@@ -436,17 +402,18 @@ function decapus(def: MonsterDef): Rig {
   );
   mantle.name = 'decapus-mantle';
   addOutline(mantle);
-  // Nine short legs spread on the floor (the tenth is the grabbing tentacle).
-  const legParts: BufferGeometry[] = [];
-  for (let i = 0; i < 9; i++) {
-    const a = Math.PI * 0.25 + (i / 8) * Math.PI * 1.5; // leave a gap at the front
-    const g = part(new CapsuleGeometry(0.05, 0.22, 4, 8), skin, 0, 0, 0.16, Math.PI / 2 - 0.25);
-    g.applyMatrix4(m4.makeRotationY(a + Math.PI));
-    g.translate(0, 0.1, 0);
-    legParts.push(g);
-  }
-  const legs = new Mesh(merge(legParts), mat);
-  legs.name = 'decapus-legs';
+  // Nine short tentacles spread on the floor (the tenth is the grabbing one), leaving a gap at the front. They
+  // crawl: a wave runs round the ring, each tentacle reaching forward, lifting its tip and pulling back.
+  const yaws = Array.from({ length: 9 }, (_, i) => -Math.PI * 0.25 + (i / 8) * Math.PI * 1.5);
+  const legs = new Legs(
+    part(new CapsuleGeometry(0.05, 0.22, 4, 8), skin, 0.16, -0.03, 0, 0, 0, Math.PI / 2 - 0.25),
+    mat,
+    yaws.map(() => [0, 0.12, 0] as const),
+    yaws.map((_, i) => (i / 9) * Math.PI * 4), // two waves round the ring
+    0.35,
+    { yaws, lift: 0.45 },
+  );
+  legs.mesh.name = 'decapus-legs';
   // The grabbing tentacle: pivots at the front of the mantle, stretches along +Z to the hero.
   const reach = new Group();
   reach.position.set(0, 0.2, 0.2);
@@ -459,7 +426,7 @@ function decapus(def: MonsterDef): Rig {
   );
   tentacle.name = 'decapus-tentacle';
   reach.add(tentacle);
-  body.add(mantle, legs, reach);
+  body.add(mantle, legs.mesh, reach);
   root.add(createBlobShadow(0.42));
 
   /** Tentacle geometry length (tip at z = 1). */
@@ -472,7 +439,7 @@ function decapus(def: MonsterDef): Rig {
     update(dt, speed01, pose) {
       t += dt;
       body.position.y = Math.sin(t * 3) * 0.02;
-      legs.rotation.y = Math.sin(t * (3 + 5 * speed01)) * 0.08;
+      legs.update(dt, speed01, 0, 8, 0.15); // a slow idle curl even when standing
       mantle.scale.set(1, 1, 1);
       let want = REST;
       reach.rotation.x = 0;

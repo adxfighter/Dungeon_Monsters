@@ -13,6 +13,19 @@ describe('HudStore', () => {
     expect(store.get()).toMatchObject({ hp: 7, maxHp: 10, status: 'playing' });
   });
 
+  it('pause opens and closes, notifying once per change', () => {
+    const store = new HudStore();
+    let calls = 0;
+    store.subscribe(() => calls++);
+    expect(store.get().paused).toBe(false);
+    store.setPaused(true);
+    store.setPaused(true);
+    expect(store.get().paused).toBe(true);
+    store.setPaused(false);
+    expect(store.get().paused).toBe(false);
+    expect(calls).toBe(2);
+  });
+
   it('unsubscribes', () => {
     const store = new HudStore();
     let calls = 0;

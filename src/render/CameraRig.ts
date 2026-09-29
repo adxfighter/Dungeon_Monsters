@@ -43,6 +43,9 @@ export class CameraRig {
   private shakeT = 0;
   private shakeDuration = 1;
   private shakeAmp = 0;
+  /** Current shake offset: re-rolled only when time advances, so a paused frame (dt = 0) stays still. */
+  private shakeX = 0;
+  private shakeY = 0;
   /** Player setting (M2: camera shake can be turned off). */
   shakeEnabled = true;
   /** Focus-to-screen-edge distances on the ground, tiles (set by setAspect). */
@@ -86,13 +89,18 @@ export class CameraRig {
     }
     this.camera.position.copy(this.focus).add(this.offset);
     this.camera.lookAt(this.focus);
-    if (this.shakeT > 0) {
-      this.shakeT = Math.max(0, this.shakeT - Math.max(0, dtSeconds));
+    if (this.shakeT > 0 && dtSeconds > 0) {
+      this.shakeT = Math.max(0, this.shakeT - dtSeconds);
       const a = this.shakeAmp * (this.shakeT / this.shakeDuration);
       // Render-only randomness (not core): jitter the camera without moving what it looks at.
-      this.camera.position.x += (Math.random() * 2 - 1) * a;
-      this.camera.position.y += (Math.random() * 2 - 1) * a * 0.5;
+      this.shakeX = (Math.random() * 2 - 1) * a;
+      this.shakeY = (Math.random() * 2 - 1) * a * 0.5;
+    } else if (this.shakeT <= 0) {
+      this.shakeX = 0;
+      this.shakeY = 0;
     }
+    this.camera.position.x += this.shakeX;
+    this.camera.position.y += this.shakeY;
     // lookAt refreshed the matrix before the shake offset: refresh again so world-anchored UI (HP bars,
     // damage numbers) projects with the same camera the scene renders with.
     this.camera.updateMatrixWorld();

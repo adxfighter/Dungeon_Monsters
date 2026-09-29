@@ -103,7 +103,7 @@
   Растения — `RoomTemplate.plants` → сущности `Gatherable`; команды `Game.gather` / `Game.discard` (`bagSystem`),
   селектор контекстной кнопки `Game.interaction` (butcher / gather / full); экран рюкзака ставит бой на паузу,
   выброс применяется `Game.applyCommands()` без шага симуляции.
-- Бестиарий (M3): `core/bestiary.ts` — данные `{seen, butchered}`, `recordBestiary(events)`, `bestKillElement`,
+- Бестиарий (M3): `core/bestiary.ts` — данные `{seen, butchered}`, `recordBestiary(events)`, `killAdvice` (лучший элемент и портящие),
   `weaknesses` (чистые функции); main записывает события шага и сохраняет через `platform/bestiaryStore`
   (`dm.bestiary.v1`), UI `ui/bestiary/BestiaryBook` — вкладка окна рюкзака. `ELEMENTS` — в `content/elements.ts`
   (без Zod, можно импортировать в рантайме). Оружие героини — `Arsenal`
@@ -119,6 +119,11 @@
   урона). Телеграфы — `render/fx/Telegraphs` читают `Attacker.current` (windup) и рисуют форму атаки на полу.
   HP-бары врагов и цифры — `ui/overlay/WorldOverlay` (пул DOM, позиционирование через проекцию из app, стиль
   пишется только при изменении). Настройки шейка/вибро — `platform/settings` (localStorage, до M7).
+- Пауза (M3): кнопка ⏸ → `HudStore.paused` (состояние UI, не core); main не шагает sim, а рендер получает `alpha = 1`,
+  `dt = 0` — анимация, интерполяция и тряска камеры замирают; накопленные нажатия сбрасываются при продолжении. Меню паузы содержит настройки.
+- Шагающие ноги — `render/models/legs.ts` (`Legs`, один InstancedMesh = 1 draw call): висячие ноги качаются вокруг X
+  (як, дино-страус, скунс); раскинутые (`spread`: жук, щупальца десятинога) поворачиваются по `yaw`, метут вперёд-назад
+  и поднимают кончик на выносе (треножник у жука, бегущая волна у щупалец). Амплитуда — от скорости.
 - Реализация (M1): `app/GameLoop.ts` (clamp кадра ≤ 0.25 с, пауза по `visibilitychange` и потере WebGL-контекста),
   `core/Game.ts` (`step(input, dt)`: snapshot → playerInput → navigation → steeringMovement → physics), `render/EntityViews.ts` (интерполяция
   `PrevTransform → Transform` по `alpha`, вью создаются по `EntitySpawned/Despawned`). Ввод сэмплируется на каждом

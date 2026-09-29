@@ -99,4 +99,11 @@ describe('InputController', () => {
     expect(input.sample(state)).toBe(state);
     expect(state.move).toBe(move);
   });
+
+  it('clearPending drops presses queued during a pause', () => {
+    const input = new InputController();
+    input.pressButton(Buttons.Attack);
+    input.clearPending();
+    expect(input.sample(createInputState()).buttons).toBe(0);
+  });
 });
