@@ -104,6 +104,7 @@ test('dragging moves the target with the finger', async ({ page }) => {
   const tx = target?.x ?? 0;
   const ty = target?.y ?? 0;
   expect(tx - from.x).toBeGreaterThan(0.5);
+  expect(tx).toBeLessThan(to.x + 0.5); // the hold re-aim may push it a little past `to`, never to the wall
   expect(Math.abs(ty - to.y)).toBeLessThan(0.3);
   const hero = await playerPos(page);
   expect(Math.hypot(hero.x - tx, hero.y - ty)).toBeLessThan(0.25);
