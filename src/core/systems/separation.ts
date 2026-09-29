@@ -1,4 +1,4 @@
-import { Collider, Health, Projectile, Transform } from '../components';
+import { Brain, Collider, Health, Projectile, Transform } from '../components';
 import type { TileMap } from '../dungeon/TileMap';
 import type { World } from '../ecs/World';
 import { resolveCircleVsTiles } from './collision';
@@ -13,12 +13,13 @@ export function separationSystem(world: World, map: TileMap): void {
   const bodies = world.query(Transform, Collider, Health);
   for (let i = 0; i < bodies.length; i++) {
     const a = bodies[i] as number;
-    if (world.has(a, Projectile) || world.require(a, Health).hp <= 0) continue;
+    if (world.has(a, Projectile) || world.require(a, Health).hp <= 0 || world.get(a, Brain)?.hidden) continue;
     const ta = world.require(a, Transform);
     const ra = world.require(a, Collider).radius;
     for (let j = i + 1; j < bodies.length; j++) {
       const b = bodies[j] as number;
-      if (world.has(b, Projectile) || world.require(b, Health).hp <= 0) continue;
+      if (world.has(b, Projectile) || world.require(b, Health).hp <= 0 || world.get(b, Brain)?.hidden)
+        continue;
       const tb = world.require(b, Transform);
       const rb = world.require(b, Collider).radius;
       const dx = tb.x - ta.x;

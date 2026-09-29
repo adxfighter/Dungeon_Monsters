@@ -38,5 +38,7 @@ export type GameEvent =
       y: number;
     }
   | { type: 'HeroDefeated'; entity: Entity }
+  /** A scavenger ate a carcass (its loot is gone). */
+  | { type: 'CarrionEaten'; carrion: Entity; by: Entity }
   | { type: 'WaveStarted'; index: number; total: number }
   | { type: 'ArenaCleared' };

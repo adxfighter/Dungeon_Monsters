@@ -4,6 +4,7 @@ import { Buttons, type InputState } from '@shared/input';
 import {
   Attacker,
   Brain,
+  Carrion,
   Collider,
   Dodge,
   ForcedVelocity,
@@ -137,7 +138,7 @@ function autoAim(world: World, e: Entity, fx: number, fy: number, out: { x: numb
   let best = Infinity;
   for (const other of world.query(Team, Health, Transform)) {
     if (other === e || world.require(other, Team).side === side) continue;
-    if (world.require(other, Health).hp <= 0) continue;
+    if (world.require(other, Health).hp <= 0 || world.get(other, Brain)?.hidden) continue;
     const o = world.require(other, Transform);
     const dx = o.x - t.x;
     const dy = o.y - t.y;
@@ -328,6 +329,8 @@ function applyHit(
   const t = world.get(target, Transform);
   if (!h || !t || h.hp <= 0) return false;
   if (h.iFrames > 0) return false;
+  // Submerged ambushers are out of reach.
+  if (world.get(target, Brain)?.hidden) return false;
 
   const facing = facingCos(t.rot, t.x, t.y, sourceX, sourceY);
   const brain = world.get(target, Brain);
@@ -411,6 +414,7 @@ export function meleeHitSystem(ctx: CombatContext): void {
     const atk = world.get(e, Stats)?.atk ?? 0;
     for (const other of targets) {
       if (other === e || world.require(other, Team).side === side || cur.hit.includes(other)) continue;
+      if (world.get(other, Brain)?.hidden) continue;
       const o = world.require(other, Transform);
       const r = world.require(other, Collider).radius;
       if (!shapeHitsCircle(cur.def.shape, t.x, t.y, cur.dirX, cur.dirY, o.x, o.y, r)) continue;
@@ -443,7 +447,7 @@ export function projectileSystem(ctx: CombatContext, dt: number): void {
       continue;
     }
     for (const other of targets) {
-      if (world.require(other, Team).side === p.side) continue;
+      if (world.require(other, Team).side === p.side || world.get(other, Brain)?.hidden) continue;
       const o = world.require(other, Transform);
       const rr = r + world.require(other, Collider).radius;
       if ((o.x - t.x) ** 2 + (o.y - t.y) ** 2 > rr * rr) continue;
@@ -456,7 +460,27 @@ export function projectileSystem(ctx: CombatContext, dt: number): void {
   }
 }
 
-/** HP ≤ 0: monsters die (MonsterKilled, removed), the hero is defeated. */
+/** Leaves a carcass where a monster died (scavengers eat it; M3 butchery will use it). */
+function spawnCarrion(ctx: CombatContext, monsterId: string, x: number, y: number): void {
+  const { world } = ctx;
+  const e = world.create();
+  world.add(e, Transform, { x, y, rot: 0 });
+  world.add(e, PrevTransform, { x, y, rot: 0 });
+  world.add(e, Carrion, { monsterId, ttl: BALANCE.carrionTtl });
+  world.add(e, Kind, { kind: 'carrion', defId: monsterId });
+  ctx.events.push({ type: 'EntitySpawned', entity: e, kind: 'carrion', defId: monsterId });
+}
+
+/** Carcasses rot away after BALANCE.carrionTtl. */
+export function carrionSystem(ctx: CombatContext, dt: number): void {
+  for (const e of ctx.world.query(Carrion)) {
+    const c = ctx.world.require(e, Carrion);
+    c.ttl -= dt;
+    if (c.ttl <= 0) ctx.doomed.add(e);
+  }
+}
+
+/** HP ≤ 0: monsters die (MonsterKilled, removed, carcass left), the hero is defeated. */
 export function deathSystem(ctx: CombatContext): boolean {
   const { world } = ctx;
   let heroDefeated = false;
@@ -477,6 +501,7 @@ export function deathSystem(ctx: CombatContext): boolean {
         y: t.y,
       });
       ctx.doomed.add(e);
+      spawnCarrion(ctx, brain.def.id, t.x, t.y);
     } else if (world.has(e, PlayerControlled)) {
       heroDefeated = true;
       ctx.events.push({ type: 'HeroDefeated', entity: e });

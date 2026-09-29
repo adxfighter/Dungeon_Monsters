@@ -23,6 +23,8 @@ export const BALANCE = {
   staggerTime: 0.45,
   /** Poise regenerates fully after this many seconds without poise damage. */
   poiseResetTime: 2,
+  /** Seconds a carcass stays on the floor (scavengers eat it; M3 butchers it). */
+  carrionTtl: 25,
   /** Monster AI tuning shared by all monsters (per-monster numbers live in MonsterDef.ai). */
   ai: {
     /** Chasers stop closing in at this fraction of their attack range. */

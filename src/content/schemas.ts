@@ -145,6 +145,24 @@ export const MonsterSchema = z.object({
     /** Keep at least this far from the target (ranged monsters); 0 = close in. */
     keepDistance: z.number().nonnegative(),
   }),
+  /** Hopping gait (toad-like): moves only during `hopTime` of every `interval` seconds, at `speedMult` × speed. */
+  locomotion: z
+    .object({
+      kind: z.literal('hop'),
+      interval: z.number().positive(),
+      hopTime: z.number().positive(),
+      speedMult: z.number().positive(),
+    })
+    .optional(),
+  /**
+   * Ambusher: swims submerged (untargetable, only a ripple shows) while it closes in, surfaces within
+   * `emergeRange` to attack, then stays exposed and still for `exposedTime` before diving again.
+   */
+  ambush: z.object({ emergeRange: Tiles, exposedTime: z.number().positive() }).optional(),
+  /** Scavenger: walks to the nearest carcass within `seekRange`, eats it for `eatTime` s and heals `heal` × max HP. */
+  scavenger: z
+    .object({ seekRange: Tiles, eatTime: z.number().positive(), heal: z.number().nonnegative().max(1) })
+    .optional(),
   attacks: z.array(AttackSchema).min(1),
   /** Ingredient drops — placeholder until M3. */
   drops: z.array(z.string()),

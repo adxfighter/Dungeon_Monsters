@@ -34,6 +34,7 @@ import type { GameEvent } from './state/events';
 import { aiSystem } from './systems/ai';
 import {
   actionSystem,
+  carrionSystem,
   combatTimersSystem,
   deathSystem,
   heroCombatInputSystem,
@@ -169,7 +170,7 @@ export class Game {
     combatTimersSystem(world, dt);
     playerInputSystem(world, map, input);
     heroCombatInputSystem(world, input);
-    aiSystem(world, map, ctx.rng, dt);
+    aiSystem(ctx, dt);
     navigationSystem(world, dt);
     actionSystem(ctx, dt);
     steeringMovementSystem(world, dt);
@@ -177,6 +178,7 @@ export class Game {
     separationSystem(world, map);
     projectileSystem(ctx, dt);
     meleeHitSystem(ctx);
+    carrionSystem(ctx, dt);
     if (deathSystem(ctx)) this.statusValue = 'defeated';
     this.flushDoomed();
     this.updateWaves(dt);
@@ -213,7 +215,9 @@ export class Game {
     world.add(e, Steering, { x: 0, y: 0 });
     world.add(e, ForcedVelocity, { active: false, x: 0, y: 0 });
     world.add(e, Collider, { radius: def.radius });
-    world.add(e, MoveStats, { ...def.movement });
+    // Hoppers cover ground in bursts: faster while airborne, still in between (aiSystem gates the steering).
+    const hop = def.locomotion?.speedMult ?? 1;
+    world.add(e, MoveStats, { ...def.movement, speed: def.movement.speed * hop });
     world.add(e, Team, { side: 'monster' });
     const mod = this.modifiers;
     const over = this.overrides[def.id] ?? {};
@@ -254,6 +258,9 @@ export class Game {
       attackCooldown: baseCooldown * mod.attackCooldown,
       // Later attacks: def.ai.attackCooldown × cooldownMult — fold the override in so both paths agree.
       cooldownMult: (baseCooldown / def.ai.attackCooldown) * mod.attackCooldown,
+      hidden: def.ambush !== undefined,
+      hopClock: 0,
+      carrion: -1,
       guardCooldown: 0,
     });
     world.add(e, Kind, { kind: 'monster', defId: def.id });
