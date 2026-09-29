@@ -46,11 +46,6 @@
   stroke-width: 1.5;
 }
 
-.carcass {
-  stroke: #1a1414;
-  stroke-width: 1.2;
-}
-
 .cut path {
   fill: none;
   stroke-linecap: round;
@@ -91,6 +86,12 @@
 
 .dot.hit {
   fill: #f2c14e;
+}
+
+.dot.miss {
+  fill: #ff5d5d;
+  stroke: none;
+  opacity: 0.8;
 }
 
 .stroke {

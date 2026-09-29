@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scoreSwipe, scoreTaps, type BoardPoint } from './cut';
+import { scoreSwipe, tapStart, tapStep, type BoardPoint } from './cut';
 
 const line: BoardPoint[] = [
   [0.2, 0.5],
@@ -47,21 +47,28 @@ describe('scoreSwipe', () => {
   });
 });
 
-describe('scoreTaps (simplified mode)', () => {
-  it('all dots in order → ★3; half → ★2; misses → ★1', () => {
-    expect(scoreTaps(line, line)).toBe(3);
-    expect(scoreTaps(line, [line[0] as BoardPoint, line[1] as BoardPoint, [0.1, 0.1]])).toBe(2);
+describe('tapStep (simplified mode)', () => {
+  const run = (taps: BoardPoint[]) => taps.reduce((p, t) => tapStep(line, p, t), tapStart());
+
+  it('all dots in order without a miss → ★3; a miss in between → ★2 (it does not skip the dot)', () => {
+    expect(run([...line])).toMatchObject({ done: true, stars: 3 });
+    const withMiss = run([line[0] as BoardPoint, [0.5, 0.9], line[1] as BoardPoint, line[2] as BoardPoint]);
+    expect(withMiss).toMatchObject({ done: true, stars: 2, misses: 1 });
+  });
+
+  it('a miss does not count as the next dot', () => {
+    const p = run([line[0] as BoardPoint, [0.5, 0.9]]);
+    expect(p).toMatchObject({ next: 1, misses: 1, done: false });
+  });
+
+  it('too many misses end the line at ★1; dots out of order are misses', () => {
     expect(
-      scoreTaps(line, [
+      run([
         [0.9, 0.9],
         [0.9, 0.9],
         [0.9, 0.9],
       ]),
-    ).toBe(1);
-  });
-
-  it('dots must be tapped in order', () => {
-    const backwards = [...line].reverse();
-    expect(scoreTaps(line, backwards)).toBe(1);
+    ).toMatchObject({ done: true, stars: 1 });
+    expect(run([...line].reverse())).toMatchObject({ next: 1, misses: 2, done: false });
   });
 });

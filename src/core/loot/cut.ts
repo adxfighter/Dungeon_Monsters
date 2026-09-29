@@ -75,17 +75,31 @@ export function scoreSwipe(
   return { accuracy, coverage, stars };
 }
 
+/** Progress of the simplified (tap) mode on one line. */
+export interface TapProgress {
+  /** Dots hit so far (the next one to tap is `line[next]`). */
+  next: number;
+  misses: number;
+  /** All dots hit, or too many misses. */
+  done: boolean;
+  stars: Stars;
+}
+
+export const tapStart = (): TapProgress => ({ next: 0, misses: 0, done: false, stars: 1 });
+
 /**
- * Simplified (accessibility) mode: tap the dots of the line in order. A tap within `BALANCE.butchery.tapRadius`
- * of the next dot counts; the share of dots hit sets the stars (all dots → ★3, at least half → ★2).
+ * Simplified (accessibility) mode: tap the dots of the line in order. Only a tap within
+ * `BALANCE.butchery.tapRadius` of the NEXT dot counts; anything else is a miss (you can keep going). The line is
+ * done when every dot is hit — ★3 without misses, ★2 with up to `tapMisses` — or after more misses than that (★1).
  */
-export function scoreTaps(line: readonly BoardPoint[], taps: readonly BoardPoint[]): Stars {
-  const r = BALANCE.butchery.tapRadius;
-  let next = 0;
-  for (const tap of taps) {
-    const dot = line[next];
-    if (dot && Math.hypot(tap[0] - dot[0], tap[1] - dot[1]) <= r) next++;
-  }
-  const share = line.length > 0 ? next / line.length : 0;
-  return share >= 1 ? 3 : share >= 0.5 ? 2 : 1;
+export function tapStep(line: readonly BoardPoint[], p: TapProgress, tap: BoardPoint): TapProgress {
+  if (p.done) return p;
+  const b = BALANCE.butchery;
+  const dot = line[p.next];
+  const hit = dot !== undefined && Math.hypot(tap[0] - dot[0], tap[1] - dot[1]) <= b.tapRadius;
+  const next = hit ? p.next + 1 : p.next;
+  const misses = hit ? p.misses : p.misses + 1;
+  if (misses > b.tapMisses) return { next, misses, done: true, stars: 1 };
+  if (next >= line.length) return { next, misses, done: true, stars: misses === 0 ? 3 : 2 };
+  return { next, misses, done: false, stars: 1 };
 }

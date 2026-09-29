@@ -42,6 +42,8 @@ export const BALANCE = {
     slowStroke: 1.5,
     /** Simplified mode: a tap this close to the next dot counts. */
     tapRadius: 0.09,
+    /** Simplified mode: misses allowed on one line (★2); one more ends it at ★1. */
+    tapMisses: 2,
   },
   /** The hero's backpack limits (M3). */
   backpack: { maxWeight: 30, maxSlots: 12 },

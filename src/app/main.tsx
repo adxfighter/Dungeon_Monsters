@@ -221,6 +221,7 @@ function start(): void {
       parts,
       body: def.appearance.body,
       accent: def.appearance.accent,
+      shape: def.appearance.carcass,
       taps: settings.butcherTaps,
       onDone(cuts, skipped) {
         hud.setButchery(null);

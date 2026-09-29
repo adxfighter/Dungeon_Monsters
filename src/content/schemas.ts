@@ -212,7 +212,12 @@ export const MonsterSchema = z.object({
   bestiaryKey: z.string().min(1),
   radius: z.number().positive().max(0.45),
   /** Placeholder look until procedural models (render/models/monsters). */
-  appearance: z.object({ body: HexColor, accent: HexColor }),
+  appearance: z.object({
+    body: HexColor,
+    accent: HexColor,
+    /** Silhouette on the butchery board (M3). */
+    carcass: z.enum(['round', 'eel', 'quadruped', 'biped', 'bug', 'octopus']),
+  }),
   stats: CombatStatsSchema,
   movement: MovementSchema,
   /** Damage multiplier per element (default 1): > 1 weak, < 1 resistant, 0 immune. */

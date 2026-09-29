@@ -87,7 +87,7 @@ export function lootSystem(
       const t = world.require(hero, Transform);
       const ct = world.get(c, Transform);
       // The mini-game pauses the fight, but check reach anyway: a stale command must not loot from afar.
-      if (!ct || Math.hypot(ct.x - t.x, ct.y - t.y) > BALANCE.loot.reach + 0.05) continue;
+      if (!ct || Math.hypot(ct.x - t.x, ct.y - t.y) > BALANCE.loot.reach) continue;
       const carrion = world.require(c, Carrion);
       const def = catalog.monsters[carrion.monsterId];
       const bag = world.require(hero, Backpack);

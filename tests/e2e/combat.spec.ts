@@ -145,6 +145,40 @@ test('a killed monster leaves a carcass: Butcher puts its parts in the backpack 
   await expect(butcher).toHaveCount(0);
 });
 
+test('simplified butchery: tap the dots; a miss costs a star but does not skip a dot', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('toggle-butcher-taps').check();
+  await page.getByTestId('btn-settings').click();
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.spawnMonster('yak', 6.5, 6.1);
+    window.__debug?.killMonsters();
+  });
+  await expect(page.getByTestId('btn-butcher')).toBeVisible({ timeout: 5000 });
+  await tapElement(cdp, page, 'btn-butcher');
+  const board = page.getByTestId('butchery-board');
+  const tapAt = async (x: number, y: number) => {
+    const box = await board.boundingBox();
+    if (!box) throw new Error('no board');
+    const at = { x: box.x + x * box.width, y: box.y + y * box.height, id: 1 };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  for (let part = 0; part < 2; part++) {
+    const line = JSON.parse((await board.getAttribute('data-line')) ?? '[]') as [number, number][];
+    for (let i = 0; i < line.length; i++) {
+      const [x, y] = line[i] as [number, number];
+      if (part === 0 && i === 1) await tapAt(0.95, 0.95); // one miss on the first part
+      await tapAt(x, y);
+    }
+  }
+  const toasts = page.getByTestId('loot-toasts');
+  await expect(toasts).toContainText('Стейк яка ★★', { timeout: 5000 });
+  await expect(toasts).not.toContainText('Стейк яка ★★★');
+  await expect(toasts).toContainText('Жир с горба яка ★★★');
+});
+
 test('skipping the butchery gives ★1 for everything', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
   await page.evaluate(() => {
