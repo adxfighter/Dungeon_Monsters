@@ -114,3 +114,10 @@ test('action buttons: left by default, dodge above attack, side switch persists'
   const after = await page.getByTestId('btn-attack').boundingBox();
   expect((after?.x ?? 0) + (after?.width ?? 0) / 2).toBeGreaterThan(vw / 2);
 });
+
+test('the vibration test explains the result', async ({ page }) => {
+  await page.getByTestId('btn-settings').click();
+  await page.getByTestId('btn-test-vibration').click();
+  // Headless Chromium has the Vibration API, so the "sent" hint shows.
+  await expect(page.getByTestId('vibration-status')).toBeVisible();
+});

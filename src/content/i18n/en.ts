@@ -16,6 +16,8 @@ export const en: Locale = {
   'settings.shake': 'Camera shake',
   'settings.haptics': 'Vibration',
   'settings.testVibration': 'Test vibration',
+  'settings.vibrationSent': 'Signal sent. No buzz? Check the phone vibration settings.',
+  'settings.vibrationUnsupported': 'This browser does not support vibration.',
   'settings.buttonsSide': 'Buttons',
   'settings.side.left': 'Left',
   'settings.side.right': 'Right',

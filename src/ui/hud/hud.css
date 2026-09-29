@@ -207,3 +207,10 @@
   background: #f2c14e;
   color: #1a1414;
 }
+
+.settings-note {
+  margin: 0;
+  max-width: 24ch;
+  font-size: 13px;
+  color: #d8cfe0;
+}

@@ -22,8 +22,8 @@ export const FEEL = {
   /** Longer freeze for crits, staggers and kills. */
   heavyHitStop: 0.09,
   /**
-   * Camera shake: [amplitude tiles, duration s]. The camera sits ~20 tiles away with a narrow lens, so
-   * sub-0.1 amplitudes were invisible on a phone (playtest 2026-09-29).
+   * Camera shake: [amplitude tiles, duration s]. The shake is a parallel camera shift, so on screen it is
+   * amplitude × (px per tile): 0.04 tile ≈ 4 px on a 390 px phone — invisible (playtest 2026-09-29).
    */
   shakeDealt: [0.1, 0.14],
   shakeHeavy: [0.18, 0.2],

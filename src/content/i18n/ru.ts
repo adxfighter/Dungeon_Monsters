@@ -17,6 +17,8 @@ export const ru: Locale = {
   'settings.shake': 'Тряска камеры',
   'settings.haptics': 'Вибрация',
   'settings.testVibration': 'Проверить вибрацию',
+  'settings.vibrationSent': 'Сигнал отправлен. Нет вибрации — проверьте настройки вибрации телефона.',
+  'settings.vibrationUnsupported': 'Этот браузер не поддерживает вибрацию.',
   'settings.buttonsSide': 'Кнопки',
   'settings.side.left': 'Слева',
   'settings.side.right': 'Справа',

@@ -13,17 +13,19 @@ interface Props {
   settings: Settings;
   onSettingsChange(settings: Settings): void;
   /** Fires a long vibration right away, inside the tap (satisfies the browser's user-activation rule). */
-  onTestVibration(): void;
+  /** Returns false when the browser has no Vibration API or refused the call. */
+  onTestVibration(): boolean;
 }
 
 /**
- * Combat HUD: hero HP bar, action buttons (bottom right, ≥ 64 dp, above the tap layer) and the
+ * Combat HUD: hero HP bar, action buttons (bottom, left or right per settings, ≥ 64 dp, above the tap layer) and the
  * end-of-fight screens. Buttons stop propagation so they never also send a move tap.
  */
 export function Hud({ input, hud, t, onRestart, settings, onSettingsChange, onTestVibration }: Props) {
   const state = useHud(hud);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
+  const [vibrationStatus, setVibrationStatus] = useState<'idle' | 'sent' | 'unsupported'>('idle');
   const change = (next: Settings) => {
     setCurrent(next);
     onSettingsChange(next);
@@ -102,10 +104,15 @@ export function Hud({ input, hud, t, onRestart, settings, onSettingsChange, onTe
             type="button"
             class="settings-btn"
             data-testid="btn-test-vibration"
-            onClick={onTestVibration}
+            onClick={() => setVibrationStatus(onTestVibration() ? 'sent' : 'unsupported')}
           >
             {t('settings.testVibration')}
           </button>
+          {vibrationStatus !== 'idle' && (
+            <p class="settings-note" data-testid="vibration-status">
+              {t(vibrationStatus === 'sent' ? 'settings.vibrationSent' : 'settings.vibrationUnsupported')}
+            </p>
+          )}
           <div class="settings-row">
             <span>{t('settings.buttonsSide')}</span>
             <div class="segmented" role="radiogroup">

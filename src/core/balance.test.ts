@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { tavi } from '@content/characters/tavi';
 import { monsters } from '@content/index';
 import { arenaTest } from '@content/rooms/arena_test';
@@ -103,19 +103,24 @@ const describeRuns = (label: string, runs: BotResult[]): string =>
  * Standing and trading hits must lose; reading telegraphs and dodging must be able to win.
  */
 describe('arena difficulty (balance sanity)', () => {
-  const faceTank = SEEDS.map((s) => runBot(s, false));
-  const dodger = SEEDS.map((s) => runBot(s, true));
+  let faceTank: BotResult[] = [];
+  let dodger: BotResult[] = [];
+  beforeAll(() => {
+    faceTank = SEEDS.map((s) => runBot(s, false));
+    dodger = SEEDS.map((s) => runBot(s, true));
+  });
 
+  // The run table is printed only when an assertion fails (as the expect message) — handy when tuning.
   it('a bot that never dodges loses in most runs, but not in the first wave', () => {
-    console.log(describeRuns('face-tank:', faceTank));
+    const report = describeRuns('face-tank:', faceTank);
     const losses = faceTank.filter((r) => r.status === 'defeated').length;
-    expect(losses).toBeGreaterThanOrEqual(SEEDS.length - 1);
-    for (const r of faceTank) expect(r.wave).toBeGreaterThanOrEqual(2);
+    expect(losses, report).toBeGreaterThanOrEqual(SEEDS.length - 1);
+    for (const r of faceTank) expect(r.wave, report).toBeGreaterThanOrEqual(2);
   });
 
   it('a bot that dodges telegraphed attacks clears the arena in most runs', () => {
-    console.log(describeRuns('dodger:', dodger));
+    const report = describeRuns('dodger:', dodger);
     const wins = dodger.filter((r) => r.status === 'cleared').length;
-    expect(wins).toBeGreaterThanOrEqual(Math.ceil(SEEDS.length * 0.6));
+    expect(wins, report).toBeGreaterThanOrEqual(Math.ceil(SEEDS.length * 0.6));
   });
 });

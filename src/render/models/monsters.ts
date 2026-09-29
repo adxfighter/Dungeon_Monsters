@@ -139,7 +139,11 @@ function sparkhog(def: MonsterDef): MonsterRig {
   );
   snout.name = 'sparkhog-snout';
   const face = eyes(0.035, 0.11, 0.24, 0.27);
-  body.add(torso, quills, snout, face);
+  // The face lives outside the squashed body so curling can't sink it into the dome.
+  const faceGroup = new Group();
+  faceGroup.add(snout, face);
+  body.add(torso, quills);
+  root.add(faceGroup);
   root.add(createBlobShadow(0.36));
 
   let t = 0;
@@ -150,13 +154,13 @@ function sparkhog(def: MonsterDef): MonsterRig {
     update(dt, speed01, pose) {
       t += dt;
       body.position.y = Math.abs(Math.sin(t * 14)) * 0.03 * speed01;
-      // Guard: curl into a spiky ball (smoothly), face tucked away.
+      // Guard: curl into a spiky ball (smoothly); the face stays visible and pokes forward.
       curl += ((pose.guarding ? 1 : 0) - curl) * Math.min(1, dt * 12);
       body.scale.set(1 + 0.1 * curl, 1 - 0.3 * curl, 1 + 0.1 * curl);
       quills.scale.setScalar(1 + 0.35 * curl);
-      // The face stays visible while curled (players read a vanishing face as a bug), just lower it.
-      snout.position.y = -0.06 * curl;
-      face.position.y = -0.06 * curl;
+      // Players read a vanishing face as a bug (playtest): keep it on the surface of the curled ball —
+      // follow the body bob, drop with the squash and move forward as the dome widens.
+      faceGroup.position.set(0, body.position.y - 0.05 * curl, 0.05 * curl);
       // Telegraph: quills glow brighter and brighter until they fire.
       const charge = pose.phase === 'windup' ? pose.t01 : 0;
       quillMat.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 + charge * 1.6 + curl * 0.4;

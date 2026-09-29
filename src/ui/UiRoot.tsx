@@ -19,7 +19,7 @@ interface Props {
   onRestart(): void;
   settings: Settings;
   onSettingsChange(settings: Settings): void;
-  onTestVibration(): void;
+  onTestVibration(): boolean;
 }
 
 /** Root of the Preact overlay above the canvas: movement layer below, HUD and buttons above it. */
