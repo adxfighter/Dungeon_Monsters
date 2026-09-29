@@ -1,16 +1,28 @@
 import { Group, type Object3D } from 'three';
-import { MoveStats, PrevTransform, Transform, Velocity, type EntityKind } from '@core/components';
+import {
+  Attacker,
+  Brain,
+  Health,
+  MoveStats,
+  PrevTransform,
+  Transform,
+  Velocity,
+  type EntityKind,
+} from '@core/components';
 import type { Entity, World } from '@core/ecs/World';
 import type { GameEvent } from '@core/state/events';
 import { characters, monsters } from '@content/index';
 import { disposeObject } from './dispose';
 import { createChibi } from './models/chibi';
 import { createMonster, createQuill } from './models/monsters';
+import { HitFlash } from './fx/HitFlash';
+import type { Pose } from './models/pose';
 
 interface View {
   object: Object3D;
   /** Procedural animation (characters, monsters); absent for projectiles. */
-  update?: (dtSeconds: number, speed01: number) => void;
+  update?: (dtSeconds: number, speed01: number, pose: Readonly<Pose>) => void;
+  flash?: HitFlash;
   /** Projectiles share geometry/material: never dispose them per view. */
   disposable: boolean;
 }
@@ -53,13 +65,13 @@ export class EntityViews {
       const character = characters[defId];
       if (!character) throw new Error(`EntityViews: unknown character '${defId}'`);
       const rig = createChibi(character);
-      return { object: rig.root, update: rig.update, disposable: true };
+      return { object: rig.root, update: rig.update, flash: new HitFlash(rig.materials), disposable: true };
     }
     if (kind === 'monster') {
       const def = monsters[defId];
       if (!def) throw new Error(`EntityViews: unknown monster '${defId}'`);
       const rig = createMonster(def);
-      return { object: rig.root, update: rig.update, disposable: true };
+      return { object: rig.root, update: rig.update, flash: new HitFlash(rig.materials), disposable: true };
     }
     return { object: createQuill(), disposable: false };
   }
@@ -78,8 +90,38 @@ export class EntityViews {
       const v = world.get(entity, Velocity);
       const stats = world.get(entity, MoveStats);
       const speed01 = v && stats ? Math.hypot(v.x, v.y) / stats.speed : 0;
-      view.update?.(dtSeconds, speed01);
+      view.update?.(dtSeconds, speed01, this.poseOf(world, entity));
+      view.flash?.update(dtSeconds);
     }
+  }
+
+  /** White hit flash on an entity's view (no-op if it has none). */
+  flash(entity: Entity): void {
+    this.views.get(entity)?.flash?.trigger();
+  }
+
+  private readonly pose: Pose = { phase: 'none', t01: 0, whiffed: false, guarding: false, staggered: false };
+
+  /** Reads what the entity is doing from core (read-only) into a reused pose object. */
+  private poseOf(world: World, entity: Entity): Pose {
+    const pose = this.pose;
+    const cur = world.get(entity, Attacker)?.current;
+    pose.phase = cur ? cur.phase : 'none';
+    pose.t01 = 0;
+    pose.whiffed = false;
+    if (cur) {
+      const len =
+        cur.phase === 'windup'
+          ? cur.def.windup
+          : cur.phase === 'active'
+            ? cur.def.active
+            : cur.def.recovery + cur.extraRecovery;
+      pose.t01 = len > 0 ? Math.min(1, cur.t / len) : 1;
+      pose.whiffed = cur.extraRecovery > 0;
+    }
+    pose.guarding = world.get(entity, Brain)?.state === 'guard';
+    pose.staggered = (world.get(entity, Health)?.stagger ?? 0) > 0;
+    return pose;
   }
 
   /** Writes the interpolated ground position of an entity's view into `out`; false if it has no view. */

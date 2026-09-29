@@ -92,6 +92,12 @@
   separation (тела не проходят друг сквозь друга) → projectiles → meleeHit → death → удаление → волны арены.
   Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
   Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.
+- Ощущение боя (M2, всё вне core, детерминизм не затронут): события `DamageDealt/MonsterKilled` →
+  `render` (вспышка `fx/HitFlash`, искры `fx/Particles` — пул InstancedMesh, шейк `CameraRig.shake`),
+  `app/CombatFeedback` (hit-stop `GameLoop.hitStop` — сим замирает, рендер идёт; вибро `platform/haptics`; цифры
+  урона). Телеграфы — `render/fx/Telegraphs` читают `Attacker.current` (windup) и рисуют форму атаки на полу.
+  HP-бары врагов и цифры — `ui/overlay/WorldOverlay` (пул DOM, позиционирование через проекцию из app, стиль
+  пишется только при изменении). Настройки шейка/вибро — `platform/settings` (localStorage, до M7).
 - Реализация (M1): `app/GameLoop.ts` (clamp кадра ≤ 0.25 с, пауза по `visibilitychange` и потере WebGL-контекста),
   `core/Game.ts` (`step(input, dt)`: snapshot → playerInput → navigation → steeringMovement → physics), `render/EntityViews.ts` (интерполяция
   `PrevTransform → Transform` по `alpha`, вью создаются по `EntitySpawned/Despawned`). Ввод сэмплируется на каждом

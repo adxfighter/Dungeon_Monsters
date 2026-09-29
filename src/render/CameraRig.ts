@@ -39,6 +39,12 @@ export class CameraRig {
   private readonly offset = new Vector3();
   private readonly bounds: Bounds;
   private initialized = false;
+  /** Screen shake: remaining time, total time and amplitude (tiles). */
+  private shakeT = 0;
+  private shakeDuration = 1;
+  private shakeAmp = 0;
+  /** Player setting (M2: camera shake can be turned off). */
+  shakeEnabled = true;
   /** Focus-to-screen-edge distances on the ground, tiles (set by setAspect). */
   private halfViewX = 0;
   private halfViewY = 0;
@@ -80,5 +86,25 @@ export class CameraRig {
     }
     this.camera.position.copy(this.focus).add(this.offset);
     this.camera.lookAt(this.focus);
+    if (this.shakeT > 0) {
+      this.shakeT = Math.max(0, this.shakeT - Math.max(0, dtSeconds));
+      const a = this.shakeAmp * (this.shakeT / this.shakeDuration);
+      // Render-only randomness (not core): jitter the camera without moving what it looks at.
+      this.camera.position.x += (Math.random() * 2 - 1) * a;
+      this.camera.position.y += (Math.random() * 2 - 1) * a * 0.5;
+    }
+    // lookAt refreshed the matrix before the shake offset: refresh again so world-anchored UI (HP bars,
+    // damage numbers) projects with the same camera the scene renders with.
+    this.camera.updateMatrixWorld();
+  }
+
+  /** Short decaying shake; a stronger request overrides a weaker one in progress. */
+  shake(amplitude: number, duration: number): void {
+    if (!this.shakeEnabled || duration <= 0) return;
+    const current = this.shakeT > 0 ? this.shakeAmp * (this.shakeT / this.shakeDuration) : 0;
+    if (amplitude < current) return;
+    this.shakeAmp = amplitude;
+    this.shakeDuration = duration;
+    this.shakeT = duration;
   }
 }

@@ -23,6 +23,9 @@ test('HUD shows hero HP, wave counter and Russian action buttons', async ({ page
   await expect(page.getByTestId('btn-dodge')).toHaveText('Рывок');
   const attack = await page.getByTestId('btn-attack').boundingBox();
   expect(attack?.width).toBeGreaterThanOrEqual(64); // ≥ 64 dp touch target
+  const gear = await page.getByTestId('btn-settings').boundingBox();
+  expect(gear?.width).toBeGreaterThanOrEqual(48); // ≥ 48 dp
+  expect(gear?.height).toBeGreaterThanOrEqual(48);
 });
 
 test('the attack button damages a monster in front of the hero', async ({ page }) => {
@@ -52,4 +55,43 @@ test('losing all HP shows the defeat screen, and "again" restarts', async ({ pag
   await screen.getByRole('button').click();
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
   await expect(page.getByTestId('hero-hp')).toContainText('100 / 100');
+});
+
+test('enemies show HP bars and hits pop damage numbers', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await page.evaluate(() => window.__debug?.spawnMonster('bubbler', 6.5, 6.2));
+  await expect(page.getByTestId('enemy-hp').first()).toBeVisible({ timeout: 5000 });
+  // Numbers live < 1 s: record every one that becomes visible instead of racing to catch it.
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __seenNumbers: string[] }).__seenNumbers = seen;
+    new MutationObserver(() => {
+      for (const el of document.querySelectorAll<HTMLElement>('[data-testid="damage-number"]')) {
+        if (el.style.display !== 'none' && el.textContent) seen.push(el.textContent);
+      }
+    }).observe(document.body, { subtree: true, attributes: true, childList: true, characterData: true });
+  });
+  for (let i = 0; i < 3; i++) {
+    await tapElement(cdp, page, 'btn-attack');
+    await page.waitForTimeout(200);
+  }
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __seenNumbers: string[] }).__seenNumbers), {
+      timeout: 3000,
+    })
+    .toContainEqual(expect.stringMatching(/^\d+$/));
+});
+
+test('settings toggle shake and vibration and persist across reloads', async ({ page }) => {
+  await page.getByTestId('btn-settings').click();
+  const panel = page.getByTestId('settings');
+  await expect(panel).toContainText('Тряска камеры');
+  const shake = panel.getByRole('checkbox').first();
+  await expect(shake).toBeChecked();
+  await shake.click();
+  await expect(shake).not.toBeChecked();
+  await page.reload();
+  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await page.getByTestId('btn-settings').click();
+  await expect(page.getByTestId('settings').getByRole('checkbox').first()).not.toBeChecked();
 });

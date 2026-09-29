@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest';
+import { createHaptics } from './haptics';
+import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './settings';
+
+function memoryStorage() {
+  const data = new Map<string, string>();
+  return {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => void data.set(k, v),
+    data,
+  };
+}
+
+describe('settings', () => {
+  it('defaults when nothing is stored, storage is missing, corrupt or throws', () => {
+    expect(loadSettings(memoryStorage())).toEqual(DEFAULT_SETTINGS);
+    expect(loadSettings(undefined)).toEqual(DEFAULT_SETTINGS);
+    const bad = memoryStorage();
+    bad.setItem('dm.settings.v1', '{nope');
+    expect(loadSettings(bad)).toEqual(DEFAULT_SETTINGS);
+    const throwing = {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
+    };
+    expect(loadSettings(throwing)).toEqual(DEFAULT_SETTINGS);
+    expect(() => saveSettings(throwing, DEFAULT_SETTINGS)).not.toThrow();
+  });
+
+  it('round-trips and ignores wrongly typed fields', () => {
+    const s = memoryStorage();
+    saveSettings(s, { shake: false, haptics: true });
+    expect(loadSettings(s)).toEqual({ shake: false, haptics: true });
+    s.setItem('dm.settings.v1', JSON.stringify({ shake: 'no', haptics: false }));
+    expect(loadSettings(s)).toEqual({ shake: true, haptics: false });
+  });
+});
+
+describe('haptics', () => {
+  it('vibrates only when enabled and supported', () => {
+    const calls: number[] = [];
+    const h = createHaptics({ vibrate: (ms: number) => (calls.push(ms), true) });
+    h.pulse(20.4);
+    h.enabled = false;
+    h.pulse(20);
+    expect(calls).toEqual([20]);
+    expect(() => createHaptics(undefined).pulse(10)).not.toThrow();
+    expect(() => createHaptics({}).pulse(10)).not.toThrow();
+  });
+});

@@ -9,9 +9,12 @@ import { Renderer } from '@render/Renderer';
 import { DemoScene } from '@render/scenes/DemoScene';
 import { RoomScene } from '@render/scenes/RoomScene';
 import { createInputState } from '@shared/input';
-import { HudStore, UiRoot } from '@ui/index';
+import { HudStore, UiRoot, WorldOverlay } from '@ui/index';
+import { createHaptics } from '@platform/haptics';
+import { loadSettings, saveSettings, type Settings } from '@platform/settings';
 import { DebugOverlay } from './DebugOverlay';
 import { FpsMeter } from './FpsMeter';
+import { CombatFeedback } from './CombatFeedback';
 import { GameLoop } from './GameLoop';
 import { TapTargeting } from './TapTargeting';
 import { parseLaunchParams } from './params';
@@ -19,6 +22,8 @@ import { parseLaunchParams } from './params';
 /** Frames rendered before the page reports itself ready (e2e / screenshots). */
 const READY_AFTER_FRAMES = 3;
 const DEFAULT_LOCALE = 'ru';
+/** Enemy HP bars float at this height above the floor, world units. */
+const ENEMY_BAR_HEIGHT = 1.05;
 
 interface Stage {
   readonly scene: RoomScene['scene'];
@@ -94,6 +99,20 @@ function start(): void {
   let demo: DemoScene | undefined;
   let tapTargeting: TapTargeting | undefined;
   const hud = new HudStore();
+  let worldOverlay: WorldOverlay | undefined;
+  let feedback: CombatFeedback | undefined;
+  const storage = (() => {
+    try {
+      return window.localStorage;
+    } catch {
+      return undefined; // blocked (privacy mode / sandboxed iframe)
+    }
+  })();
+  let settings: Settings = loadSettings(storage);
+  const haptics = createHaptics(navigator);
+  haptics.enabled = settings.haptics;
+  /** Canvas CSS size (kept by the resize handler) for world → client projection without layout reads. */
+  const view = { width: 1, height: 1 };
   if (params.demo) {
     demo = new DemoScene();
     stage = demo;
@@ -117,8 +136,10 @@ function start(): void {
       });
     }
     roomScene = new RoomScene(game);
+    roomScene.shakeEnabled = settings.shake;
     stage = roomScene;
     const scene = roomScene;
+    worldOverlay = new WorldOverlay(root, uiRoot);
     const tapping = new TapTargeting((clientX, clientY, out) => {
       const rect = canvas.getBoundingClientRect();
       const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -135,11 +156,31 @@ function start(): void {
         onTapPress={(x, y) => tapping.press(x, y, performance.now())}
         onTapRelease={() => tapping.release()}
         onRestart={() => window.location.reload()}
+        settings={settings}
+        onSettingsChange={(next) => {
+          settings = next;
+          scene.shakeEnabled = next.shake;
+          haptics.enabled = next.haptics;
+          saveSettings(storage, next);
+        }}
       />,
       uiRoot,
     );
   }
-  renderer.setResizeHandler((width, height) => stage.setAspect(width, height));
+  renderer.setResizeHandler((width, height) => {
+    view.width = width;
+    view.height = height;
+    stage.setAspect(width, height);
+  });
+
+  const ndc = { x: 0, y: 0 };
+  const project = (x: number, height: number, y: number, out: { x: number; y: number }): boolean => {
+    if (!roomScene?.worldToScreen(x, height, y, ndc)) return false;
+    out.x = ((ndc.x + 1) / 2) * view.width;
+    out.y = ((1 - ndc.y) / 2) * view.height;
+    return true;
+  };
+  const barPos = { x: 0, y: 0 };
 
   const overlay = params.debug ? new DebugOverlay(root) : undefined;
   const fps = new FpsMeter();
@@ -153,8 +194,21 @@ function start(): void {
     },
     render(alpha, dt, rawDt) {
       if (game && roomScene) {
-        roomScene.handleEvents(game.drainEvents());
+        const events = game.drainEvents();
+        roomScene.handleEvents(events);
+        feedback?.handle(events);
         roomScene.update(alpha, dt);
+        if (worldOverlay) {
+          worldOverlay.beginBars();
+          for (const e of game.world.query(Brain, Health)) {
+            const mh = game.world.require(e, Health);
+            if (mh.hp > 0 && roomScene.positionOf(e, barPos)) {
+              worldOverlay.bar(barPos.x, ENEMY_BAR_HEIGHT, barPos.y, mh.hp / mh.maxHp, project);
+            }
+          }
+          worldOverlay.endBars();
+          worldOverlay.updateNumbers(dt, project);
+        }
         tapTargeting?.frame(performance.now());
         const h = game.world.get(game.player, Health);
         hud.update(h?.hp ?? 0, h?.maxHp ?? 1, game.status, game.waveNumber, game.waveCount);
@@ -168,6 +222,21 @@ function start(): void {
       if (++frames === READY_AFTER_FRAMES) document.body.dataset['ready'] = '1';
     },
   });
+
+  if (game && worldOverlay) {
+    const numbers = worldOverlay;
+    const scene = roomScene;
+    feedback = new CombatFeedback(
+      game.player,
+      {
+        hitStop: (s) => loop.hitStop(s),
+        shake: (a, d) => scene?.shake(a, d),
+        vibrate: (ms) => haptics.pulse(ms),
+        number: (x, h, y, text, kind) => numbers.number(x, h, y, text, kind),
+      },
+      i18n.t('hud.blocked'),
+    );
+  }
 
   // Paused while hidden OR while the GL context is lost (mobile browsers drop it when backgrounded;
   // three re-uploads resources on 'restored'). Both conditions are combined so neither event unpauses early.
@@ -243,6 +312,7 @@ function start(): void {
       canvas.removeEventListener('webglcontextrestored', onContextRestored);
       detachKeyboard();
       renderUi(null, uiRoot);
+      worldOverlay?.dispose();
       overlay?.dispose();
       stage.dispose();
       renderer.dispose();
