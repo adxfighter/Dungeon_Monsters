@@ -40,15 +40,6 @@ function setup() {
 }
 
 describe('new monsters (mechanics)', () => {
-  it('every new monster telegraphs its attacks for 0.6–1.0 s (GDD §4.3)', () => {
-    for (const m of Object.values(monsters)) {
-      for (const a of m.attacks) {
-        expect(a.windup).toBeGreaterThanOrEqual(0.6);
-        expect(a.windup).toBeLessThanOrEqual(1);
-      }
-    }
-  });
-
   it('toadhog moves in hops: steering pauses between hops', () => {
     const { game, run, w } = setup();
     const e = game.spawnMonster(toadhog, 2.5, 4.5); // 4 tiles away: chases

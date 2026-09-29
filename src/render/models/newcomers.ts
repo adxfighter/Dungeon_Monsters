@@ -21,7 +21,7 @@ import { createBlobShadow } from './blobShadow';
 import { easeOut, type Rig } from './pose';
 
 /**
- * Procedural models of the five new monsters (user decision 2026-09-29), facing local +Z, ≤ 6 draw calls each
+ * Procedural models of Toadhog, Dragochick (arena «Новые монстры») and Brooklash, Bonegnaw (Tier I), facing local +Z, ≤ 6 draw calls each
  * (outline and blob shadow included). Toadhog (a smooth frog with a pig snout) and Dragochick (stubby wings,
  * horn-crest, fire) are the user's ideas.
  */

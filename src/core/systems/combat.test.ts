@@ -228,32 +228,32 @@ describe('damage rules', () => {
 
   it('a staggering hit stops the target dead', () => {
     const a = new Arena();
-    const rabbit = a.game.spawnMonster(pouncer, 6.5, 5.3); // a real, moving rabbit
-    a.game.world.require(rabbit, Brain).attackCooldown = 99;
-    a.health(rabbit).poise = 1;
-    const v = a.game.world.require(rabbit, Velocity);
+    const pouncerE = a.game.spawnMonster(pouncer, 6.5, 5.3); // a real, moving pouncerE
+    a.game.world.require(pouncerE, Brain).attackCooldown = 99;
+    a.health(pouncerE).poise = 1;
+    const v = a.game.world.require(pouncerE, Velocity);
     a.press(Buttons.Attack);
     for (let i = 0; i < 30; i++) {
       v.x = 3; // keep it running sideways until the staggering hit lands
       const before = a.events.length;
       a.run(1);
       if (
-        a.events.slice(before).some((e) => e.type === 'DamageDealt' && e.target === rabbit && e.staggered)
+        a.events.slice(before).some((e) => e.type === 'DamageDealt' && e.target === pouncerE && e.staggered)
       ) {
         expect(v.x).toBe(0);
         expect(v.y).toBe(0);
         return;
       }
     }
-    throw new Error('the rabbit was never staggered');
+    throw new Error('the pouncerE was never staggered');
   });
 
   it('poise damage staggers and interrupts an attack', () => {
     const a = new Arena();
-    const rabbit = a.game.spawnMonster(dummy(pouncer), 6.5, 5.3);
+    const pouncerE = a.game.spawnMonster(dummy(pouncer), 6.5, 5.3);
     // Full combo: 10 + 10 + 26 poise ≥ 25 → stagger somewhere in the chain.
     a.press(Buttons.Attack).run(3).press(Buttons.Attack).run(15).press(Buttons.Attack).seconds(1.2);
-    expect(a.of('DamageDealt').some((e) => e.target === rabbit && e.staggered)).toBe(true);
+    expect(a.of('DamageDealt').some((e) => e.target === pouncerE && e.staggered)).toBe(true);
   });
 
   it('elements apply resistances (fugu is weak to fire)', () => {
@@ -291,7 +291,7 @@ describe('monster AI', () => {
     }
   });
 
-  it('a missed pounce leaves the rabbit open (long recovery)', () => {
+  it('a missed pounce leaves the pouncerE open (long recovery)', () => {
     const a = new Arena();
     const r = a.game.spawnMonster(pouncer, 6.5, 6.3);
     for (let i = 0; i < 200 && !a.game.world.require(r, Attacker).current; i++) a.run(1);
@@ -347,7 +347,8 @@ describe('stagger', () => {
 describe('monster FSM transitions', () => {
   it('chase → idle when the hero is beyond loseRange, and a passive monster calms down', () => {
     const a = new Arena();
-    const b = a.game.spawnMonster(fugu, 6.5, 5.6);
+    const shy = { ...pouncer, ai: { ...pouncer.ai, temperament: 'passive', loseRange: 5 } } as MonsterDef;
+    const b = a.game.spawnMonster(shy, 6.5, 5.6);
     const brain = a.game.world.require(b, Brain);
     brain.aggro = true;
     a.run(2);
