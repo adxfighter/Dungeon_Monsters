@@ -1,14 +1,18 @@
 import { Group, type Object3D } from 'three';
-import { MoveStats, PrevTransform, Transform, Velocity } from '@core/components';
+import { MoveStats, PrevTransform, Transform, Velocity, type EntityKind } from '@core/components';
 import type { Entity, World } from '@core/ecs/World';
 import type { GameEvent } from '@core/state/events';
-import { characters } from '@content/index';
+import { characters, monsters } from '@content/index';
 import { disposeObject } from './dispose';
-import { createChibi, type ChibiRig } from './models/chibi';
+import { createChibi } from './models/chibi';
+import { createMonster, createQuill } from './models/monsters';
 
 interface View {
   object: Object3D;
-  rig: ChibiRig;
+  /** Procedural animation (characters, monsters); absent for projectiles. */
+  update?: (dtSeconds: number, speed01: number) => void;
+  /** Projectiles share geometry/material: never dispose them per view. */
+  disposable: boolean;
 }
 
 /** Shortest-arc angle interpolation. */
@@ -31,19 +35,33 @@ export class EntityViews {
     for (const event of events) {
       if (event.type === 'EntitySpawned') {
         if (this.views.has(event.entity)) continue;
-        const character = characters[event.characterId];
-        if (!character) throw new Error(`EntityViews: unknown character '${event.characterId}'`);
-        const rig = createChibi(character);
-        this.group.add(rig.root);
-        this.views.set(event.entity, { object: rig.root, rig });
+        const view = this.createView(event.kind, event.defId);
+        this.group.add(view.object);
+        this.views.set(event.entity, view);
       } else if (event.type === 'EntityDespawned') {
         const view = this.views.get(event.entity);
         if (!view) continue;
         this.group.remove(view.object);
-        disposeObject(view.object);
+        if (view.disposable) disposeObject(view.object);
         this.views.delete(event.entity);
       }
     }
+  }
+
+  private createView(kind: EntityKind, defId: string): View {
+    if (kind === 'player') {
+      const character = characters[defId];
+      if (!character) throw new Error(`EntityViews: unknown character '${defId}'`);
+      const rig = createChibi(character);
+      return { object: rig.root, update: rig.update, disposable: true };
+    }
+    if (kind === 'monster') {
+      const def = monsters[defId];
+      if (!def) throw new Error(`EntityViews: unknown monster '${defId}'`);
+      const rig = createMonster(def);
+      return { object: rig.root, update: rig.update, disposable: true };
+    }
+    return { object: createQuill(), disposable: false };
   }
 
   sync(world: World, alpha: number, dtSeconds: number): void {
@@ -60,7 +78,7 @@ export class EntityViews {
       const v = world.get(entity, Velocity);
       const stats = world.get(entity, MoveStats);
       const speed01 = v && stats ? Math.hypot(v.x, v.y) / stats.speed : 0;
-      view.rig.update(dtSeconds, speed01);
+      view.update?.(dtSeconds, speed01);
     }
   }
 
@@ -74,7 +92,7 @@ export class EntityViews {
   }
 
   dispose(): void {
-    for (const view of this.views.values()) disposeObject(view.object);
+    for (const view of this.views.values()) if (view.disposable) disposeObject(view.object);
     this.views.clear();
     this.group.clear();
   }

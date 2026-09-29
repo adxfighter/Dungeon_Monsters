@@ -1,8 +1,10 @@
 import type { Vec2 } from './math/vec2';
 
-/** Button bit flags in `InputState.buttons`. Combat buttons arrive in M2. */
+/** Button bit flags in `InputState.buttons`: set when pressed since the previous simulation step. */
 export const Buttons = {
   None: 0,
+  Attack: 1,
+  Dodge: 2,
 } as const;
 
 /** "Walk to this point" command from a tap. A new `seq` means a new (or moved) target. */
@@ -23,6 +25,7 @@ export interface InputState {
   move: Vec2;
   /** Tap-to-move target (GDD §4.1). */
   target: MoveTargetInput;
+  /** `Buttons` bits pressed since the previous step (edge-triggered, so a quick tap is never lost). */
   buttons: number;
 }
 

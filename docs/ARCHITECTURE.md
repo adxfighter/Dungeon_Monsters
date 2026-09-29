@@ -87,6 +87,11 @@
 - Порядок кадра: `input → commands → core.step(dt_fixed) × n → events → render.sync(alpha) → ui`.
 - `core` порождает **события** (`DamageDealt`, `MonsterKilled`, `DishCooked`...), на которые подписаны
   render (VFX), ui (попапы), audio. Core ничего не знает о подписчиках.
+- Бой (M2): порядок шага `Game.step` — snapshot → combatTimers → playerInput → heroCombatInput → ai → navigation →
+  action (фазы атак windup/active/recovery, рывок, выпад через `ForcedVelocity`) → steeringMovement → physics →
+  separation (тела не проходят друг сквозь друга) → projectiles → meleeHit → death → удаление → волны арены.
+  Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
+  Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.
 - Реализация (M1): `app/GameLoop.ts` (clamp кадра ≤ 0.25 с, пауза по `visibilitychange` и потере WebGL-контекста),
   `core/Game.ts` (`step(input, dt)`: snapshot → playerInput → navigation → steeringMovement → physics), `render/EntityViews.ts` (интерполяция
   `PrevTransform → Transform` по `alpha`, вью создаются по `EntitySpawned/Despawned`). Ввод сэмплируется на каждом

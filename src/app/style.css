@@ -79,7 +79,8 @@ body {
 
 .debug-overlay {
   position: absolute;
-  top: calc(var(--safe-top) + 8px);
+  /* Below the HUD top bar. */
+  top: calc(var(--safe-top) + 44px);
   left: calc(var(--safe-left) + 8px);
   margin: 0;
   padding: 6px 8px;

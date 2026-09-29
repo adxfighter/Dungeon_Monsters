@@ -1,6 +1,9 @@
-import type { InputState } from '@shared/input';
+import { Buttons, type InputState } from '@shared/input';
 
-/** WASD / arrows → direction (simulation space: +x right, +y screen down). Dev fallback for desktop. */
+/**
+ * WASD / arrows → direction (simulation space: +x right, +y screen down); J/Space attack, K/Shift dodge.
+ * Dev fallback for desktop.
+ */
 const KEY_DIRECTIONS: Readonly<Record<string, readonly [number, number]>> = {
   KeyW: [0, -1],
   ArrowUp: [0, -1],
@@ -22,9 +25,15 @@ export class InputController {
   private touchX = 0;
   private touchY = 0;
   private readonly pressed = new Set<string>();
+  private pendingButtons = 0;
   private targetSeq = 0;
   private targetX = 0;
   private targetY = 0;
+
+  /** Records a button press (`Buttons` bit); delivered once, on the next sample. */
+  pressButton(bit: number): void {
+    this.pendingButtons |= bit;
+  }
 
   /** Tap-to-move target in simulation space (tiles). Each call is a new command. */
   setMoveTarget(x: number, y: number): void {
@@ -49,8 +58,11 @@ export class InputController {
   /** Listens to keyboard events on `target`; returns an unsubscribe function. */
   attachKeyboard(target: EventTarget): () => void {
     const onDown = (event: Event): void => {
-      const code = (event as KeyboardEvent).code;
-      if (code in KEY_DIRECTIONS) this.pressed.add(code);
+      const e = event as KeyboardEvent;
+      if (e.code in KEY_DIRECTIONS) this.pressed.add(e.code);
+      if (e.repeat) return;
+      if (e.code === 'KeyJ' || e.code === 'Space') this.pressButton(Buttons.Attack);
+      if (e.code === 'KeyK' || e.code === 'ShiftLeft') this.pressButton(Buttons.Dodge);
     };
     const onUp = (event: Event): void => {
       this.pressed.delete((event as KeyboardEvent).code);
@@ -92,6 +104,8 @@ export class InputController {
     }
     out.move.x = x;
     out.move.y = y;
+    out.buttons = this.pendingButtons;
+    this.pendingButtons = 0;
     out.target.seq = this.targetSeq;
     out.target.x = this.targetX;
     out.target.y = this.targetY;

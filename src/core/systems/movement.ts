@@ -1,6 +1,7 @@
 import type { InputState } from '@shared/input';
 import {
   Collider,
+  ForcedVelocity,
   MoveStats,
   MoveTarget,
   PlayerControlled,
@@ -189,6 +190,21 @@ export function steeringMovementSystem(world: World, dt: number): void {
     const v = world.require(e, Velocity);
     const stats = world.require(e, MoveStats);
     const t = world.require(e, Transform);
+
+    // Dodge / lunge: the action dictates the velocity outright.
+    const forced = world.get(e, ForcedVelocity);
+    if (forced?.active) {
+      v.x = forced.x;
+      v.y = forced.y;
+      continue;
+    }
+
+    // Leaving a dash/lunge: drop straight back to walking speed instead of sliding for a tile.
+    const speed = Math.hypot(v.x, v.y);
+    if (speed > stats.speed) {
+      v.x *= stats.speed / speed;
+      v.y *= stats.speed / speed;
+    }
 
     const mag = Math.min(Math.hypot(s.x, s.y), 1);
     const targetX = s.x * stats.speed;

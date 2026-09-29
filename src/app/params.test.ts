@@ -7,6 +7,8 @@ describe('parseLaunchParams', () => {
       debug: false,
       demo: false,
       joystick: false,
+      room: undefined,
+      seed: undefined,
       forcedPixelRatio: undefined,
     });
   });
@@ -20,6 +22,7 @@ describe('parseLaunchParams', () => {
     expect(parseLaunchParams('?debug=0').debug).toBe(false);
     expect(parseLaunchParams('?demo=1').demo).toBe(true);
     expect(parseLaunchParams('?joystick=1').joystick).toBe(true);
+    expect(parseLaunchParams('?room=test_room&seed=7')).toMatchObject({ room: 'test_room', seed: '7' });
   });
 
   it('clamps pr and ignores invalid values', () => {

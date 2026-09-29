@@ -126,7 +126,7 @@ describe('player movement', () => {
   it('emits EntitySpawned for the player once', () => {
     const game = makeGame();
     expect(game.drainEvents()).toEqual([
-      { type: 'EntitySpawned', entity: game.player, kind: 'player', characterId: 'tavi' },
+      { type: 'EntitySpawned', entity: game.player, kind: 'player', defId: 'tavi' },
     ]);
     expect(game.drainEvents()).toEqual([]);
   });

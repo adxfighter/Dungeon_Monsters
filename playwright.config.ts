@@ -10,6 +10,8 @@ const mobile = {
   deviceScaleFactor: 2,
   isMobile: true,
   hasTouch: true,
+  // Russian is the primary language (CLAUDE.md §1): screenshots and text checks use it.
+  locale: 'ru-RU',
   launchOptions: {
     // Headless CI has no GPU: render WebGL2 through SwiftShader.
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],

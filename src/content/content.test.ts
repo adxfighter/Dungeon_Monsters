@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { characters, locales, rooms } from './index';
-import { CharacterSchema, LocaleSchema, RoomTemplateSchema } from './schemas';
+import { AttackSchema, CharacterSchema, LocaleSchema, RoomTemplateSchema } from './schemas';
 import { validateContent } from './validate';
 
 describe('content', () => {
@@ -20,6 +20,23 @@ describe('content', () => {
     expect(RoomTemplateSchema.safeParse({ id: 'x', rows: ['###', '#.#', '###'] }).success).toBe(false); // no P
     expect(RoomTemplateSchema.safeParse({ id: 'x', rows: ['###', '#P#', '##'] }).success).toBe(false); // ragged
     expect(RoomTemplateSchema.safeParse({ id: 'x', rows: ['###', '#P?', '###'] }).success).toBe(false); // bad char
+  });
+
+  it('attack schema rejects an attack with neither a shape nor projectiles', () => {
+    const bad = {
+      id: 'x',
+      windup: 0.5,
+      active: 0.1,
+      recovery: 0.2,
+      power: 1,
+      element: 'slash',
+      poiseDamage: 1,
+      range: 1,
+    };
+    expect(AttackSchema.safeParse(bad).success).toBe(false);
+    expect(
+      AttackSchema.safeParse({ ...bad, shape: { kind: 'circle', radius: 0.3, offset: 0 } }).success,
+    ).toBe(true);
   });
 
   it('locales are valid and have the same keys', () => {

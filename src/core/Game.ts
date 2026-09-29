@@ -1,20 +1,39 @@
-import type { Character, RoomTemplate } from '@content/schemas';
+import type { Arena, Character, MonsterDef, RoomTemplate } from '@content/schemas';
 import type { InputState } from '@shared/input';
 import {
+  Attacker,
+  Brain,
   Collider,
+  Dodge,
+  ForcedVelocity,
+  Health,
   Kind,
   MoveStats,
   MoveTarget,
   PlayerControlled,
   PrevTransform,
+  Stats,
   Steering,
+  Team,
   Transform,
   Velocity,
+  type HealthData,
   type Transform2D,
 } from './components';
 import { TileMap } from './dungeon/TileMap';
 import { World, type Entity } from './ecs/World';
+import { Rng } from './rng';
 import type { GameEvent } from './state/events';
+import { aiSystem } from './systems/ai';
+import {
+  actionSystem,
+  combatTimersSystem,
+  deathSystem,
+  heroCombatInputSystem,
+  meleeHitSystem,
+  projectileSystem,
+  type CombatContext,
+} from './systems/combat';
 import {
   navigationSystem,
   physicsSystem,
@@ -22,15 +41,42 @@ import {
   snapshotSystem,
   steeringMovementSystem,
 } from './systems/movement';
+import { separationSystem } from './systems/separation';
 
 export interface GameOptions {
   room: RoomTemplate;
   player: Character;
+  /** Seed for every random decision in the run (damage spread, crits, AI). */
+  seed?: number | string;
+  /** Monster definitions by id (for waves and `spawnMonster`). */
+  monsters?: Readonly<Record<string, MonsterDef>>;
+  /** Arena waves; without them the room is peaceful. */
+  waves?: Arena['waves'];
+}
+
+export type GameStatus = 'playing' | 'defeated' | 'cleared';
+
+function healthFrom(
+  stats: { hp: number; poise: number },
+  extra: Pick<HealthData, 'hitIFrames' | 'resist' | 'backVulnerability'>,
+): HealthData {
+  return {
+    hp: stats.hp,
+    maxHp: stats.hp,
+    iFrames: 0,
+    poise: stats.poise,
+    maxPoise: stats.poise,
+    sincePoiseHit: 0,
+    stagger: 0,
+    hitsTaken: 0,
+    lastHitElement: null,
+    ...extra,
+  };
 }
 
 /**
- * Simulation root: world + map + systems in a fixed order. Deterministic: the same input
- * sequence and step size always give the same state.
+ * Simulation root: world + map + systems in a fixed order. Deterministic: the same seed, input
+ * sequence and step size always give the same state and events.
  */
 export class Game {
   readonly world = new World();
@@ -38,23 +84,66 @@ export class Game {
   readonly player: Entity;
   private tickCount = 0;
   private pending: GameEvent[] = [];
+  private readonly ctx: CombatContext;
+  private readonly monsters: Readonly<Record<string, MonsterDef>>;
+  private readonly waves: Arena['waves'];
+  private waveIndex = -1;
+  private waveTimer = 0;
+  private statusValue: GameStatus = 'playing';
 
   constructor(options: GameOptions) {
     this.map = TileMap.fromTemplate(options.room);
+    this.monsters = options.monsters ?? {};
+    this.waves = options.waves ?? [];
+    this.ctx = {
+      world: this.world,
+      map: this.map,
+      rng: new Rng(options.seed ?? 1).fork('combat'),
+      events: this.pending,
+      doomed: new Set(),
+    };
     this.player = this.spawnPlayer(options.player);
+    this.waveTimer = this.waves[0]?.delay ?? 0;
   }
 
   get tick(): number {
     return this.tickCount;
   }
 
-  /** Advances the simulation by one fixed step. */
+  get status(): GameStatus {
+    return this.statusValue;
+  }
+
+  /** 1-based number of the current wave (0 before the first). */
+  get waveNumber(): number {
+    return this.waveIndex + 1;
+  }
+
+  get waveCount(): number {
+    return this.waves.length;
+  }
+
+  /** Advances the simulation by one fixed step. After defeat the world is frozen. */
   step(input: Readonly<InputState>, dt: number): void {
     snapshotSystem(this.world);
-    playerInputSystem(this.world, this.map, input);
-    navigationSystem(this.world, dt);
-    steeringMovementSystem(this.world, dt);
-    physicsSystem(this.world, this.map, dt);
+    if (this.statusValue === 'defeated') return;
+    const { world, map, ctx } = this;
+    ctx.events = this.pending;
+
+    combatTimersSystem(world, dt);
+    playerInputSystem(world, map, input);
+    heroCombatInputSystem(world, input);
+    aiSystem(world, map, ctx.rng, dt);
+    navigationSystem(world, dt);
+    actionSystem(ctx, dt);
+    steeringMovementSystem(world, dt);
+    physicsSystem(world, map, dt);
+    separationSystem(world, map);
+    projectileSystem(ctx, dt);
+    meleeHitSystem(ctx);
+    if (deathSystem(ctx)) this.statusValue = 'defeated';
+    this.flushDoomed();
+    this.updateWaves(dt);
     this.tickCount++;
   }
 
@@ -62,6 +151,7 @@ export class Game {
   drainEvents(): GameEvent[] {
     const events = this.pending;
     this.pending = [];
+    this.ctx.events = this.pending;
     return events;
   }
 
@@ -70,14 +160,72 @@ export class Game {
     return this.world.get(entity, Transform);
   }
 
-  private spawnPlayer(character: Character): Entity {
+  /** Number of living monsters. */
+  get monstersAlive(): number {
+    let n = 0;
+    for (const e of this.world.query(Brain, Health)) if (this.world.require(e, Health).hp > 0) n++;
+    return n;
+  }
+
+  spawnMonster(def: MonsterDef, x: number, y: number): Entity {
     const { world } = this;
     const e = world.create();
-    const start = { x: this.map.spawn.x, y: this.map.spawn.y, rot: 0 };
+    const start = { x, y, rot: 0 };
     world.add(e, Transform, { ...start });
     world.add(e, PrevTransform, { ...start });
     world.add(e, Velocity, { x: 0, y: 0 });
     world.add(e, Steering, { x: 0, y: 0 });
+    world.add(e, ForcedVelocity, { active: false, x: 0, y: 0 });
+    world.add(e, Collider, { radius: def.radius });
+    world.add(e, MoveStats, { ...def.movement });
+    world.add(e, Team, { side: 'monster' });
+    world.add(e, Stats, { atk: def.stats.atk, def: def.stats.def });
+    world.add(
+      e,
+      Health,
+      healthFrom(def.stats, {
+        hitIFrames: 0,
+        resist: def.resist,
+        backVulnerability: def.backVulnerability ?? null,
+      }),
+    );
+    world.add(e, Attacker, {
+      attacks: def.attacks,
+      current: null,
+      request: -1,
+      comboIndex: 0,
+      comboTimer: 0,
+      comboWindow: 0,
+      buffered: false,
+    });
+    world.add(e, Brain, {
+      def,
+      state: 'idle',
+      t: 0,
+      homeX: x,
+      homeY: y,
+      goalX: x,
+      goalY: y,
+      idleFor: this.ctx.rng.range(def.ai.idleMin, def.ai.idleMax),
+      aggro: false,
+      attackCooldown: def.ai.attackCooldown,
+      guardCooldown: 0,
+    });
+    world.add(e, Kind, { kind: 'monster', defId: def.id });
+    this.pending.push({ type: 'EntitySpawned', entity: e, kind: 'monster', defId: def.id });
+    return e;
+  }
+
+  private spawnPlayer(character: Character): Entity {
+    const { world } = this;
+    const e = world.create();
+    const start = { x: this.map.spawn.x, y: this.map.spawn.y, rot: 0 };
+    const combat = character.combat;
+    world.add(e, Transform, { ...start });
+    world.add(e, PrevTransform, { ...start });
+    world.add(e, Velocity, { x: 0, y: 0 });
+    world.add(e, Steering, { x: 0, y: 0 });
+    world.add(e, ForcedVelocity, { active: false, x: 0, y: 0 });
     world.add(e, MoveTarget, {
       active: false,
       x: 0,
@@ -93,8 +241,65 @@ export class Game {
     world.add(e, Collider, { radius: character.radius });
     world.add(e, MoveStats, { ...character.movement });
     world.add(e, PlayerControlled, {});
-    world.add(e, Kind, { kind: 'player', characterId: character.id });
-    this.pending.push({ type: 'EntitySpawned', entity: e, kind: 'player', characterId: character.id });
+    world.add(e, Team, { side: 'hero' });
+    world.add(e, Stats, { atk: combat.stats.atk, def: combat.stats.def });
+    world.add(
+      e,
+      Health,
+      healthFrom(combat.stats, { hitIFrames: combat.hitIFrames, resist: {}, backVulnerability: null }),
+    );
+    world.add(e, Attacker, {
+      attacks: combat.combo,
+      current: null,
+      request: -1,
+      comboIndex: 0,
+      comboTimer: 0,
+      comboWindow: combat.comboWindow,
+      buffered: false,
+    });
+    world.add(e, Dodge, {
+      speed: combat.dodge.speed,
+      duration: combat.dodge.duration,
+      iFrames: combat.dodge.iFrames,
+      cooldownTime: combat.dodge.cooldown,
+      t: 0,
+      cooldown: 0,
+      dirX: 0,
+      dirY: 1,
+    });
+    world.add(e, Kind, { kind: 'player', defId: character.id });
+    this.pending.push({ type: 'EntitySpawned', entity: e, kind: 'player', defId: character.id });
     return e;
+  }
+
+  private flushDoomed(): void {
+    for (const e of this.ctx.doomed) {
+      this.world.destroy(e);
+      this.pending.push({ type: 'EntityDespawned', entity: e });
+    }
+    this.ctx.doomed.clear();
+  }
+
+  /** Arena director: next wave `delay` seconds after the previous one is cleared. */
+  private updateWaves(dt: number): void {
+    if (this.waves.length === 0 || this.statusValue !== 'playing') return;
+    if (this.waveIndex >= 0 && this.monstersAlive > 0) return;
+    if (this.waveIndex >= this.waves.length - 1) {
+      this.statusValue = 'cleared';
+      this.pending.push({ type: 'ArenaCleared' });
+      return;
+    }
+    this.waveTimer -= dt;
+    if (this.waveTimer > 0) return;
+    this.waveIndex++;
+    const wave = this.waves[this.waveIndex];
+    if (!wave) return;
+    for (const spawn of wave.spawns) {
+      const def = this.monsters[spawn.monster];
+      if (!def) throw new Error(`Game: unknown monster '${spawn.monster}'`);
+      this.spawnMonster(def, spawn.x, spawn.y);
+    }
+    this.pending.push({ type: 'WaveStarted', index: this.waveIndex + 1, total: this.waves.length });
+    this.waveTimer = this.waves[this.waveIndex + 1]?.delay ?? 0;
   }
 }

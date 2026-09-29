@@ -56,7 +56,7 @@ async function expectArrive(page: Page, x: number, y: number, tolerance: number,
 
 test.beforeEach(async ({ page }) => {
   // Low render resolution: SwiftShader frames are slow, and slow frames delay pointer events.
-  await page.goto('/?pr=0.5');
+  await page.goto('/?room=test_room&pr=0.5');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
 });
 
