@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { tavi } from '@content/characters/tavi';
 import { monsters } from '@content/index';
-import { stonenibbler } from '@content/monsters/tier1';
+import { pouncer } from './testing/monsters';
 import { arenaTest } from '@content/rooms/arena_test';
 import { createInputState } from '@shared/input';
 import { Attacker, Brain, Health, Stats } from './components';
@@ -63,18 +63,18 @@ describe('arena lobby and difficulty (Game.awaitStart / startArena)', () => {
       monsters,
       modifiers: { hp: 0.5, atk: 2, attackCooldown: 3 },
     });
-    const e = game.spawnMonster(stonenibbler, 2.5, 2.5);
-    expect(game.world.require(e, Health).maxHp).toBe(Math.round(stonenibbler.stats.hp * 0.5));
-    expect(game.world.require(e, Stats).atk).toBe(stonenibbler.stats.atk * 2);
-    expect(game.world.require(e, Brain).attackCooldown).toBeCloseTo(stonenibbler.ai.attackCooldown * 3);
+    const e = game.spawnMonster(pouncer, 2.5, 2.5);
+    expect(game.world.require(e, Health).maxHp).toBe(Math.round(pouncer.stats.hp * 0.5));
+    expect(game.world.require(e, Stats).atk).toBe(pouncer.stats.atk * 2);
+    expect(game.world.require(e, Brain).attackCooldown).toBeCloseTo(pouncer.ai.attackCooldown * 3);
   });
 
-  it('overrides replace the base numbers exactly (easy = the original M2 stats)', () => {
+  it('overrides replace the base numbers exactly (per-monster tuning of a level)', () => {
     const { game } = lobby();
-    game.startArena(easy.waves, easy.monsters, easy.overrides);
-    const e = game.spawnMonster(stonenibbler, 2.5, 2.5);
-    const o = easy.overrides?.['stonenibbler'];
-    expect(o).toBeDefined();
+    const overrides = { pouncer: { hp: 35, atk: 12, attackCooldown: 0.9 } };
+    game.startArena(easy.waves, { hp: 1, atk: 1, attackCooldown: 1 }, overrides);
+    const e = game.spawnMonster(pouncer, 2.5, 2.5);
+    const o = overrides.pouncer;
     expect(game.world.require(e, Health).maxHp).toBe(o?.hp);
     expect(game.world.require(e, Stats).atk).toBe(o?.atk);
     expect(game.world.require(e, Brain).attackCooldown).toBeCloseTo(o?.attackCooldown ?? -1);
@@ -86,9 +86,9 @@ describe('arena lobby and difficulty (Game.awaitStart / startArena)', () => {
       player: tavi,
       monsters,
       modifiers: { hp: 1, atk: 1, attackCooldown: 2 },
-      overrides: { stonenibbler: { attackCooldown: 0.5 } },
+      overrides: { pouncer: { attackCooldown: 0.5 } },
     });
-    const e = game.spawnMonster(stonenibbler, 6.5, 6.3); // right next to the hero
+    const e = game.spawnMonster(pouncer, 6.5, 6.3); // right next to the hero
     game.world.require(game.player, Health).hp = 1e6;
     const input = createInputState();
     const brain = game.world.require(e, Brain);
@@ -109,9 +109,9 @@ describe('arena lobby and difficulty (Game.awaitStart / startArena)', () => {
       room: arenaTest.room,
       player: tavi,
       monsters,
-      overrides: { stonenibbler: { attackCooldown: 0.5 } },
+      overrides: { pouncer: { attackCooldown: 0.5 } },
     });
-    const def = { ...stonenibbler, ai: { ...stonenibbler.ai, attackCooldown: 0 } };
+    const def = { ...pouncer, ai: { ...pouncer.ai, attackCooldown: 0 } };
     const e = game.spawnMonster(def, 2.5, 2.5);
     expect(game.world.require(e, Brain).cooldownBase).toBe(0.5);
   });

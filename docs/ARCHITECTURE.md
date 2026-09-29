@@ -70,7 +70,8 @@
 │  │  ├─ dungeon/            генератор этажей (seed → FloorLayout)
 │  │  ├─ state/              GameState, Commands, Events, reducers для мета-состояния
 │  │  ├─ rng.ts, clock.ts    детерминированные сервисы
-│  │  └─ save/               сериализация, версии, миграции
+│  │  ├─ save/               сериализация, версии, миграции
+│  │  └─ testing/            фикстуры для тестов движка (монстры-заглушки механик), в бандл не попадают
 │  ├─ content/               characters/, monsters/, ingredients/, recipes/, rooms/, floors/, ecology/,
 │  │                         dialogue/, balance.ts, schemas.ts
 │  ├─ render/                Renderer, materials/toon, outline, camera, fx, view-синхронизация сущностей

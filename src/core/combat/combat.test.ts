@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from '@content/balance';
 import { Rng } from '../rng';
 import { computeDamage } from './damage';
-import { facingCos, fromBehind, fromFront, shapeHitsCircle } from './shapes';
+import { facingCos, fromBehind, fromFront, projectileAngle, shapeHitsCircle } from './shapes';
 
 describe('computeDamage', () => {
   const base = { atk: 10, power: 1, def: 0, elementMult: 1, bonusMult: 1 };
@@ -110,5 +110,20 @@ describe('facing', () => {
     expect(fromFront(facingCos(Math.PI / 3, 0, 0, -Math.sin(Math.PI / 3), -Math.cos(Math.PI / 3)), 360)).toBe(
       true,
     );
+  });
+});
+
+describe('projectileAngle', () => {
+  it('spreads a fan evenly across spreadDeg, centred on the aim', () => {
+    expect(projectileAngle(0, 1, 70)).toBe(0);
+    expect(projectileAngle(0, 5, 60)).toBeCloseTo((-30 * Math.PI) / 180);
+    expect(projectileAngle(2, 5, 60)).toBeCloseTo(0);
+    expect(projectileAngle(4, 5, 60)).toBeCloseTo((30 * Math.PI) / 180);
+  });
+
+  it('a 360° ring spaces projectiles evenly all around, no two on the same line', () => {
+    const a = Array.from({ length: 10 }, (_, i) => projectileAngle(i, 10, 360));
+    for (let i = 1; i < a.length; i++) expect((a[i] ?? 0) - (a[i - 1] ?? 0)).toBeCloseTo((2 * Math.PI) / 10);
+    expect(Math.abs((a[9] ?? 0) - (a[0] ?? 0))).toBeLessThan(2 * Math.PI - 0.1);
   });
 });

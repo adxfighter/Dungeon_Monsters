@@ -67,3 +67,13 @@ export function fromFront(facing: number, arcDeg: number): boolean {
 export function fromBehind(facing: number, arcDeg: number): boolean {
   return -facing >= Math.cos((arcDeg / 2) * DEG);
 }
+
+/**
+ * Angle offset (radians, from the aim direction) of projectile `i` of `count`: spread evenly across a
+ * `spreadDeg` fan; a full 360° ring spaces them evenly all around (no two on the same line).
+ */
+export function projectileAngle(i: number, count: number, spreadDeg: number): number {
+  if (count <= 1) return 0;
+  if (spreadDeg >= 360) return (i / count) * Math.PI * 2;
+  return (i / (count - 1) - 0.5) * spreadDeg * DEG;
+}

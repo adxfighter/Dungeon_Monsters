@@ -2,12 +2,10 @@ import type { Locale } from '../schemas';
 
 export const en: Locale = {
   'character.tavi.name': 'Tavi',
-  'monster.bubbler.name': 'Bubbler',
-  'monster.sparkhog.name': 'Sparkhog',
-  'monster.stonenibbler.name': 'Stonenibbler',
+  'monster.fugu.name': 'Fugu',
+  'monster.porcupine.name': 'Polar porcupine',
   'monster.toadhog.name': 'Toadhog',
   'monster.dragochick.name': 'Dragochick',
-  'monster.mossback.name': 'Mossback',
   'monster.brooklash.name': 'Brooklash',
   'monster.bonegnaw.name': 'Bonegnaw',
   'hud.attack': 'Attack',

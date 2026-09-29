@@ -56,8 +56,10 @@ export type HitShape = z.infer<typeof HitShapeSchema>;
 
 export const ProjectileSchema = z.object({
   count: z.number().int().min(1),
-  /** Total fan angle; projectiles are spread evenly across it. */
+  /** Total fan angle; projectiles are spread evenly across it (360 = a ring all around). */
   spreadDeg: z.number().nonnegative().max(360),
+  /** Projectile colour (render), default glowing yellow. */
+  color: HexColor.optional(),
   /** tiles/s */
   speed: Tiles,
   radius: Tiles,

@@ -76,7 +76,7 @@ describe('CombatFeedback', () => {
       {
         type: 'MonsterKilled',
         entity: MOB,
-        monsterId: 'bubbler',
+        monsterId: 'fugu',
         killElement: 'slash',
         overkill: 2,
         hitsTaken: 3,

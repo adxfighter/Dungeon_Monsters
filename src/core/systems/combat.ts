@@ -23,7 +23,7 @@ import {
   type Side,
 } from '../components';
 import { computeDamage } from '../combat/damage';
-import { facingCos, fromBehind, fromFront, shapeHitsCircle } from '../combat/shapes';
+import { facingCos, fromBehind, fromFront, projectileAngle, shapeHitsCircle } from '../combat/shapes';
 import type { TileMap } from '../dungeon/TileMap';
 import type { Entity, World } from '../ecs/World';
 import type { Rng } from '../rng';
@@ -207,7 +207,7 @@ function fireProjectiles(ctx: CombatContext, owner: Entity, attack: ActiveAttack
   const base = Math.atan2(attack.dirX, attack.dirY);
   const r = world.get(owner, Collider)?.radius ?? 0;
   for (let i = 0; i < p.count; i++) {
-    const a = p.count === 1 ? base : base + (i / (p.count - 1) - 0.5) * p.spreadDeg * DEG;
+    const a = base + projectileAngle(i, p.count, p.spreadDeg);
     const dirX = Math.sin(a);
     const dirY = Math.cos(a);
     const e = world.create();

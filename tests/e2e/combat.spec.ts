@@ -62,7 +62,7 @@ test('HUD shows hero HP, wave counter and Russian action buttons', async ({ page
 
 test('the attack button damages a monster in front of the hero', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
-  await page.evaluate(() => window.__debug?.spawnMonster('bubbler', 6.5, 6.2));
+  await page.evaluate(() => window.__debug?.spawnMonster('fugu', 6.5, 6.2));
   const hpOf = () =>
     page.evaluate(() => window.__debug?.getMonsters().find((m) => Math.abs(m.y - 6.2) < 1)?.hp ?? -1);
   const before = await hpOf();
@@ -79,7 +79,7 @@ test('the attack button damages a monster in front of the hero', async ({ page }
 test('losing all HP shows the defeat screen, and "again" restarts', async ({ page }) => {
   await page.evaluate(() => {
     window.__debug?.setHeroHp(1);
-    window.__debug?.spawnMonster('stonenibbler', 6.5, 6.3);
+    window.__debug?.spawnMonster('toadhog', 6.5, 6.3);
   });
   const screen = page.getByTestId('end-screen');
   await expect(screen).toBeVisible({ timeout: 10_000 });
@@ -92,7 +92,7 @@ test('losing all HP shows the defeat screen, and "again" restarts', async ({ pag
 
 test('enemies show HP bars and hits pop damage numbers', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
-  await page.evaluate(() => window.__debug?.spawnMonster('bubbler', 6.5, 6.2));
+  await page.evaluate(() => window.__debug?.spawnMonster('fugu', 6.5, 6.2));
   await expect(page.getByTestId('enemy-hp').first()).toBeVisible({ timeout: 5000 });
   // Numbers live < 1 s: record every one that becomes visible instead of racing to catch it.
   await page.evaluate(() => {
@@ -164,5 +164,5 @@ test('picker: arena tabs switch to the new-monsters arena and it plays', async (
   await page.getByTestId('difficulty-easy').click();
   await expect
     .poll(() => page.evaluate(() => window.__debug?.getMonsters().map((m) => m.id) ?? []), { timeout: 6000 })
-    .toEqual(expect.arrayContaining(['toadhog', 'dragochick']));
+    .toEqual(expect.arrayContaining(['toadhog', 'fugu']));
 });
