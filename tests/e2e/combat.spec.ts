@@ -152,3 +152,17 @@ test('the vibration test explains the result', async ({ page }) => {
   // Headless Chromium has the Vibration API, so the "sent" hint shows.
   await expect(page.getByTestId('vibration-status')).toBeVisible();
 });
+
+test('picker: arena tabs switch to the new-monsters arena and it plays', async ({ page }) => {
+  await page.goto('/?pr=0.5');
+  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await expect(page.getByTestId('arena-arena_test')).toHaveAttribute('aria-selected', 'true');
+  await page.getByTestId('arena-arena_new').click();
+  await expect(page).toHaveURL(/arena=arena_new/);
+  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await expect(page.getByTestId('arena-arena_new')).toHaveAttribute('aria-selected', 'true');
+  await page.getByTestId('difficulty-easy').click();
+  await expect
+    .poll(() => page.evaluate(() => window.__debug?.getMonsters().map((m) => m.id) ?? []), { timeout: 6000 })
+    .toEqual(expect.arrayContaining(['toadhog', 'dragochick']));
+});

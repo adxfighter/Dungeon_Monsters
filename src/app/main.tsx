@@ -122,7 +122,9 @@ function start(): void {
     if (!hero) throw new Error('content: tavi missing');
     // Default: the M2 combat arena. `?room=<id>` opens a peaceful room instead (e.g. the M1 test room).
     const peaceful = params.room ? rooms[params.room] : undefined;
-    const arena = arenas['arena_test'];
+    const arenaId = params.arena && arenas[params.arena] ? params.arena : 'arena_test';
+    if (params.arena && !arenas[params.arena]) console.warn(`?arena=${params.arena}: unknown arena`);
+    const arena = arenas[arenaId];
     if (params.room && !peaceful) console.warn(`?room=${params.room}: unknown room, opening the arena`);
     if (peaceful) {
       game = new Game({ room: peaceful, player: hero });
@@ -175,6 +177,14 @@ function start(): void {
           const level = arena.difficulties[id];
           currentGame.startArena(level.waves, level.monsters, level.overrides);
         }}
+        arenas={Object.values(arenas).map((a) => ({ id: a.id, nameKey: a.nameKey }))}
+        arena={arenaId}
+        onPickArena={(id) => {
+          // Each arena has its own room: reload into it (keeps the other URL parameters).
+          const url = new URL(window.location.href);
+          url.searchParams.set('arena', id);
+          window.location.assign(url.toString());
+        }}
       />,
       uiRoot,
     );
@@ -214,6 +224,8 @@ function start(): void {
           worldOverlay.beginBars();
           for (const e of game.world.query(Brain, Health)) {
             const mh = game.world.require(e, Health);
+            // No bar over a submerged ambusher: only its ripple gives it away.
+            if (game.world.require(e, Brain).hidden) continue;
             if (mh.hp > 0 && roomScene.positionOf(e, barPos)) {
               worldOverlay.bar(barPos.x, ENEMY_BAR_HEIGHT, barPos.y, mh.hp / mh.maxHp, project);
             }

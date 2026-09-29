@@ -4,7 +4,7 @@ import type { Settings } from '@platform/settings';
 import { Buttons } from '@shared/input';
 import { useHud, type HudStore } from '../hudStore';
 import type { DifficultyId } from '@content/schemas';
-import { DifficultyPicker, type DifficultyOption } from './DifficultyPicker';
+import { DifficultyPicker, type ArenaOption, type DifficultyOption } from './DifficultyPicker';
 import './hud.css';
 
 interface Props {
@@ -22,6 +22,9 @@ interface Props {
   /** Arena levels for the start screen (empty = peaceful room, no picker). */
   difficulties: readonly DifficultyOption[];
   onPickDifficulty(id: DifficultyId): void;
+  arenas: readonly ArenaOption[];
+  arena: string;
+  onPickArena(id: string): void;
 }
 
 /**
@@ -30,7 +33,7 @@ interface Props {
  */
 export function Hud(props: Props) {
   const { input, hud, t, onRestart, settings, onSettingsChange, onTestVibration } = props;
-  const { difficulties, onPickDifficulty } = props;
+  const { difficulties, onPickDifficulty, arenas, arena, onPickArena } = props;
   const state = useHud(hud);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
@@ -144,6 +147,9 @@ export function Hud(props: Props) {
 
       {state.status === 'ready' && difficulties.length > 0 && (
         <DifficultyPicker
+          arenas={arenas}
+          arena={arena}
+          onPickArena={onPickArena}
           options={difficulties}
           selected={current.difficulty}
           t={t}

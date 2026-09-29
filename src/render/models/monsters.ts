@@ -13,6 +13,7 @@ import type { MonsterDef } from '@content/schemas';
 import { createToonMaterial } from '../materials/toon';
 import { addOutline } from '../outline';
 import { createBlobShadow } from './blobShadow';
+import { NEWCOMER_FACTORIES } from './newcomers';
 import { easeOut, type Rig } from './pose';
 
 /**
@@ -240,6 +241,7 @@ const FACTORIES: Readonly<Record<string, (def: MonsterDef) => MonsterRig>> = {
   bubbler,
   sparkhog,
   stonenibbler,
+  ...NEWCOMER_FACTORIES,
 };
 
 export function createMonster(def: MonsterDef): MonsterRig {

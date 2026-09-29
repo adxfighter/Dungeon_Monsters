@@ -59,6 +59,7 @@ export function facingCos(targetRot: number, tx: number, ty: number, ax: number,
 
 /** Is the attacker inside the `arcDeg` arc in front of the target? */
 export function fromFront(facing: number, arcDeg: number): boolean {
+  if (arcDeg >= 360) return true; // all-round guard: no rounding gap straight behind
   return facing >= Math.cos((arcDeg / 2) * DEG);
 }
 

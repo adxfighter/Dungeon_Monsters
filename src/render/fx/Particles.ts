@@ -8,7 +8,7 @@ import {
   Vector3,
 } from 'three';
 
-const CAPACITY = 96;
+const CAPACITY = 160;
 const GRAVITY = 9;
 const SIZE = 0.07;
 
@@ -67,6 +67,32 @@ export class Particles {
       this.mesh.setColorAt(i, this.color);
     }
     this.alive = Math.min(CAPACITY, this.alive + count);
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+
+  /** Emits one particle with an explicit velocity (directional effects such as fire breath). */
+  emit(
+    x: number,
+    y: number,
+    z: number,
+    vx: number,
+    vy: number,
+    vz: number,
+    color: number,
+    life: number,
+  ): void {
+    const i = this.next;
+    this.next = (this.next + 1) % CAPACITY;
+    this.px[i] = x;
+    this.py[i] = y;
+    this.pz[i] = z;
+    this.vx[i] = vx;
+    this.vy[i] = vy;
+    this.vz[i] = vz;
+    this.life[i] = life;
+    this.maxLife[i] = life;
+    this.mesh.setColorAt(i, this.color.set(color));
+    this.alive = Math.min(CAPACITY, this.alive + 1);
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 

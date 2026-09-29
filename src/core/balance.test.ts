@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { tavi } from '@content/characters/tavi';
-import { monsters } from '@content/index';
-import { arenaTest } from '@content/rooms/arena_test';
-import type { DifficultyId } from '@content/schemas';
+import { arenas, monsters } from '@content/index';
+import type { Arena, DifficultyId } from '@content/schemas';
 import { Buttons, createInputState } from '@shared/input';
 import { Attacker, Brain, Health, Transform } from './components';
 import { Game } from './Game';
@@ -24,10 +23,10 @@ interface BotResult {
  * Arena bot: tap-walks to the nearest monster and mashes attack. With `dodge`, it also dashes sideways when
  * a telegraphed attack aimed near it is about to land (it reads the windup like a player reads the decal).
  */
-function runBot(level: DifficultyId, seed: number, dodge: boolean): BotResult {
-  const d = arenaTest.difficulties[level];
+function runBot(arena: Arena, level: DifficultyId, seed: number, dodge: boolean): BotResult {
+  const d = arena.difficulties[level];
   const game = new Game({
-    room: arenaTest.room,
+    room: arena.room,
     player: tavi,
     monsters,
     waves: d.waves,
@@ -48,8 +47,15 @@ function runBot(level: DifficultyId, seed: number, dodge: boolean): BotResult {
     let tx = 0;
     let ty = 0;
     let threat: { x: number; y: number } | null = null;
+    // No visible monster: walk to the nearest ripple (a submerged ambusher), as a player would.
+    let ripple: { x: number; y: number } | null = null;
     for (const e of world.query(Brain, Health, Transform, Attacker)) {
       if (world.require(e, Health).hp <= 0) continue;
+      // A player can't see or hit a submerged ambusher either — only its ripple.
+      if (world.require(e, Brain).hidden) {
+        ripple ??= world.require(e, Transform);
+        continue;
+      }
       const t = world.require(e, Transform);
       const d = Math.hypot(t.x - hero.x, t.y - hero.y);
       if (d < best) {
@@ -76,6 +82,10 @@ function runBot(level: DifficultyId, seed: number, dodge: boolean): BotResult {
       input.move.x = -ay / len;
       input.move.y = ax / len;
       input.buttons = Buttons.Dodge;
+    } else if (best === Infinity && ripple && step % 6 === 0) {
+      input.target.seq++;
+      input.target.x = ripple.x;
+      input.target.y = ripple.y;
     } else if (best < Infinity) {
       if (best > 0.9) {
         // Walk like a player: tap-to-move (A* around pillars), re-aimed a few times per second.
@@ -115,48 +125,50 @@ const describeRuns = (label: string, runs: BotResult[]): string =>
 const count = (runs: BotResult[], status: BotResult['status']): number =>
   runs.filter((r) => r.status === status).length;
 
-describe('arena difficulty (balance sanity)', () => {
-  const runs: Record<DifficultyId, { tank: BotResult[]; dodger: BotResult[] }> = {
-    easy: { tank: [], dodger: [] },
-    medium: { tank: [], dodger: [] },
-    hard: { tank: [], dodger: [] },
-  };
-  beforeAll(() => {
-    for (const level of ['easy', 'medium', 'hard'] as const) {
-      runs[level].tank = SEEDS.map((s) => runBot(level, s, false));
-      runs[level].dodger = SEEDS.map((s) => runBot(level, s, true));
-    }
-  });
-  const report = (level: DifficultyId): string =>
-    describeRuns(`${level} face-tank:`, runs[level].tank) +
-    '\n' +
-    describeRuns(`${level} dodger:`, runs[level].dodger);
+for (const arena of Object.values(arenas)) {
+  describe(`${arena.id} difficulty (balance sanity)`, () => {
+    const runs: Record<DifficultyId, { tank: BotResult[]; dodger: BotResult[] }> = {
+      easy: { tank: [], dodger: [] },
+      medium: { tank: [], dodger: [] },
+      hard: { tank: [], dodger: [] },
+    };
+    beforeAll(() => {
+      for (const level of ['easy', 'medium', 'hard'] as const) {
+        runs[level].tank = SEEDS.map((s) => runBot(arena, level, s, false));
+        runs[level].dodger = SEEDS.map((s) => runBot(arena, level, s, true));
+      }
+    });
+    const report = (level: DifficultyId): string =>
+      describeRuns(`${arena.id} ${level} face-tank:`, runs[level].tank) +
+      '\n' +
+      describeRuns(`${arena.id} ${level} dodger:`, runs[level].dodger);
 
-  it('easy: even a bot that never dodges clears the arena in most runs', () => {
-    expect(count(runs.easy.tank, 'cleared'), report('easy')).toBeGreaterThanOrEqual(SEEDS.length - 1);
-    expect(count(runs.easy.dodger, 'cleared'), report('easy')).toBe(SEEDS.length);
-  });
+    it('easy: even a bot that never dodges clears the arena in most runs', () => {
+      expect(count(runs.easy.tank, 'cleared'), report('easy')).toBeGreaterThanOrEqual(SEEDS.length - 1);
+      expect(count(runs.easy.dodger, 'cleared'), report('easy')).toBe(SEEDS.length);
+    });
 
-  it('medium: dodging always wins, face-tanking loses at least a third of the time', () => {
-    expect(count(runs.medium.dodger, 'cleared'), report('medium')).toBe(SEEDS.length);
-    expect(count(runs.medium.tank, 'defeated'), report('medium')).toBeGreaterThanOrEqual(
-      Math.ceil(SEEDS.length / 3),
-    );
-  });
+    it('medium: dodging always wins, face-tanking loses at least a third of the time', () => {
+      expect(count(runs.medium.dodger, 'cleared'), report('medium')).toBe(SEEDS.length);
+      expect(count(runs.medium.tank, 'defeated'), report('medium')).toBeGreaterThanOrEqual(
+        Math.ceil(SEEDS.length / 3),
+      );
+    });
 
-  it('hard: a bot that never dodges loses in most runs (not in wave 1); dodging still wins most runs', () => {
-    const tank = runs.hard.tank;
-    expect(count(tank, 'defeated'), report('hard')).toBeGreaterThanOrEqual(SEEDS.length - 1);
-    for (const r of tank) expect(r.wave, report('hard')).toBeGreaterThanOrEqual(2);
-    expect(count(runs.hard.dodger, 'cleared'), report('hard')).toBeGreaterThanOrEqual(
-      Math.ceil(SEEDS.length * 0.6),
-    );
-  });
+    it('hard: a bot that never dodges loses in most runs (not in wave 1); dodging still wins most runs', () => {
+      const tank = runs.hard.tank;
+      expect(count(tank, 'defeated'), report('hard')).toBeGreaterThanOrEqual(SEEDS.length - 1);
+      for (const r of tank) expect(r.wave, report('hard')).toBeGreaterThanOrEqual(2);
+      expect(count(runs.hard.dodger, 'cleared'), report('hard')).toBeGreaterThanOrEqual(
+        Math.ceil(SEEDS.length * 0.6),
+      );
+    });
 
-  it('levels are ordered: harder levels leave the dodging bot with less HP on average', () => {
-    const avgHp = (level: DifficultyId) =>
-      runs[level].dodger.reduce((sum, r) => sum + Math.max(0, r.hp), 0) / SEEDS.length;
-    expect(avgHp('easy'), report('easy')).toBeGreaterThan(avgHp('medium'));
-    expect(avgHp('medium'), report('medium')).toBeGreaterThan(avgHp('hard'));
+    it('levels are ordered: harder levels leave the dodging bot with less HP on average', () => {
+      const avgHp = (level: DifficultyId) =>
+        runs[level].dodger.reduce((sum, r) => sum + Math.max(0, r.hp), 0) / SEEDS.length;
+      expect(avgHp('easy'), report('easy')).toBeGreaterThan(avgHp('medium'));
+      expect(avgHp('medium'), report('medium')).toBeGreaterThan(avgHp('hard'));
+    });
   });
-});
+}

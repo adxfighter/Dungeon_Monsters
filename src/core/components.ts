@@ -44,7 +44,7 @@ export interface MoveStatsData {
 export const MoveStats = defineComponent<MoveStatsData>('MoveStats');
 
 /** What the entity is, for render/ui to pick a view. */
-export type EntityKind = 'player' | 'monster' | 'projectile';
+export type EntityKind = 'player' | 'monster' | 'projectile' | 'carrion';
 /** `defId`: character id (player), monster id (monster) or attack id (projectile). */
 export const Kind = defineComponent<{ kind: EntityKind; defId: string }>('Kind');
 
@@ -125,7 +125,7 @@ export const Dodge = defineComponent<DodgeData>('Dodge');
 /** Velocity imposed by an action (dodge, lunge); steering is ignored while active. */
 export const ForcedVelocity = defineComponent<{ active: boolean; x: number; y: number }>('ForcedVelocity');
 
-export type BrainState = 'idle' | 'wander' | 'chase' | 'attack' | 'guard';
+export type BrainState = 'idle' | 'wander' | 'chase' | 'attack' | 'guard' | 'exposed' | 'eat';
 
 export interface BrainData {
   def: MonsterDef;
@@ -142,8 +142,14 @@ export interface BrainData {
   /** Passive monsters fight only once aggravated. */
   aggro: boolean;
   attackCooldown: number;
-  /** Difficulty multiplier for `def.ai.attackCooldown`. */
-  cooldownMult: number;
+  /** Pause between attacks for this monster on this level (override × difficulty multiplier), seconds. */
+  cooldownBase: number;
+  /** Ambusher under water: untargetable, can't be hit, doesn't push bodies. */
+  hidden: boolean;
+  /** Hopping gait clock, seconds. */
+  hopClock: number;
+  /** Scavenger: the carcass it is heading to / eating (-1 = none). */
+  carrion: Entity;
   guardCooldown: number;
 }
 export const Brain = defineComponent<BrainData>('Brain');
@@ -160,6 +166,9 @@ export interface ProjectileData {
   speed: number;
 }
 export const Projectile = defineComponent<ProjectileData>('Projectile');
+
+/** A monster carcass left on the floor (M3 butchery reads it too); scavengers eat it. `ttl` in seconds. */
+export const Carrion = defineComponent<{ monsterId: string; ttl: number }>('Carrion');
 
 /** Desired move direction for this step, |v| ≤ 1 (from input or navigation). Consumed by the movement system. */
 export const Steering = defineComponent<Velocity2D>('Steering');

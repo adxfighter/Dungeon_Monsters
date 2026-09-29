@@ -2,6 +2,7 @@ import { BALANCE } from '@content/balance';
 import {
   Attacker,
   Brain,
+  Carrion,
   Health,
   MoveStats,
   PlayerControlled,
@@ -13,6 +14,7 @@ import { nearestFloorTile, segmentClear } from '../dungeon/pathfinding';
 import type { TileMap } from '../dungeon/TileMap';
 import type { Entity, World } from '../ecs/World';
 import type { Rng } from '../rng';
+import type { CombatContext } from './combat';
 import { turnToward } from './movement';
 
 const {
@@ -20,6 +22,8 @@ const {
   wanderTimeout: WANDER_TIMEOUT,
   wanderReached: WANDER_REACHED,
   wanderTries: WANDER_TRIES,
+  eatReach: EAT_REACH,
+  eatDisturb: EAT_DISTURB,
 } = BALANCE.ai;
 
 function findHero(world: World): Entity | undefined {
@@ -40,12 +44,34 @@ function steerToward(steering: { x: number; y: number }, dx: number, dy: number,
   steering.y = (dy / len) * scale;
 }
 
+/** Nearest carcass within `range` that no other scavenger has claimed (-1 if none). */
+function findCarrion(world: World, self: Entity, x: number, y: number, range: number): Entity {
+  let best = -1;
+  let bestD = range;
+  for (const c of world.query(Carrion, Transform)) {
+    let claimed = false;
+    for (const other of world.query(Brain)) {
+      if (other !== self && world.require(other, Brain).carrion === c) claimed = true;
+    }
+    if (claimed) continue;
+    const t = world.require(c, Transform);
+    const d = Math.hypot(t.x - x, t.y - y);
+    if (d < bestD) {
+      bestD = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
 /**
- * Monster FSM (M2): idle → wander ⇄ idle; notice → chase → attack (windup = telegraph, active, recovery)
- * → chase …; the Sparkhog curls into `guard` when the hero gets close. All thresholds come from MonsterDef.ai.
- * Randomness only from the step RNG → deterministic.
+ * Monster FSM: idle → wander ⇄ idle; notice → chase → attack (windup = telegraph, active, recovery) → chase …
+ * Special behaviours from MonsterDef: `guard` (curl / shell), `ambush` (submerged ↔ exposed), `scavenger`
+ * (eat carcasses), `locomotion.hop` (moves in bursts). All thresholds come from content; randomness only from the
+ * step RNG → deterministic.
  */
-export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void {
+export function aiSystem(ctx: CombatContext, dt: number): void {
+  const { world, map, rng } = ctx;
   const hero = findHero(world);
   const ht = hero === undefined ? undefined : world.require(hero, Transform);
 
@@ -55,7 +81,8 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
     const steering = world.require(e, Steering);
     const attacker = world.require(e, Attacker);
     const h = world.require(e, Health);
-    const ai = brain.def.ai;
+    const def = brain.def;
+    const ai = def.ai;
     steering.x = 0;
     steering.y = 0;
     brain.t += dt;
@@ -65,6 +92,18 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
     const noticed =
       ht !== undefined && (dist <= ai.noticeRange || (ai.temperament === 'passive' && brain.aggro));
     const aggressive = ai.temperament === 'aggressive' || brain.aggro;
+    const turnRate = world.get(e, MoveStats)?.turnRate ?? 0;
+
+    // Scavengers prefer a free meal over a fight unless the hero is right on top of them.
+    const scav = def.scavenger;
+    if (scav && brain.state !== 'attack' && brain.state !== 'eat' && dist > EAT_DISTURB) {
+      const c = findCarrion(world, e, t.x, t.y, scav.seekRange);
+      if (c >= 0) {
+        brain.carrion = c;
+        brain.state = 'eat';
+        brain.t = 0;
+      }
+    }
 
     switch (brain.state) {
       case 'idle':
@@ -97,7 +136,7 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
           enterIdle(brain, rng);
           break;
         }
-        const guard = brain.def.guard;
+        const guard = def.guard;
         if (guard && brain.guardCooldown <= 0 && dist <= guard.triggerRange) {
           brain.state = 'guard';
           brain.t = 0;
@@ -105,7 +144,10 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
         }
         const attack = attacker.attacks[0];
         const clearShot = segmentClear(map, t, ht, 0.1);
-        if (attack && brain.attackCooldown <= 0 && dist <= attack.range && clearShot) {
+        // Ambushers only strike after closing in submerged.
+        const ambushOk = !def.ambush || !brain.hidden || dist <= def.ambush.emergeRange;
+        if (attack && brain.attackCooldown <= 0 && dist <= attack.range && clearShot && ambushOk) {
+          brain.hidden = false; // surface: from now on it can be hit
           brain.goalX = ht.x;
           brain.goalY = ht.y;
           attacker.request = 0;
@@ -122,7 +164,6 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
         }
         // Face the hero while closing in (steering turns the body when moving; turn in place otherwise).
         if (steering.x === 0 && steering.y === 0) {
-          const turnRate = world.get(e, MoveStats)?.turnRate ?? 0;
           t.rot = turnToward(t.rot, Math.atan2(dx, dy), turnRate * dt);
         }
         break;
@@ -130,24 +171,74 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
       case 'attack': {
         // The action system runs the swing; wait until it is over (it may also be cancelled by stagger).
         if (attacker.current || attacker.request >= 0) break;
-        brain.attackCooldown = ai.attackCooldown * brain.cooldownMult;
-        brain.state = 'chase';
+        brain.attackCooldown = brain.cooldownBase;
+        brain.state = def.ambush ? 'exposed' : 'chase';
         brain.t = 0;
         break;
       }
-      case 'guard': {
-        const guard = brain.def.guard;
-        // Keep the armoured front toward the hero while curled.
-        if (ht) {
-          const turnRate = world.get(e, MoveStats)?.turnRate ?? 0;
-          t.rot = turnToward(t.rot, Math.atan2(ht.x - t.x, ht.y - t.y), turnRate * dt);
+      case 'exposed': {
+        // After a strike the ambusher lies still on the surface — the punish window — then dives again.
+        if (brain.t >= (def.ambush?.exposedTime ?? 0)) {
+          brain.hidden = true;
+          // The next strike is timed from the dive, so it swims a while before surfacing again.
+          brain.attackCooldown = brain.cooldownBase;
+          brain.state = 'chase';
+          brain.t = 0;
         }
+        break;
+      }
+      case 'guard': {
+        const guard = def.guard;
+        // Keep the armoured front toward the hero while curled.
+        if (ht) t.rot = turnToward(t.rot, Math.atan2(ht.x - t.x, ht.y - t.y), turnRate * dt);
         if (!guard || brain.t >= guard.duration) {
           brain.guardCooldown = guard?.cooldown ?? 0;
           brain.state = 'chase';
           brain.t = 0;
         }
         break;
+      }
+      case 'eat': {
+        const c = brain.carrion;
+        const ct = c >= 0 && world.isAlive(c) && !ctx.doomed.has(c) ? world.get(c, Transform) : undefined;
+        if (!ct || !scav) {
+          brain.carrion = -1;
+          enterIdle(brain, rng);
+          break;
+        }
+        if (ht && dist <= EAT_DISTURB) {
+          // Disturbed: fight back.
+          brain.carrion = -1;
+          brain.aggro = true;
+          brain.state = 'chase';
+          brain.t = 0;
+          break;
+        }
+        const dx = ct.x - t.x;
+        const dy = ct.y - t.y;
+        if (Math.hypot(dx, dy) > EAT_REACH) {
+          steerToward(steering, dx, dy, 1);
+          brain.t = 0; // the eating timer only runs at the carcass
+          break;
+        }
+        if (brain.t >= scav.eatTime) {
+          h.hp = Math.min(h.maxHp, h.hp + h.maxHp * scav.heal);
+          ctx.doomed.add(c);
+          ctx.events.push({ type: 'CarrionEaten', carrion: c, by: e });
+          brain.carrion = -1;
+          enterIdle(brain, rng);
+        }
+        break;
+      }
+    }
+
+    // Hopping gait: steer only during the airborne part of each hop cycle.
+    const hop = def.locomotion;
+    if (hop) {
+      brain.hopClock += dt;
+      if (brain.hopClock % hop.interval >= hop.hopTime) {
+        steering.x = 0;
+        steering.y = 0;
       }
     }
   }

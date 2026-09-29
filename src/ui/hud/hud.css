@@ -265,3 +265,26 @@
     14px/1.25 system-ui,
     sans-serif;
 }
+
+.arena-tabs {
+  display: flex;
+  gap: 6px;
+  width: min(300px, 100%);
+}
+
+.arena-tabs button {
+  flex: 1;
+  min-height: 48px;
+  border: 2px solid #1a1414;
+  border-radius: 12px;
+  background: rgb(255 244 224 / 30%);
+  color: #fff4e0;
+  font:
+    700 15px/1.1 system-ui,
+    sans-serif;
+}
+
+.arena-tabs button.on {
+  background: #fff4e0;
+  color: #1a1414;
+}

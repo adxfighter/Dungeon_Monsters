@@ -10,6 +10,10 @@ export interface Pose {
   whiffed: boolean;
   guarding: boolean;
   staggered: boolean;
+  /** Submerged ambusher: only a ripple should show. */
+  hidden: boolean;
+  /** Scavenger eating a carcass. */
+  eating: boolean;
 }
 
 /** A procedurally animated model: characters and monsters share this shape. */

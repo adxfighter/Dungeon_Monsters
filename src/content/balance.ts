@@ -23,6 +23,8 @@ export const BALANCE = {
   staggerTime: 0.45,
   /** Poise regenerates fully after this many seconds without poise damage. */
   poiseResetTime: 2,
+  /** Seconds a carcass stays on the floor (scavengers eat it; M3 butchers it). */
+  carrionTtl: 25,
   /** Monster AI tuning shared by all monsters (per-monster numbers live in MonsterDef.ai). */
   ai: {
     /** Chasers stop closing in at this fraction of their attack range. */
@@ -33,5 +35,9 @@ export const BALANCE = {
     wanderReached: 0.2,
     /** Random points tried per wander pick. */
     wanderTries: 4,
+    /** A scavenger this close (tiles) to its carcass starts eating. */
+    eatReach: 0.45,
+    /** A scavenger gives up eating and fights if the hero comes this close (tiles). */
+    eatDisturb: 1,
   },
 } as const;

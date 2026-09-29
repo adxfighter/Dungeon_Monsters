@@ -15,6 +15,7 @@ import { characters, monsters } from '@content/index';
 import { disposeObject } from './dispose';
 import { createChibi } from './models/chibi';
 import { createMonster, createQuill } from './models/monsters';
+import { createCarcass } from './models/newcomers';
 import { HitFlash } from './fx/HitFlash';
 import type { Pose } from './models/pose';
 
@@ -73,6 +74,7 @@ export class EntityViews {
       const rig = createMonster(def);
       return { object: rig.root, update: rig.update, flash: new HitFlash(rig.materials), disposable: true };
     }
+    if (kind === 'carrion') return { object: createCarcass(), disposable: false };
     return { object: createQuill(), disposable: false };
   }
 
@@ -100,7 +102,15 @@ export class EntityViews {
     this.views.get(entity)?.flash?.trigger();
   }
 
-  private readonly pose: Pose = { phase: 'none', t01: 0, whiffed: false, guarding: false, staggered: false };
+  private readonly pose: Pose = {
+    phase: 'none',
+    t01: 0,
+    whiffed: false,
+    guarding: false,
+    staggered: false,
+    hidden: false,
+    eating: false,
+  };
 
   /** Reads what the entity is doing from core (read-only) into a reused pose object. */
   private poseOf(world: World, entity: Entity): Pose {
@@ -119,7 +129,10 @@ export class EntityViews {
       pose.t01 = len > 0 ? Math.min(1, cur.t / len) : 1;
       pose.whiffed = cur.extraRecovery > 0;
     }
-    pose.guarding = world.get(entity, Brain)?.state === 'guard';
+    const brain = world.get(entity, Brain);
+    pose.guarding = brain?.state === 'guard';
+    pose.hidden = brain?.hidden ?? false;
+    pose.eating = brain?.state === 'eat' && Math.abs(brain.t) > 0;
     pose.staggered = (world.get(entity, Health)?.stagger ?? 0) > 0;
     return pose;
   }

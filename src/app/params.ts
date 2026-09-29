@@ -12,6 +12,8 @@ export interface LaunchParams {
   room: string | undefined;
   /** `?seed=<n>` — run seed (default 1). */
   seed: string | undefined;
+  /** `?arena=<id>` — which arena to open (default: the Tier I test arena). */
+  arena: string | undefined;
   /** `?pr=<n>` — force the render pixel ratio (`?pr=1` = GPU / fill-rate proxy for mid-range devices). */
   forcedPixelRatio: number | undefined;
 }
@@ -29,6 +31,7 @@ export function parseLaunchParams(search: string): LaunchParams {
     joystick: params.get('joystick') === '1',
     room: params.get('room') ?? undefined,
     seed: params.get('seed') ?? undefined,
+    arena: params.get('arena') ?? undefined,
     forcedPixelRatio:
       params.has('pr') && Number.isFinite(pr) && pr > 0 ? Math.min(PR_MAX, Math.max(PR_MIN, pr)) : undefined,
   };
