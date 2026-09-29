@@ -289,11 +289,11 @@
   color: #1a1414;
 }
 
-/* Held by a grab: a pulsing hint above the buttons. */
+/* Held by a grab: a pulsing hint under the HP bar (keeps the fight around the hero visible). */
 .grab-hint {
   position: absolute;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 260px);
+  top: calc(env(safe-area-inset-top, 0px) + 72px);
   transform: translateX(-50%);
   max-width: calc(100% - 32px);
   padding: 10px 14px;

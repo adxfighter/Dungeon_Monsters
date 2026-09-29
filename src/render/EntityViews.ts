@@ -161,7 +161,7 @@ export class EntityViews {
       (world.get(entity, Health)?.stagger ?? 0) > 0 || (world.get(entity, Status)?.heldBy ?? -1) >= 0;
     pose.attackId = cur ? cur.def.id : '';
     pose.holdDist = 0;
-    if (brain?.state === 'hold') {
+    if (brain) {
       const self = world.get(entity, Transform);
       for (const held of world.query(Status, Transform)) {
         if (world.require(held, Status).heldBy !== entity || !self) continue;

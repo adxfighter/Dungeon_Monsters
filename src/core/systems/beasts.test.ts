@@ -1,12 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { tavi } from '@content/characters/tavi';
 import { monsters } from '@content/index';
-import { decapus, dinostrich, skunk, yak } from '@content/monsters/newcomers';
+import {
+  decapus as gameDecapus,
+  dinostrich as gameDino,
+  skunk as gameSkunk,
+  yak as gameYak,
+} from '@content/monsters/newcomers';
 import type { MonsterDef } from '@content/schemas';
 import { Buttons, createInputState } from '@shared/input';
 import { Attacker, Brain, Hazard, Health, Status, Transform } from '../components';
 import { Game } from '../Game';
 import type { GameEvent } from '../state/events';
+import {
+  charger as yak,
+  grabber as decapus,
+  sprayer as skunk,
+  twoMoves as dinostrich,
+} from '../testing/monsters';
 
 const DT = 1 / 30;
 const room = {
@@ -200,7 +211,7 @@ describe('dino-ostrich', () => {
     const used = new Set(
       s.events.flatMap((ev) => (ev.type === 'AttackStarted' && ev.entity === e ? [ev.attackId] : [])),
     );
-    expect(used).toEqual(new Set(['dinostrich.bite', 'dinostrich.stomp']));
+    expect(used).toEqual(new Set(['twomoves.bite', 'twomoves.stomp']));
   });
 });
 
@@ -224,7 +235,7 @@ describe('maniac yak', () => {
 
 describe('new-monster data', () => {
   it('only the grab has zero power, and every hazard is laid by a hit that points at the target', () => {
-    const defs: MonsterDef[] = [skunk, yak, dinostrich, decapus];
+    const defs: MonsterDef[] = [gameSkunk, gameYak, gameDino, gameDecapus];
     for (const d of defs) {
       for (const a of d.attacks) {
         if (a.power === 0) expect(a.grab).toBeDefined();
