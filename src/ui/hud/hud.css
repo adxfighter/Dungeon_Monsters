@@ -45,14 +45,23 @@
   background: rgb(26 20 20 / 55%);
 }
 
+/* Vertical column: Dodge above Attack, on the left or right edge (settings). */
 .hud-buttons {
   position: absolute;
-  right: 16px;
   bottom: 24px;
   display: flex;
-  align-items: flex-end;
-  gap: 14px;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
   pointer-events: none;
+}
+
+.hud-buttons.side-left {
+  left: 16px;
+}
+
+.hud-buttons.side-right {
+  right: 16px;
 }
 
 .action {
@@ -75,15 +84,15 @@
 
 /* ≥ 64 dp touch targets (M2). */
 .action.attack {
-  width: 88px;
-  height: 88px;
+  width: 108px;
+  height: 108px;
+  font-size: 17px;
   background: rgb(242 193 78 / 80%);
 }
 
 .action.dodge {
-  width: 66px;
-  height: 66px;
-  margin-bottom: 40px;
+  width: 74px;
+  height: 74px;
 }
 
 .end-screen {
@@ -163,4 +172,45 @@
 .settings input {
   width: 22px;
   height: 22px;
+}
+
+.settings-btn,
+.segmented button {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 2px solid #1a1414;
+  border-radius: 10px;
+  background: rgb(255 244 224 / 85%);
+  color: #1a1414;
+  font:
+    600 15px/1 system-ui,
+    sans-serif;
+}
+
+.settings-row {
+  display: grid;
+  gap: 6px;
+}
+
+.segmented {
+  display: flex;
+  gap: 6px;
+}
+
+.segmented button {
+  flex: 1;
+  background: rgb(255 244 224 / 35%);
+  color: #fff4e0;
+}
+
+.segmented button.on {
+  background: #f2c14e;
+  color: #1a1414;
+}
+
+.settings-note {
+  margin: 0;
+  max-width: 24ch;
+  font-size: 13px;
+  color: #d8cfe0;
 }

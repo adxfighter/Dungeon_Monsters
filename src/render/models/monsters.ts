@@ -139,7 +139,11 @@ function sparkhog(def: MonsterDef): MonsterRig {
   );
   snout.name = 'sparkhog-snout';
   const face = eyes(0.035, 0.11, 0.24, 0.27);
-  body.add(torso, quills, snout, face);
+  // The face lives outside the squashed body so curling can't sink it into the dome.
+  const faceGroup = new Group();
+  faceGroup.add(snout, face);
+  body.add(torso, quills);
+  root.add(faceGroup);
   root.add(createBlobShadow(0.36));
 
   let t = 0;
@@ -150,17 +154,19 @@ function sparkhog(def: MonsterDef): MonsterRig {
     update(dt, speed01, pose) {
       t += dt;
       body.position.y = Math.abs(Math.sin(t * 14)) * 0.03 * speed01;
-      // Guard: curl into a spiky ball (smoothly), face tucked away.
+      // Guard: curl into a spiky ball (smoothly); the face stays visible and pokes forward.
       curl += ((pose.guarding ? 1 : 0) - curl) * Math.min(1, dt * 12);
       body.scale.set(1 + 0.1 * curl, 1 - 0.3 * curl, 1 + 0.1 * curl);
       quills.scale.setScalar(1 + 0.35 * curl);
-      snout.visible = curl < 0.5;
-      face.visible = curl < 0.5;
+      // Players read a vanishing face as a bug (playtest): keep it on the surface of the curled ball —
+      // follow the body bob, drop with the squash and move forward as the dome widens.
+      faceGroup.position.set(0, body.position.y - 0.05 * curl, 0.05 * curl);
       // Telegraph: quills glow brighter and brighter until they fire.
       const charge = pose.phase === 'windup' ? pose.t01 : 0;
       quillMat.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 + charge * 1.6 + curl * 0.4;
       quills.rotation.y = charge * Math.sin(t * 40) * 0.05;
       body.rotation.z = pose.staggered ? Math.sin(t * 20) * 0.2 : 0;
+      faceGroup.rotation.z = body.rotation.z; // the face wobbles with the body (same pivot)
     },
   };
 }
@@ -182,13 +188,15 @@ function stonenibbler(def: MonsterDef): MonsterRig {
   torso.name = 'stonenibbler-body';
   addOutline(torso);
   const earMat = createToonMaterial({ color: def.appearance.accent });
+  // Ears pivot at the top of the head (not at the feet), so flicking them keeps them attached.
   const ears = new Mesh(
     merge([
-      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), 0.07, 0.75, 0.1, -0.35, 0, -0.25),
-      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), -0.07, 0.75, 0.1, -0.35, 0, 0.25),
+      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), 0.07, 0.13, -0.02, -0.35, 0, -0.25),
+      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), -0.07, 0.13, -0.02, -0.35, 0, 0.25),
     ]),
     earMat,
   );
+  ears.position.set(0, 0.62, 0.12);
   ears.name = 'stonenibbler-ears';
   addOutline(ears, { thickness: 0.02 });
   body.add(torso, ears, eyes(0.03, 0.08, 0.55, 0.31));

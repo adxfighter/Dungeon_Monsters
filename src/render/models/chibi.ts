@@ -167,7 +167,9 @@ const SWING_THROUGH = 1.7;
 /** Crescent slash trail shown during the active phase of a swing. */
 function slashArc(): Mesh {
   const arc = new Mesh(
-    new RingGeometry(0.55, 0.95, 24, 1, Math.PI * 0.2, Math.PI * 0.6).rotateX(-Math.PI / 2),
+    // RingGeometry sweeps around +Y in its XY plane; rotateX(+π/2) lays it on the floor in FRONT (+Z)
+    // of the character (−π/2 would put the trail behind her).
+    new RingGeometry(0.55, 0.95, 24, 1, Math.PI * 0.2, Math.PI * 0.6).rotateX(Math.PI / 2),
     new MeshBasicMaterial({
       color: 0xfff4e0,
       transparent: true,

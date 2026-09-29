@@ -12,21 +12,27 @@ interface Props {
   onRestart(): void;
   settings: Settings;
   onSettingsChange(settings: Settings): void;
+  /**
+   * Fires a long vibration right away, inside the tap (satisfies the browser's user-activation rule).
+   * Returns false when the browser has no Vibration API or refused the call.
+   */
+  onTestVibration(): boolean;
 }
 
 /**
- * Combat HUD: hero HP bar, action buttons (bottom right, ≥ 64 dp, above the tap layer) and the
+ * Combat HUD: hero HP bar, action buttons (bottom, left or right per settings, ≥ 64 dp, above the tap layer) and the
  * end-of-fight screens. Buttons stop propagation so they never also send a move tap.
  */
-export function Hud({ input, hud, t, onRestart, settings, onSettingsChange }: Props) {
+export function Hud({ input, hud, t, onRestart, settings, onSettingsChange, onTestVibration }: Props) {
   const state = useHud(hud);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
-  const toggle = (key: keyof Settings) => {
-    const next = { ...current, [key]: !current[key] };
+  const [vibrationStatus, setVibrationStatus] = useState<'idle' | 'sent' | 'unsupported'>('idle');
+  const change = (next: Settings) => {
     setCurrent(next);
     onSettingsChange(next);
   };
+  const toggle = (key: 'shake' | 'haptics') => change({ ...current, [key]: !current[key] });
   const press = (bit: number) => (event: PointerEvent) => {
     event.stopPropagation();
     event.preventDefault();
@@ -66,7 +72,8 @@ export function Hud({ input, hud, t, onRestart, settings, onSettingsChange }: Pr
         )}
       </div>
 
-      <div class="hud-buttons">
+      {/* Dodge stacked above Attack; the column sits on the side chosen in settings. */}
+      <div class={`hud-buttons side-${current.buttonsSide}`} data-testid="hud-buttons">
         <button
           type="button"
           class="action dodge"
@@ -95,6 +102,36 @@ export function Hud({ input, hud, t, onRestart, settings, onSettingsChange }: Pr
             <input type="checkbox" checked={current.haptics} onChange={() => toggle('haptics')} />
             {t('settings.haptics')}
           </label>
+          <button
+            type="button"
+            class="settings-btn"
+            data-testid="btn-test-vibration"
+            onClick={() => setVibrationStatus(onTestVibration() ? 'sent' : 'unsupported')}
+          >
+            {t('settings.testVibration')}
+          </button>
+          {vibrationStatus !== 'idle' && (
+            <p class="settings-note" data-testid="vibration-status">
+              {t(vibrationStatus === 'sent' ? 'settings.vibrationSent' : 'settings.vibrationUnsupported')}
+            </p>
+          )}
+          <div class="settings-row">
+            <span>{t('settings.buttonsSide')}</span>
+            <div class="segmented" role="radiogroup">
+              {(['left', 'right'] as const).map((side) => (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={current.buttonsSide === side}
+                  class={current.buttonsSide === side ? 'on' : ''}
+                  data-testid={`side-${side}`}
+                  onClick={() => change({ ...current, buttonsSide: side })}
+                >
+                  {t(`settings.side.${side}`)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
