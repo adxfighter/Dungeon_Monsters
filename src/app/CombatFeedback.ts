@@ -33,6 +33,9 @@ export const FEEL = {
   vibrateDealt: 25,
   vibrateTaken: 80,
   vibrateKill: 40,
+  /** Caught by a grab: a jolt and a long buzz. */
+  shakeGrabbed: [0.25, 0.25],
+  vibrateGrabbed: 120,
   /** Damage numbers float up from this height, world units. */
   numberHeight: 1.1,
 } as const;
@@ -70,6 +73,7 @@ export class CombatFeedback {
           String(e.amount),
           heroHit ? 'taken' : e.crit ? 'crit' : 'dealt',
         );
+        if (e.dot) continue; // damage over time: just the number, no freeze or shake every tick
         if (heroHit) {
           s.hitStop(FEEL.heavyHitStop);
           s.shake(FEEL.shakeTaken[0], FEEL.shakeTaken[1]);
@@ -81,6 +85,9 @@ export class CombatFeedback {
           s.shake(a, d);
           s.vibrate(FEEL.vibrateDealt);
         }
+      } else if (e.type === 'Grabbed' && e.target === this.hero) {
+        s.shake(FEEL.shakeGrabbed[0], FEEL.shakeGrabbed[1]);
+        s.vibrate(FEEL.vibrateGrabbed);
       } else if (e.type === 'MonsterKilled') {
         s.hitStop(FEEL.heavyHitStop);
         s.shake(FEEL.shakeKill[0], FEEL.shakeKill[1]);

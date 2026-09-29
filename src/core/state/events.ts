@@ -23,6 +23,8 @@ export type GameEvent =
       backstab: boolean;
       /** Target was staggered by this hit. */
       staggered: boolean;
+      /** Damage over time (a hazard tick): no hit reaction, no shake. */
+      dot?: true;
       x: number;
       y: number;
     }
@@ -38,6 +40,9 @@ export type GameEvent =
       y: number;
     }
   | { type: 'HeroDefeated'; entity: Entity }
+  /** A grab caught the target: it can't move until `duration` runs out or it breaks free. */
+  | { type: 'Grabbed'; target: Entity; by: Entity; duration: number }
+  | { type: 'GrabReleased'; target: Entity }
   /** A scavenger ate a carcass (its loot is gone). */
   | { type: 'CarrionEaten'; carrion: Entity; by: Entity }
   | { type: 'WaveStarted'; index: number; total: number }

@@ -6,6 +6,7 @@ import {
   MoveTarget,
   PlayerControlled,
   PrevTransform,
+  Status,
   Steering,
   Transform,
   Velocity,
@@ -199,16 +200,20 @@ export function steeringMovementSystem(world: World, dt: number): void {
       continue;
     }
 
+    // Slowed (standing in a hazard): a lower top speed.
+    const status = world.get(e, Status);
+    const maxSpeed = status && status.slowT > 0 ? stats.speed * status.slowMult : stats.speed;
+
     // Leaving a dash/lunge: drop straight back to walking speed instead of sliding for a tile.
     const speed = Math.hypot(v.x, v.y);
-    if (speed > stats.speed) {
-      v.x *= stats.speed / speed;
-      v.y *= stats.speed / speed;
+    if (speed > maxSpeed) {
+      v.x *= maxSpeed / speed;
+      v.y *= maxSpeed / speed;
     }
 
     const mag = Math.min(Math.hypot(s.x, s.y), 1);
-    const targetX = s.x * stats.speed;
-    const targetY = s.y * stats.speed;
+    const targetX = s.x * maxSpeed;
+    const targetY = s.y * maxSpeed;
     const rate = mag > 0 ? stats.accel : stats.decel;
     const dx = targetX - v.x;
     const dy = targetY - v.y;

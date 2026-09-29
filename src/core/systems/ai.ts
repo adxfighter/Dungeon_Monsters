@@ -1,4 +1,5 @@
 import { BALANCE } from '@content/balance';
+import type { AttackDef } from '@content/schemas';
 import {
   Attacker,
   Brain,
@@ -6,6 +7,7 @@ import {
   Health,
   MoveStats,
   PlayerControlled,
+  Status,
   Steering,
   Transform,
   type BrainData,
@@ -142,15 +144,17 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
           brain.t = 0;
           break;
         }
-        const attack = attacker.attacks[0];
+        const reach = maxRange(attacker.attacks);
         const clearShot = segmentClear(map, t, ht, 0.1);
         // Ambushers only strike after closing in submerged.
         const ambushOk = !def.ambush || !brain.hidden || dist <= def.ambush.emergeRange;
-        if (attack && brain.attackCooldown <= 0 && dist <= attack.range && clearShot && ambushOk) {
+        const pick =
+          brain.attackCooldown <= 0 && clearShot && ambushOk ? pickAttack(attacker.attacks, dist, rng) : -1;
+        if (pick >= 0) {
           brain.hidden = false; // surface: from now on it can be hit
           brain.goalX = ht.x;
           brain.goalY = ht.y;
-          attacker.request = 0;
+          attacker.request = pick;
           brain.state = 'attack';
           brain.t = 0;
           break;
@@ -159,7 +163,7 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
         const dy = ht.y - t.y;
         if (ai.keepDistance > 0 && dist < ai.keepDistance) {
           steerToward(steering, -dx, -dy, 1); // back off (ranged monsters)
-        } else if (!attack || dist > attack.range * CLOSE_IN || !clearShot) {
+        } else if (dist > reach * CLOSE_IN || !clearShot) {
           steerToward(steering, dx, dy, 1);
         }
         // Face the hero while closing in (steering turns the body when moving; turn in place otherwise).
@@ -172,6 +176,12 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
         // The action system runs the swing; wait until it is over (it may also be cancelled by stagger).
         if (attacker.current || attacker.request >= 0) break;
         brain.attackCooldown = brain.cooldownBase;
+        // A grab that caught the hero: keep holding (the cooldown starts once it lets go).
+        if (hero !== undefined && world.get(hero, Status)?.heldBy === e) {
+          brain.state = 'hold';
+          brain.t = 0;
+          break;
+        }
         brain.state = def.ambush ? 'exposed' : 'chase';
         brain.t = 0;
         break;
@@ -181,6 +191,16 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
         if (brain.t >= (def.ambush?.exposedTime ?? 0)) {
           brain.hidden = true;
           // The next strike is timed from the dive, so it swims a while before surfacing again.
+          brain.attackCooldown = brain.cooldownBase;
+          brain.state = 'chase';
+          brain.t = 0;
+        }
+        break;
+      }
+      case 'hold': {
+        // Holding the hero with its tentacles: stay put, face it; others get free hits.
+        if (ht) t.rot = turnToward(t.rot, Math.atan2(ht.x - t.x, ht.y - t.y), turnRate * dt);
+        if (hero === undefined || world.get(hero, Status)?.heldBy !== e) {
           brain.attackCooldown = brain.cooldownBase;
           brain.state = 'chase';
           brain.t = 0;
@@ -242,6 +262,30 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
       }
     }
   }
+}
+
+/** Longest attack range of a move list. */
+function maxRange(attacks: readonly AttackDef[]): number {
+  let r = 0;
+  for (const a of attacks) r = Math.max(r, a.range);
+  return r;
+}
+
+/**
+ * Index of the attack to start at distance `dist` (-1 = none in range). Several in range: a random one — the RNG
+ * is drawn only then, so monsters with one attack keep the same random stream.
+ */
+function pickAttack(attacks: readonly AttackDef[], dist: number, rng: Rng): number {
+  let count = 0;
+  for (const a of attacks) if (dist <= a.range) count++;
+  if (count === 0) return -1;
+  let k = count === 1 ? 0 : rng.int(0, count - 1);
+  for (let i = 0; i < attacks.length; i++) {
+    if (dist > (attacks[i]?.range ?? 0)) continue;
+    if (k === 0) return i;
+    k--;
+  }
+  return -1;
 }
 
 function enterIdle(brain: BrainData, rng: Rng): void {

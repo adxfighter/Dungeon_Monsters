@@ -7,13 +7,15 @@ export interface HudState {
   status: 'ready' | 'playing' | 'defeated' | 'cleared';
   wave: number;
   waveTotal: number;
+  /** The hero is held by a grab: show the "mash Attack" hint. */
+  grabbed: boolean;
 }
 
 type Listener = (state: HudState) => void;
 
 /** Minimal observable store (no preact/compat needed). */
 export class HudStore {
-  private state: HudState = { hp: 1, maxHp: 1, status: 'playing', wave: 0, waveTotal: 0 };
+  private state: HudState = { hp: 1, maxHp: 1, status: 'playing', wave: 0, waveTotal: 0, grabbed: false };
   private readonly listeners = new Set<Listener>();
 
   get(): HudState {
@@ -24,18 +26,26 @@ export class HudStore {
    * Per-frame update with positional arguments: allocates nothing unless a value changed
    * (then a new immutable state object is made for subscribers).
    */
-  update(hp: number, maxHp: number, status: HudState['status'], wave: number, waveTotal: number): void {
+  update(
+    hp: number,
+    maxHp: number,
+    status: HudState['status'],
+    wave: number,
+    waveTotal: number,
+    grabbed = false,
+  ): void {
     const s = this.state;
     if (
       s.hp === hp &&
       s.maxHp === maxHp &&
       s.status === status &&
       s.wave === wave &&
-      s.waveTotal === waveTotal
+      s.waveTotal === waveTotal &&
+      s.grabbed === grabbed
     ) {
       return;
     }
-    this.state = { hp, maxHp, status, wave, waveTotal };
+    this.state = { hp, maxHp, status, wave, waveTotal, grabbed };
     for (const listener of this.listeners) listener(this.state);
   }
 

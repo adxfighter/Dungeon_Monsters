@@ -1,6 +1,6 @@
 import './style.css';
 import { render as renderUi } from 'preact';
-import { Brain, Health, MoveTarget, Transform } from '@core/components';
+import { Brain, Health, MoveTarget, Status, Transform } from '@core/components';
 import { Game } from '@core/Game';
 import { arenas, characters, locales, monsters, rooms } from '@content/index';
 import { DIFFICULTY_IDS } from '@content/difficulty';
@@ -45,7 +45,9 @@ declare global {
       getHeroHp(): number;
       setHeroHp(hp: number): void;
       /** Living monsters: hp per entity. */
-      getMonsters(): { id: string; hp: number; x: number; y: number }[];
+      getMonsters(): { id: string; hp: number; x: number; y: number; state: string }[];
+      /** Who holds the hero (-1 = free). */
+      getHeroHeldBy(): number;
       /** Simulation point → client (CSS px) coordinates, to aim taps in e2e. */
       groundToClient(x: number, y: number): { x: number; y: number };
     };
@@ -235,7 +237,8 @@ function start(): void {
         }
         tapTargeting?.frame(performance.now());
         const h = game.world.get(game.player, Health);
-        hud.update(h?.hp ?? 0, h?.maxHp ?? 1, game.status, game.waveNumber, game.waveCount);
+        const grabbed = (game.world.get(game.player, Status)?.heldBy ?? -1) >= 0;
+        hud.update(h?.hp ?? 0, h?.maxHp ?? 1, game.status, game.waveNumber, game.waveCount, grabbed);
       }
       demo?.update(dt);
       renderer.render(stage.scene, stage.camera);
@@ -310,8 +313,10 @@ function start(): void {
       getMonsters: () =>
         g.world.query(Brain, Health, Transform).map((e) => {
           const t = g.world.require(e, Transform);
-          return { id: g.world.require(e, Brain).def.id, hp: g.world.require(e, Health).hp, x: t.x, y: t.y };
+          const b = g.world.require(e, Brain);
+          return { id: b.def.id, hp: g.world.require(e, Health).hp, x: t.x, y: t.y, state: b.state };
         }),
+      getHeroHeldBy: () => g.world.get(g.player, Status)?.heldBy ?? -1,
       getMoveTarget: () => {
         const t = g.world.get(g.player, MoveTarget);
         return t ? { active: t.active, x: t.x, y: t.y } : null;

@@ -81,6 +81,11 @@ export function Hud(props: Props) {
           </div>
         )}
       </div>
+      {state.grabbed && state.status === 'playing' && (
+        <div class="grab-hint" role="status" data-testid="grab-hint">
+          {t('hud.grabbed')}
+        </div>
+      )}
 
       {/* Dodge stacked above Attack; the column sits on the side chosen in settings. */}
       <div class={`hud-buttons side-${current.buttonsSide}`} data-testid="hud-buttons">

@@ -90,6 +90,19 @@ test('losing all HP shows the defeat screen, and "again" restarts', async ({ pag
   await expect(page.getByTestId('hero-hp')).toContainText('100 / 100');
 });
 
+test('a decapus grab shows the break-free hint, and mashing Attack frees the hero', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.spawnMonster('decapus', 6.5, 6.2);
+  });
+  const hint = page.getByTestId('grab-hint');
+  await expect(hint).toBeVisible({ timeout: 10_000 });
+  await expect(hint).toContainText('Удар');
+  for (let i = 0; i < 12 && (await hint.isVisible()); i++) await tapElement(cdp, page, 'btn-attack');
+  await expect(hint).toBeHidden({ timeout: 4000 });
+});
+
 test('enemies show HP bars and hits pop damage numbers', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
   await page.evaluate(() => window.__debug?.spawnMonster('fugu', 6.5, 6.2));
