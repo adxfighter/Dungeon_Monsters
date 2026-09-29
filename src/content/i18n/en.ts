@@ -102,7 +102,7 @@ export const en: Locale = {
     'Fast. Up close it stomps around itself, a little further it lunges and bites.',
   'bestiary.decapus.desc': 'A small purple ten-legged cave “octopus”.',
   'bestiary.decapus.habits':
-    'Never hits by itself: lashes out a tentacle and holds you up to 3 s while others hit. Mash Attack to break free; a dash avoids the grab.',
+    'Never hits by itself: lashes out a tentacle and holds you while others hit. Mash Attack to break free; a dash avoids the grab.',
   'bestiary.title': 'Bestiary',
   'bestiary.known': 'Known',
   'bestiary.back': 'Back',
@@ -114,6 +114,7 @@ export const en: Locale = {
   'bestiary.butcherToLearn': 'Butcher one to find out.',
   'bestiary.butchered': 'butchered',
   'bestiary.anyKill': 'Any — it doesn’t change quality',
+  'bestiary.avoidKill': 'Anything but {elements} — they spoil the parts',
   'element.slash': 'slash (blade)',
   'element.blunt': 'blunt',
   'element.fire': 'fire (torch)',

@@ -31,26 +31,34 @@ export function recordBestiary(book: BestiaryData, events: readonly GameEvent[])
   return changed;
 }
 
+export interface KillAdvice {
+  /** The element that improves the parts the most, or null if none improves them. */
+  best: Element | null;
+  /** Elements that spoil the parts overall (net negative shift), in `ELEMENTS` order. */
+  avoid: Element[];
+}
+
 /**
- * The kill element that improves this monster's parts the most (sum of the ingredients' `kill` shifts), or null if
- * no element matters. Ties keep the element order of `ELEMENTS`.
+ * How the kill element affects this monster's parts: the net `kill` shift of all drops per element. Ties for
+ * the best keep the element order of `ELEMENTS`.
  */
-export function bestKillElement(
+export function killAdvice(
   monster: MonsterDef,
   ingredients: Readonly<Record<string, IngredientDef>>,
   elements: readonly Element[],
-): Element | null {
+): KillAdvice {
   let best: Element | null = null;
   let bestScore = 0;
+  const avoid: Element[] = [];
   for (const el of elements) {
     let score = 0;
     for (const d of monster.drops) score += (ingredients[d.ingredientId]?.kill?.[el] ?? 0) * d.count;
     if (score > bestScore) {
       bestScore = score;
       best = el;
-    }
+    } else if (score < 0) avoid.push(el);
   }
-  return best;
+  return { best, avoid };
 }
 
 /** Elements the monster takes extra damage from (resist > 1), strongest first. */

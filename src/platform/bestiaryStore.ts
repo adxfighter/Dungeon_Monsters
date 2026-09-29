@@ -1,4 +1,4 @@
-/** Same shape as core's `StoredBestiary` (platform doesn't import core). */
+/** Same shape as core's `BestiaryData` (platform doesn't import core). */
 export interface StoredBestiary {
   seen: string[];
   butchered: string[];

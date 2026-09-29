@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ingredients, monsters } from '@content/index';
 import { ELEMENTS } from '@content/schemas';
 import { fugu, toadhog } from '@content/monsters/newcomers';
-import { bestKillElement, emptyBestiary, recordBestiary, weaknesses } from './bestiary';
+import { emptyBestiary, killAdvice, recordBestiary, weaknesses } from './bestiary';
 
 describe('bestiary', () => {
   it('a monster is seen when it appears and completed when butchered', () => {
@@ -28,11 +28,18 @@ describe('bestiary', () => {
   });
 
   it('the best kill comes from the parts: a clean blade for meaty monsters', () => {
-    expect(bestKillElement(toadhog, ingredients, ELEMENTS)).toBe('slash');
+    expect(killAdvice(toadhog, ingredients, ELEMENTS).best).toBe('slash');
     for (const m of Object.values(monsters)) {
-      const best = bestKillElement(m, ingredients, ELEMENTS);
+      const { best, avoid } = killAdvice(m, ingredients, ELEMENTS);
       expect(best === null || ELEMENTS.includes(best), m.id).toBe(true);
+      expect(best !== null && avoid.includes(best), m.id).toBe(false);
     }
+  });
+
+  it('with only spoiling elements the book says what to avoid, not «any»', () => {
+    const bonegnaw = monsters.bonegnaw;
+    if (!bonegnaw) throw new Error('bonegnaw missing');
+    expect(killAdvice(bonegnaw, ingredients, ELEMENTS)).toEqual({ best: null, avoid: ['blunt', 'fire'] });
   });
 
   it('weaknesses are the elements that hurt more than normal, strongest first', () => {

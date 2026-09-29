@@ -18,7 +18,7 @@ import {
   type BackpackView,
   type BestiaryEntry,
 } from '@ui/index';
-import { bestKillElement, recordBestiary, weaknesses } from '@core/bestiary';
+import { killAdvice, recordBestiary, weaknesses, type KillAdvice } from '@core/bestiary';
 import { loadBestiary, saveBestiary } from '@platform/bestiaryStore';
 import { ELEMENTS } from '@content/elements';
 import { createHaptics } from '@platform/haptics';
@@ -254,13 +254,22 @@ function start(): void {
     };
   }
 
+  /** «Best way to kill» line: the best element, else what to avoid, else «any». */
+  function killText(advice: KillAdvice, el: (e: string) => string): string {
+    if (advice.best) return el(advice.best);
+    if (advice.avoid.length > 0) {
+      return format(i18n.t('bestiary.avoidKill'), { elements: advice.avoid.map(el).join(', ') });
+    }
+    return i18n.t('bestiary.anyKill');
+  }
+
   /** Bestiary pages, translated; details appear as the monster is met / butchered. */
   function bestiaryEntries(): BestiaryEntry[] {
     const el = (e: string) => i18n.t(`element.${e}`);
     return Object.values(monsters).map((m) => {
       const seen = bestiary.seen.includes(m.id);
       const butchered = bestiary.butchered.includes(m.id);
-      const best = bestKillElement(m, ingredients, ELEMENTS);
+      const advice = killAdvice(m, ingredients, ELEMENTS);
       return {
         id: m.id,
         name: i18n.t(m.nameKey),
@@ -277,7 +286,7 @@ function start(): void {
               })
               .join(', ')
           : '',
-        bestKill: butchered ? (best ? el(best) : i18n.t('bestiary.anyKill')) : '',
+        bestKill: butchered ? killText(advice, el) : '',
         color: m.appearance.body,
       };
     });
