@@ -15,7 +15,7 @@ export const fugu: MonsterDef = {
   nameKey: 'monster.fugu.name',
   bestiaryKey: 'bestiary.fugu',
   radius: 0.36,
-  appearance: { body: '#f48fb8', accent: '#b8407a' },
+  appearance: { body: '#f48fb8', accent: '#b8407a', carcass: 'round' },
   stats: { hp: 45, atk: 11, def: 3, poise: 25 },
   movement: { speed: 1.3, accel: 6, decel: 6, turnRate: 4 },
   resist: { fire: 1.5, cold: 0.8, slash: 0.9 },
@@ -44,8 +44,26 @@ export const fugu: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'fillet', ingredientId: 'fugu_fillet', count: 2 },
-    { partId: 'spines', ingredientId: 'fugu_spines', count: 2 },
+    {
+      partId: 'fillet',
+      ingredientId: 'fugu_fillet',
+      count: 2,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
+    {
+      partId: 'spines',
+      ingredientId: 'fugu_spines',
+      count: 2,
+      cutLine: [
+        [0.24, 0.24],
+        [0.5, 0.5],
+        [0.76, 0.74],
+      ],
+    },
   ],
 };
 
@@ -58,7 +76,7 @@ export const porcupine: MonsterDef = {
   nameKey: 'monster.porcupine.name',
   bestiaryKey: 'bestiary.porcupine',
   radius: 0.4,
-  appearance: { body: '#eef2f5', accent: '#8fd0ff' },
+  appearance: { body: '#eef2f5', accent: '#8fd0ff', carcass: 'quadruped' },
   stats: { hp: 60, atk: 9, def: 6, poise: 45 },
   movement: { speed: 1.5, accel: 10, decel: 12, turnRate: 5 },
   resist: { blunt: 1.25, slash: 0.9, cold: 0.5, fire: 1.3 },
@@ -89,8 +107,26 @@ export const porcupine: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'meat', ingredientId: 'porcupine_meat', count: 2 },
-    { partId: 'quills', ingredientId: 'porcupine_quills', count: 2 },
+    {
+      partId: 'meat',
+      ingredientId: 'porcupine_meat',
+      count: 2,
+      cutLine: [
+        [0.5, 0.18],
+        [0.54, 0.5],
+        [0.5, 0.82],
+      ],
+    },
+    {
+      partId: 'quills',
+      ingredientId: 'porcupine_quills',
+      count: 2,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
   ],
 };
 
@@ -100,7 +136,7 @@ export const toadhog: MonsterDef = {
   nameKey: 'monster.toadhog.name',
   bestiaryKey: 'bestiary.toadhog',
   radius: 0.38,
-  appearance: { body: '#7cc653', accent: '#e8f2b0' },
+  appearance: { body: '#7cc653', accent: '#e8f2b0', carcass: 'round' },
   stats: { hp: 50, atk: 13, def: 4, poise: 35 },
   movement: { speed: 2.4, accel: 30, decel: 30, turnRate: 8 },
   resist: { blunt: 0.8, fire: 1.2 },
@@ -132,8 +168,26 @@ export const toadhog: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'ham', ingredientId: 'toadhog_ham', count: 1 },
-    { partId: 'legs', ingredientId: 'toadhog_legs', count: 2 },
+    {
+      partId: 'ham',
+      ingredientId: 'toadhog_ham',
+      count: 1,
+      cutLine: [
+        [0.24, 0.24],
+        [0.5, 0.5],
+        [0.76, 0.74],
+      ],
+    },
+    {
+      partId: 'legs',
+      ingredientId: 'toadhog_legs',
+      count: 2,
+      cutLine: [
+        [0.78, 0.24],
+        [0.5, 0.48],
+        [0.26, 0.74],
+      ],
+    },
   ],
 };
 
@@ -143,7 +197,7 @@ export const dragochick: MonsterDef = {
   nameKey: 'monster.dragochick.name',
   bestiaryKey: 'bestiary.dragochick',
   radius: 0.3,
-  appearance: { body: '#ffd23f', accent: '#e8552d' },
+  appearance: { body: '#ffd23f', accent: '#e8552d', carcass: 'round' },
   stats: { hp: 60, atk: 10, def: 3, poise: 32 },
   movement: { speed: 2.2, accel: 18, decel: 18, turnRate: 7 },
   resist: { fire: 0, cold: 1.6 },
@@ -172,8 +226,25 @@ export const dragochick: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'drumstick', ingredientId: 'dragochick_drumstick', count: 2 },
-    { partId: 'crop', ingredientId: 'dragochick_crop', count: 1 },
+    {
+      partId: 'drumstick',
+      ingredientId: 'dragochick_drumstick',
+      count: 2,
+      cutLine: [
+        [0.3, 0.3],
+        [0.62, 0.34],
+        [0.7, 0.62],
+      ],
+    },
+    {
+      partId: 'crop',
+      ingredientId: 'dragochick_crop',
+      count: 1,
+      cutLine: [
+        [0.32, 0.56],
+        [0.68, 0.56],
+      ],
+    },
   ],
 };
 
@@ -186,7 +257,7 @@ export const skunk: MonsterDef = {
   nameKey: 'monster.skunk.name',
   bestiaryKey: 'bestiary.skunk',
   radius: 0.33,
-  appearance: { body: '#26232b', accent: '#f2f0ea' },
+  appearance: { body: '#26232b', accent: '#f2f0ea', carcass: 'quadruped' },
   stats: { hp: 45, atk: 10, def: 3, poise: 25 },
   movement: { speed: 2, accel: 14, decel: 14, turnRate: 7 },
   resist: { poison: 0, fire: 1.2 },
@@ -225,8 +296,26 @@ export const skunk: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'meat', ingredientId: 'skunk_meat', count: 1 },
-    { partId: 'musk', ingredientId: 'skunk_musk', count: 1 },
+    {
+      partId: 'meat',
+      ingredientId: 'skunk_meat',
+      count: 1,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
+    {
+      partId: 'musk',
+      ingredientId: 'skunk_musk',
+      count: 1,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
   ],
 };
 
@@ -236,7 +325,7 @@ export const yak: MonsterDef = {
   nameKey: 'monster.yak.name',
   bestiaryKey: 'bestiary.yak',
   radius: 0.45,
-  appearance: { body: '#4a3326', accent: '#e8dcc0' },
+  appearance: { body: '#4a3326', accent: '#e8dcc0', carcass: 'quadruped' },
   stats: { hp: 90, atk: 16, def: 6, poise: 60 },
   movement: { speed: 1.8, accel: 10, decel: 12, turnRate: 4 },
   resist: { cold: 0.6, fire: 1.2, slash: 0.85 },
@@ -267,8 +356,26 @@ export const yak: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'steak', ingredientId: 'yak_steak', count: 2 },
-    { partId: 'fat', ingredientId: 'yak_fat', count: 1 },
+    {
+      partId: 'steak',
+      ingredientId: 'yak_steak',
+      count: 2,
+      cutLine: [
+        [0.5, 0.18],
+        [0.54, 0.5],
+        [0.5, 0.82],
+      ],
+    },
+    {
+      partId: 'fat',
+      ingredientId: 'yak_fat',
+      count: 1,
+      cutLine: [
+        [0.3, 0.3],
+        [0.62, 0.34],
+        [0.7, 0.62],
+      ],
+    },
   ],
 };
 
@@ -281,7 +388,7 @@ export const dinostrich: MonsterDef = {
   nameKey: 'monster.dinostrich.name',
   bestiaryKey: 'bestiary.dinostrich',
   radius: 0.35,
-  appearance: { body: '#d9c29a', accent: '#8a6a4a' },
+  appearance: { body: '#d9c29a', accent: '#8a6a4a', carcass: 'biped' },
   stats: { hp: 55, atk: 12, def: 4, poise: 35 },
   movement: { speed: 3, accel: 20, decel: 20, turnRate: 8 },
   resist: { blunt: 1.1 },
@@ -322,7 +429,30 @@ export const dinostrich: MonsterDef = {
       range: 0.9,
     },
   ],
-  drops: [{ partId: 'drumstick', ingredientId: 'dinostrich_drumstick', count: 2 }],
+  drops: [
+    {
+      partId: 'drumstick',
+      ingredientId: 'dinostrich_drumstick',
+      count: 2,
+      // Down the leg of the board silhouette ('biped').
+      cutLine: [
+        [0.5, 0.46],
+        [0.46, 0.64],
+        [0.42, 0.84],
+      ],
+    },
+    {
+      partId: 'neck',
+      ingredientId: 'dinostrich_neck',
+      count: 1,
+      // Along the neck.
+      cutLine: [
+        [0.12, 0.2],
+        [0.25, 0.32],
+        [0.36, 0.46],
+      ],
+    },
+  ],
 };
 
 /**
@@ -335,7 +465,7 @@ export const decapus: MonsterDef = {
   nameKey: 'monster.decapus.name',
   bestiaryKey: 'bestiary.decapus',
   radius: 0.4,
-  appearance: { body: '#8a4fc4', accent: '#e0b8ff' },
+  appearance: { body: '#8a4fc4', accent: '#e0b8ff', carcass: 'octopus' },
   stats: { hp: 50, atk: 0, def: 3, poise: 30 },
   movement: { speed: 1.4, accel: 8, decel: 10, turnRate: 5 },
   resist: { slash: 1.2, cold: 1.2, blunt: 0.8 },
@@ -366,7 +496,25 @@ export const decapus: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'tentacle', ingredientId: 'decapus_tentacle', count: 3 },
-    { partId: 'ink', ingredientId: 'decapus_ink', count: 1 },
+    {
+      partId: 'tentacle',
+      ingredientId: 'decapus_tentacle',
+      count: 3,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
+    {
+      partId: 'ink',
+      ingredientId: 'decapus_ink',
+      count: 1,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
   ],
 };

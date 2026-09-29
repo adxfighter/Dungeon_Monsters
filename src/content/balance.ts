@@ -29,10 +29,21 @@ export const BALANCE = {
   loot: {
     /** The Action button appears within this distance of a carcass, tiles. */
     reach: 1.2,
-    /** Cut quality until the butchery mini-game exists (M3 task 2). */
-    placeholderCutStars: 2,
     /** Overkill above this fraction of max HP mangles the carcass: −1 star. */
     overkillRatio: 0.5,
+  },
+  /** Butchery mini-game scoring (GDD §4.4), board units (0..1). */
+  butchery: {
+    /** Mean stroke distance from the line that scores zero accuracy. */
+    tolerance: 0.12,
+    star3: { accuracy: 0.72, coverage: 0.8 },
+    star2: { accuracy: 0.4, coverage: 0.5 },
+    /** A stroke slower than this (seconds) can't get ★3. */
+    slowStroke: 1.5,
+    /** Simplified mode: a tap this close to the next dot counts. */
+    tapRadius: 0.09,
+    /** Simplified mode: misses allowed on one line (★2); one more ends it at ★1. */
+    tapMisses: 2,
   },
   /** The hero's backpack limits (M3). */
   backpack: { maxWeight: 30, maxSlots: 12 },

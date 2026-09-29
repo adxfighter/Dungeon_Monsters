@@ -89,7 +89,7 @@
 - `core` порождает **события** (`DamageDealt`, `MonsterKilled`, `DishCooked`...), на которые подписаны
   render (VFX), ui (попапы), audio. Core ничего не знает о подписчиках.
 - Бой (M2): порядок шага `Game.step` — snapshot → combatTimers → status (замедление, захват) → playerInput →
-  heroCombatInput (удар, рывок, смена оружия) → loot (Действие у туши → рюкзак) → ai → navigation → action (фазы атак windup/active/recovery, рывок, выпад через `ForcedVelocity`,
+  heroCombatInput (удар, рывок, смена оружия) → loot (команды разделки → рюкзак) → ai → navigation → action (фазы атак windup/active/recovery, рывок, выпад через `ForcedVelocity`,
   облака `Hazard`) → steeringMovement → physics → separation (тела не проходят друг сквозь друга) → projectiles →
   meleeHit → hazards (урон со временем, замедление) → carrion → death → удаление → волны арены.
   Статусы героини — компонент `Status` (`slowMult/slowT`, `heldBy/heldT`); захват (`attack.grab`) не наносит урон,
@@ -97,7 +97,9 @@
   случайную из доступных по дистанции (RNG тянется, только когда выбор есть).
 - Добыча (M3): туша `Carrion {monsterId, killElement, overkillRatio}` от `deathSystem`; `core/loot/quality.ts`
   (`ingredientStars` — чистая функция), `core/loot/backpack.ts` (стаки, вес/слоты), `core/systems/loot.ts`
-  (`lootSystem`, селектор `lootableCarcass` для кнопки UI); событие `LootTaken`. Оружие героини — `Arsenal`
+  (`lootSystem`, селектор `lootableCarcass` для кнопки UI); событие `LootTaken`. Разделка — команда UI →
+  core: `Game.butcher(carcass, cuts, skipped)` (применяется на следующем шаге); мини-игра `ui/butchery/ButcherBoard`
+  оценивает свайп чистыми функциями `core/loot/cut.ts` (`scoreSwipe`, `scoreTaps`), на время доски main не шагает sim. Оружие героини — `Arsenal`
   (`CharacterDef.combat.weapons`), смена — `Buttons.Swap`, событие `WeaponSwapped`.
   Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
   Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.

@@ -12,7 +12,7 @@ export const brooklash: MonsterDef = {
   nameKey: 'monster.brooklash.name',
   bestiaryKey: 'bestiary.brooklash',
   radius: 0.3,
-  appearance: { body: '#3f6f8f', accent: '#a8d8e8' },
+  appearance: { body: '#3f6f8f', accent: '#a8d8e8', carcass: 'eel' },
   stats: { hp: 35, atk: 14, def: 3, poise: 25 },
   movement: { speed: 2.6, accel: 16, decel: 16, turnRate: 8 },
   resist: { cold: 1.3, fire: 0.8 },
@@ -43,8 +43,25 @@ export const brooklash: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'fillet', ingredientId: 'brooklash_fillet', count: 2 },
-    { partId: 'roe', ingredientId: 'brooklash_roe', count: 1 },
+    {
+      partId: 'fillet',
+      ingredientId: 'brooklash_fillet',
+      count: 2,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
+    {
+      partId: 'roe',
+      ingredientId: 'brooklash_roe',
+      count: 1,
+      cutLine: [
+        [0.32, 0.56],
+        [0.68, 0.56],
+      ],
+    },
   ],
 };
 
@@ -54,7 +71,7 @@ export const bonegnaw: MonsterDef = {
   nameKey: 'monster.bonegnaw.name',
   bestiaryKey: 'bestiary.bonegnaw',
   radius: 0.28,
-  appearance: { body: '#4a3a52', accent: '#e8e0d0' },
+  appearance: { body: '#4a3a52', accent: '#e8e0d0', carcass: 'bug' },
   stats: { hp: 28, atk: 8, def: 5, poise: 20 },
   movement: { speed: 2.8, accel: 20, decel: 20, turnRate: 9 },
   resist: { blunt: 1.3 },
@@ -84,7 +101,25 @@ export const bonegnaw: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'fat', ingredientId: 'bonegnaw_fat', count: 1 },
-    { partId: 'shell', ingredientId: 'bonegnaw_shell', count: 2 },
+    {
+      partId: 'fat',
+      ingredientId: 'bonegnaw_fat',
+      count: 1,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
+    {
+      partId: 'shell',
+      ingredientId: 'bonegnaw_shell',
+      count: 2,
+      cutLine: [
+        [0.5, 0.18],
+        [0.54, 0.5],
+        [0.5, 0.82],
+      ],
+    },
   ],
 };

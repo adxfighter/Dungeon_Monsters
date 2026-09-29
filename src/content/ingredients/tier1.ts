@@ -174,6 +174,15 @@ const list: IngredientDef[] = [
     kill: MEAT_KILL,
     iconKey: 'meat',
   },
+  {
+    id: 'dinostrich_neck',
+    nameKey: 'ingredient.dinostrich_neck',
+    tags: ['meat'],
+    weight: 1,
+    flavor: { savory: 3, sweet: 0, sour: 0, bitter: 1, spicy: 0 },
+    kill: MEAT_KILL,
+    iconKey: 'meat',
+  },
   // Decapus
   {
     id: 'decapus_tentacle',
