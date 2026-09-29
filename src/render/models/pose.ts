@@ -20,6 +20,10 @@ export interface Pose {
   holdDist: number;
   /** Floor hazards: fraction of the lifetime left, 1 → 0. */
   life01: number;
+  /** Element of the current attack ('' when not attacking) — the slash trail's colour. */
+  element: string;
+  /** Weapon in hand ('' for monsters): the hero shows a torch when it is 'torch'. */
+  weapon: string;
 }
 
 /** A procedurally animated model: characters and monsters share this shape. */

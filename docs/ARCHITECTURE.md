@@ -89,12 +89,16 @@
 - `core` порождает **события** (`DamageDealt`, `MonsterKilled`, `DishCooked`...), на которые подписаны
   render (VFX), ui (попапы), audio. Core ничего не знает о подписчиках.
 - Бой (M2): порядок шага `Game.step` — snapshot → combatTimers → status (замедление, захват) → playerInput →
-  heroCombatInput → ai → navigation → action (фазы атак windup/active/recovery, рывок, выпад через `ForcedVelocity`,
+  heroCombatInput (удар, рывок, смена оружия) → loot (Действие у туши → рюкзак) → ai → navigation → action (фазы атак windup/active/recovery, рывок, выпад через `ForcedVelocity`,
   облака `Hazard`) → steeringMovement → physics → separation (тела не проходят друг сквозь друга) → projectiles →
   meleeHit → hazards (урон со временем, замедление) → carrion → death → удаление → волны арены.
   Статусы героини — компонент `Status` (`slowMult/slowT`, `heldBy/heldT`); захват (`attack.grab`) не наносит урон,
   его не останавливают i-кадры после удара, только рывок (`Dodge.invuln`). Монстр с несколькими атаками выбирает
   случайную из доступных по дистанции (RNG тянется, только когда выбор есть).
+- Добыча (M3): туша `Carrion {monsterId, killElement, overkillRatio}` от `deathSystem`; `core/loot/quality.ts`
+  (`ingredientStars` — чистая функция), `core/loot/backpack.ts` (стаки, вес/слоты), `core/systems/loot.ts`
+  (`lootSystem`, селектор `lootableCarcass` для кнопки UI); событие `LootTaken`. Оружие героини — `Arsenal`
+  (`CharacterDef.combat.weapons`), смена — `Buttons.Swap`, событие `WeaponSwapped`.
   Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
   Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.
 - Сложность (M2): `Game({ awaitStart: true })` держит арену в статусе `ready` (героиня ходит, волн нет), пока UI

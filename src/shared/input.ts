@@ -5,6 +5,10 @@ export const Buttons = {
   None: 0,
   Attack: 1,
   Dodge: 2,
+  /** Switch to the next weapon (blade ↔ torch). */
+  Swap: 4,
+  /** Context action: butcher the carcass in reach. */
+  Action: 8,
 } as const;
 
 /** "Walk to this point" command from a tap. A new `seq` means a new (or moved) target. */

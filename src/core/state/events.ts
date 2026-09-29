@@ -43,6 +43,15 @@ export type GameEvent =
   /** A grab caught the target: it can't move until `duration` runs out or it breaks free. */
   | { type: 'Grabbed'; target: Entity; by: Entity; duration: number }
   | { type: 'GrabReleased'; target: Entity }
+  /** The hero butchered a carcass: what it gave and how much fit into the backpack (`stored` ≤ `count`). */
+  | {
+      type: 'LootTaken';
+      by: Entity;
+      carrion: Entity;
+      monsterId: string;
+      items: { ingredientId: string; stars: 1 | 2 | 3; count: number; stored: number }[];
+    }
+  | { type: 'WeaponSwapped'; entity: Entity; weaponId: string }
   /** A scavenger ate a carcass (its loot is gone). */
   | { type: 'CarrionEaten'; carrion: Entity; by: Entity }
   | { type: 'WaveStarted'; index: number; total: number }

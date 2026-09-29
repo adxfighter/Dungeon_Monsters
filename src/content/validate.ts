@@ -1,5 +1,12 @@
-import { ArenaSchema, CharacterSchema, LocaleSchema, MonsterSchema, RoomTemplateSchema } from './schemas';
-import { arenas, characters, locales, monsters, rooms } from './index';
+import {
+  ArenaSchema,
+  CharacterSchema,
+  IngredientSchema,
+  LocaleSchema,
+  MonsterSchema,
+  RoomTemplateSchema,
+} from './schemas';
+import { arenas, characters, ingredients, locales, monsters, rooms } from './index';
 
 /**
  * Validates all shipped content against the Zod schemas (ARCHITECTURE §8).
@@ -33,10 +40,30 @@ export function validateContent(): void {
       }
     }
   }
-  // Every monster name key exists in every locale.
+  for (const [id, ing] of Object.entries(ingredients)) {
+    if (IngredientSchema.parse(ing).id !== id) throw new Error(`ingredient key '${id}' != id`);
+  }
+  // Every drop names an existing ingredient; part ids are unique per monster.
   for (const monster of Object.values(monsters)) {
+    const parts = new Set<string>();
+    for (const drop of monster.drops) {
+      if (!ingredients[drop.ingredientId])
+        throw new Error(
+          `monster ${monster.id}: drop '${drop.partId}' → unknown ingredient '${drop.ingredientId}'`,
+        );
+      if (parts.has(drop.partId)) throw new Error(`monster ${monster.id}: duplicate part '${drop.partId}'`);
+      parts.add(drop.partId);
+    }
+  }
+  // Every player-facing name key exists in every locale.
+  const keys = [
+    ...Object.values(monsters).map((m) => m.nameKey),
+    ...Object.values(ingredients).map((i) => i.nameKey),
+    ...Object.values(characters).flatMap((c) => c.combat.weapons.map((w) => w.nameKey)),
+  ];
+  for (const key of keys) {
     for (const [lang, locale] of Object.entries(locales)) {
-      if (!locale[monster.nameKey]) throw new Error(`locale ${lang}: missing ${monster.nameKey}`);
+      if (!locale[key]) throw new Error(`locale ${lang}: missing ${key}`);
     }
   }
 }

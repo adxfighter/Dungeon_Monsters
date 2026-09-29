@@ -1,7 +1,8 @@
 import { BALANCE } from '@content/balance';
-import type { AttackDef } from '@content/schemas';
+import type { AttackDef, Element } from '@content/schemas';
 import { Buttons, type InputState } from '@shared/input';
 import {
+  Arsenal,
   Attacker,
   Brain,
   Carrion,
@@ -103,7 +104,7 @@ export function statusSystem(ctx: CombatContext, dt: number): void {
  * Hero buttons (GDD §4.1/4.3): Attack starts or chains the 3-hit combo (pressing during a swing buffers the next);
  * Dodge dashes with i-frames along the move direction (or the facing), cancelling the current swing.
  */
-export function heroCombatInputSystem(world: World, input: Readonly<InputState>): void {
+export function heroCombatInputSystem(world: World, input: Readonly<InputState>, ctx?: CombatContext): void {
   for (const e of world.query(PlayerControlled, Attacker, Dodge, Transform, Steering)) {
     const attacker = world.require(e, Attacker);
     const dodge = world.require(e, Dodge);
@@ -114,6 +115,26 @@ export function heroCombatInputSystem(world: World, input: Readonly<InputState>)
       // Held: every Attack press is a struggle that shortens the hold; no dodge, no swing.
       if (input.buttons & Buttons.Attack) status.heldT -= status.mashReduce;
       continue;
+    }
+
+    // Swap weapon (blade ↔ torch) between swings: the next attack uses the new weapon's combo.
+    const arsenal = world.get(e, Arsenal);
+    if (
+      input.buttons & Buttons.Swap &&
+      arsenal &&
+      arsenal.weapons.length > 1 &&
+      !attacker.current &&
+      dodge.t <= 0
+    ) {
+      arsenal.index = (arsenal.index + 1) % arsenal.weapons.length;
+      const weapon = arsenal.weapons[arsenal.index];
+      if (weapon) {
+        attacker.attacks = weapon.combo;
+        attacker.comboIndex = 0;
+        attacker.comboTimer = 0;
+        attacker.buffered = false;
+        ctx?.events.push({ type: 'WeaponSwapped', entity: e, weaponId: weapon.id });
+      }
     }
 
     if (input.buttons & Buttons.Dodge && dodge.t <= 0 && dodge.cooldown <= 0) {
@@ -605,12 +626,19 @@ export function hazardSystem(ctx: CombatContext, dt: number): void {
 }
 
 /** Leaves a carcass where a monster died (scavengers eat it; M3 butchery will use it). */
-function spawnCarrion(ctx: CombatContext, monsterId: string, x: number, y: number): void {
+function spawnCarrion(
+  ctx: CombatContext,
+  monsterId: string,
+  x: number,
+  y: number,
+  killElement: Element,
+  overkillRatio: number,
+): void {
   const { world } = ctx;
   const e = world.create();
   world.add(e, Transform, { x, y, rot: 0 });
   world.add(e, PrevTransform, { x, y, rot: 0 });
-  world.add(e, Carrion, { monsterId, ttl: BALANCE.carrionTtl });
+  world.add(e, Carrion, { monsterId, ttl: BALANCE.carrionTtl, killElement, overkillRatio });
   world.add(e, Kind, { kind: 'carrion', defId: monsterId });
   ctx.events.push({ type: 'EntitySpawned', entity: e, kind: 'carrion', defId: monsterId });
 }
@@ -645,7 +673,14 @@ export function deathSystem(ctx: CombatContext): boolean {
         y: t.y,
       });
       ctx.doomed.add(e);
-      spawnCarrion(ctx, brain.def.id, t.x, t.y);
+      spawnCarrion(
+        ctx,
+        brain.def.id,
+        t.x,
+        t.y,
+        h.lastHitElement ?? 'blunt',
+        h.maxHp > 0 ? -h.hp / h.maxHp : 0,
+      );
     } else if (world.has(e, PlayerControlled)) {
       heroDefeated = true;
       ctx.events.push({ type: 'HeroDefeated', entity: e });

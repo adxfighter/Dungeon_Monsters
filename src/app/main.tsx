@@ -1,8 +1,9 @@
 import './style.css';
 import { render as renderUi } from 'preact';
-import { Brain, Health, MoveTarget, Status, Transform } from '@core/components';
+import { Arsenal, Brain, Health, MoveTarget, Status, Transform } from '@core/components';
+import { lootableCarcass } from '@core/systems/loot';
 import { Game } from '@core/Game';
-import { arenas, characters, locales, monsters, rooms } from '@content/index';
+import { arenas, characters, ingredients, locales, monsters, rooms } from '@content/index';
 import { DIFFICULTY_IDS } from '@content/difficulty';
 import { InputController } from '@platform/input/InputController';
 import { createI18n, pickLocale } from '@platform/i18n/i18n';
@@ -46,6 +47,8 @@ declare global {
       setHeroHp(hp: number): void;
       /** Living monsters: hp per entity. */
       getMonsters(): { id: string; hp: number; x: number; y: number; state: string }[];
+      /** Drops every monster to 0 HP (they die next step and leave carcasses). */
+      killMonsters(): void;
       /** Who holds the hero (-1 = free). */
       getHeroHeldBy(): number;
       /** Simulation point → client (CSS px) coordinates, to aim taps in e2e. */
@@ -129,11 +132,18 @@ function start(): void {
     const arena = arenas[arenaId];
     if (params.room && !peaceful) console.warn(`?room=${params.room}: unknown room, opening the arena`);
     if (peaceful) {
-      game = new Game({ room: peaceful, player: hero });
+      game = new Game({ room: peaceful, player: hero, ingredients });
     } else {
       if (!arena) throw new Error('content: arena_test missing');
       // The arena waits in the lobby (status 'ready') until the player picks a difficulty.
-      game = new Game({ room: arena.room, player: hero, monsters, awaitStart: true, seed: params.seed ?? 1 });
+      game = new Game({
+        room: arena.room,
+        player: hero,
+        monsters,
+        ingredients,
+        awaitStart: true,
+        seed: params.seed ?? 1,
+      });
     }
     const currentGame = game;
     roomScene = new RoomScene(game);
@@ -221,6 +231,15 @@ function start(): void {
         const events = game.drainEvents();
         roomScene.handleEvents(events);
         feedback?.handle(events);
+        for (const e of events) {
+          if (e.type !== 'LootTaken') continue;
+          for (const item of e.items) {
+            const ing = ingredients[item.ingredientId];
+            const name = ing ? i18n.t(ing.nameKey) : item.ingredientId;
+            const full = item.stored < item.count ? ` (${i18n.t('hud.loot.full')})` : '';
+            hud.toast(`+${item.stored} ${name} ${i18n.t(`hud.stars${item.stars}`)}${full}`);
+          }
+        }
         roomScene.update(alpha, dt);
         if (worldOverlay) {
           worldOverlay.beginBars();
@@ -238,7 +257,20 @@ function start(): void {
         tapTargeting?.frame(performance.now());
         const h = game.world.get(game.player, Health);
         const grabbed = (game.world.get(game.player, Status)?.heldBy ?? -1) >= 0;
-        hud.update(h?.hp ?? 0, h?.maxHp ?? 1, game.status, game.waveNumber, game.waveCount, grabbed);
+        const arsenal = game.world.get(game.player, Arsenal);
+        const weaponKey =
+          arsenal && arsenal.weapons.length > 1 ? (arsenal.weapons[arsenal.index]?.nameKey ?? '') : '';
+        const canLoot = lootableCarcass(game.world, game.player) >= 0;
+        hud.update(
+          h?.hp ?? 0,
+          h?.maxHp ?? 1,
+          game.status,
+          game.waveNumber,
+          game.waveCount,
+          grabbed,
+          weaponKey,
+          canLoot,
+        );
       }
       demo?.update(dt);
       renderer.render(stage.scene, stage.camera);
@@ -316,6 +348,9 @@ function start(): void {
           const b = g.world.require(e, Brain);
           return { id: b.def.id, hp: g.world.require(e, Health).hp, x: t.x, y: t.y, state: b.state };
         }),
+      killMonsters: () => {
+        for (const e of g.world.query(Brain, Health)) g.world.require(e, Health).hp = 0;
+      },
       getHeroHeldBy: () => g.world.get(g.player, Status)?.heldBy ?? -1,
       getMoveTarget: () => {
         const t = g.world.get(g.player, MoveTarget);

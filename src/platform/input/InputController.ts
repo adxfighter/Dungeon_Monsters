@@ -63,6 +63,8 @@ export class InputController {
       if (e.repeat) return;
       if (e.code === 'KeyJ' || e.code === 'Space') this.pressButton(Buttons.Attack);
       if (e.code === 'KeyK' || e.code === 'ShiftLeft') this.pressButton(Buttons.Dodge);
+      if (e.code === 'KeyQ') this.pressButton(Buttons.Swap);
+      if (e.code === 'KeyE') this.pressButton(Buttons.Action);
     };
     const onUp = (event: Event): void => {
       this.pressed.delete((event as KeyboardEvent).code);

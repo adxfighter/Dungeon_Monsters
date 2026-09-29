@@ -87,6 +87,39 @@ export function Hud(props: Props) {
         </div>
       )}
 
+      {state.toasts.length > 0 && (
+        <ul class="loot-toasts" data-testid="loot-toasts" aria-live="polite">
+          {state.toasts.map((toast) => (
+            <li key={toast.id}>{toast.text}</li>
+          ))}
+        </ul>
+      )}
+
+      {/* Butcher (next to a carcass) above the weapon swap, inward of the main column. */}
+      <div class={`hud-extra side-${current.buttonsSide}`}>
+        {state.canLoot && state.status === 'playing' && (
+          <button
+            type="button"
+            class="action butcher"
+            data-testid="btn-butcher"
+            onPointerDown={press(Buttons.Action)}
+          >
+            {t('hud.butcher')}
+          </button>
+        )}
+        {state.weaponKey && (
+          <button
+            type="button"
+            class={`action swap weapon-${state.weaponKey.replace('weapon.', '')}`}
+            aria-label={t('hud.swap')}
+            data-testid="btn-swap"
+            onPointerDown={press(Buttons.Swap)}
+          >
+            {t(state.weaponKey)}
+          </button>
+        )}
+      </div>
+
       {/* Dodge stacked above Attack; the column sits on the side chosen in settings. */}
       <div class={`hud-buttons side-${current.buttonsSide}`} data-testid="hud-buttons">
         <button

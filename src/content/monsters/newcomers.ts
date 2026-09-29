@@ -43,7 +43,10 @@ export const fugu: MonsterDef = {
       range: 2.4,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'fillet', ingredientId: 'fugu_fillet', count: 2 },
+    { partId: 'spines', ingredientId: 'fugu_spines', count: 2 },
+  ],
 };
 
 /**
@@ -85,7 +88,10 @@ export const porcupine: MonsterDef = {
       range: 3.2,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'meat', ingredientId: 'porcupine_meat', count: 2 },
+    { partId: 'quills', ingredientId: 'porcupine_quills', count: 2 },
+  ],
 };
 
 /** Toadhog (user idea): a smooth green frog with a big pig snout and short legs; travels in hops, body-slams with a leap. */
@@ -125,7 +131,10 @@ export const toadhog: MonsterDef = {
       range: 2.4,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'ham', ingredientId: 'toadhog_ham', count: 1 },
+    { partId: 'legs', ingredientId: 'toadhog_legs', count: 2 },
+  ],
 };
 
 /** Dragochick: a round yellow chick with stubby wings and a horn-crest; keeps its distance and breathes fire. */
@@ -162,7 +171,10 @@ export const dragochick: MonsterDef = {
       range: 2.1,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'drumstick', ingredientId: 'dragochick_drumstick', count: 2 },
+    { partId: 'crop', ingredientId: 'dragochick_crop', count: 1 },
+  ],
 };
 
 /**
@@ -212,7 +224,10 @@ export const skunk: MonsterDef = {
       },
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'meat', ingredientId: 'skunk_meat', count: 1 },
+    { partId: 'musk', ingredientId: 'skunk_musk', count: 1 },
+  ],
 };
 
 /** Maniac yak (user idea): a dark-brown shaggy predatory bull. Paws the ground, then charges and gores in a line. */
@@ -251,7 +266,10 @@ export const yak: MonsterDef = {
       range: 3.5,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'steak', ingredientId: 'yak_steak', count: 2 },
+    { partId: 'fat', ingredientId: 'yak_fat', count: 1 },
+  ],
 };
 
 /**
@@ -304,7 +322,7 @@ export const dinostrich: MonsterDef = {
       range: 0.9,
     },
   ],
-  drops: [],
+  drops: [{ partId: 'drumstick', ingredientId: 'dinostrich_drumstick', count: 2 }],
 };
 
 /**
@@ -347,5 +365,8 @@ export const decapus: MonsterDef = {
       grab: { duration: 3, mashReduce: 0.35 },
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'tentacle', ingredientId: 'decapus_tentacle', count: 3 },
+    { partId: 'ink', ingredientId: 'decapus_ink', count: 1 },
+  ],
 };
