@@ -258,8 +258,16 @@ export function actionSystem(ctx: CombatContext, dt: number): void {
     const attacker = world.require(e, Attacker);
     const h = world.get(e, Health);
     if (h && h.stagger > 0) {
-      attacker.current = null; // stagger interrupts
+      // Stagger: can't move or act (HealthData.stagger). Interrupt the swing, drop steering and any tap target.
+      attacker.current = null;
       attacker.buffered = false;
+      const s = world.get(e, Steering);
+      if (s) {
+        s.x = 0;
+        s.y = 0;
+      }
+      const target = world.get(e, MoveTarget);
+      if (target) target.active = false;
       continue;
     }
     if (!attacker.current && attacker.request >= 0 && !isBusy(world, e))
@@ -367,6 +375,12 @@ function applyHit(
     h.stagger = BALANCE.staggerTime;
     h.poise = h.maxPoise;
     staggered = true;
+    // Stop dead: a stagger is a hard interrupt, not a slide.
+    const v = world.get(target, Velocity);
+    if (v) {
+      v.x = 0;
+      v.y = 0;
+    }
   }
   if (brain) brain.aggro = true;
   ctx.events.push({
@@ -388,13 +402,14 @@ function applyHit(
 /** Melee: every active swing tests its shape against enemies it hasn't hit yet. */
 export function meleeHitSystem(ctx: CombatContext): void {
   const { world } = ctx;
+  const targets = world.query(Team, Health, Transform, Collider);
   for (const e of world.query(Attacker, Transform, Team)) {
     const cur = world.require(e, Attacker).current;
     if (!cur || cur.phase !== 'active' || !cur.def.shape) continue;
     const t = world.require(e, Transform);
     const side = world.require(e, Team).side;
     const atk = world.get(e, Stats)?.atk ?? 0;
-    for (const other of world.query(Team, Health, Transform, Collider)) {
+    for (const other of targets) {
       if (other === e || world.require(other, Team).side === side || cur.hit.includes(other)) continue;
       const o = world.require(other, Transform);
       const r = world.require(other, Collider).radius;
@@ -411,6 +426,7 @@ const probe = { x: 0, y: 0, radius: 0 };
 /** Moves projectiles; they stop at walls, after their range, or on the first enemy they touch. */
 export function projectileSystem(ctx: CombatContext, dt: number): void {
   const { world, map } = ctx;
+  const targets = world.query(Team, Health, Transform, Collider);
   for (const e of world.query(Projectile, Transform, Collider)) {
     const p = world.require(e, Projectile);
     const t = world.require(e, Transform);
@@ -426,7 +442,7 @@ export function projectileSystem(ctx: CombatContext, dt: number): void {
       ctx.doomed.add(e);
       continue;
     }
-    for (const other of world.query(Team, Health, Transform, Collider)) {
+    for (const other of targets) {
       if (world.require(other, Team).side === p.side) continue;
       const o = world.require(other, Transform);
       const rr = r + world.require(other, Collider).radius;

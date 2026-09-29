@@ -23,6 +23,15 @@ export const BALANCE = {
   staggerTime: 0.45,
   /** Poise regenerates fully after this many seconds without poise damage. */
   poiseResetTime: 2,
-  /** Seconds to push bodies apart when they overlap (entity separation strength). */
-  separationTime: 0.12,
+  /** Monster AI tuning shared by all monsters (per-monster numbers live in MonsterDef.ai). */
+  ai: {
+    /** Chasers stop closing in at this fraction of their attack range. */
+    closeIn: 0.7,
+    /** A wander leg is abandoned after this long, seconds (stuck on a wall). */
+    wanderTimeout: 4,
+    /** Distance (tiles) at which a wander point counts as reached. */
+    wanderReached: 0.2,
+    /** Random points tried per wander pick. */
+    wanderTries: 4,
+  },
 } as const;

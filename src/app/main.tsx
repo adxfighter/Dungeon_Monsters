@@ -103,6 +103,7 @@ function start(): void {
     // Default: the M2 combat arena. `?room=<id>` opens a peaceful room instead (e.g. the M1 test room).
     const peaceful = params.room ? rooms[params.room] : undefined;
     const arena = arenas['arena_test'];
+    if (params.room && !peaceful) console.warn(`?room=${params.room}: unknown room, opening the arena`);
     if (peaceful) {
       game = new Game({ room: peaceful, player: hero });
     } else {

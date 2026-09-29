@@ -4,7 +4,7 @@ import { bubbler, sparkhog, stonenibbler } from '@content/monsters/tier1';
 import { arenaTest } from '@content/rooms/arena_test';
 import type { MonsterDef } from '@content/schemas';
 import { Buttons, createInputState, type InputState } from '@shared/input';
-import { Attacker, Brain, Dodge, Health, Transform } from '../components';
+import { Attacker, Brain, Dodge, Health, Transform, Velocity } from '../components';
 import type { Entity } from '../ecs/World';
 import { Game } from '../Game';
 import type { GameEvent } from '../state/events';
@@ -224,6 +224,28 @@ describe('damage rules', () => {
     expect(hit2?.backstab).toBe(true);
   });
 
+  it('a staggering hit stops the target dead', () => {
+    const a = new Arena();
+    const rabbit = a.game.spawnMonster(stonenibbler, 6.5, 5.3); // a real, moving rabbit
+    a.game.world.require(rabbit, Brain).attackCooldown = 99;
+    a.health(rabbit).poise = 1;
+    const v = a.game.world.require(rabbit, Velocity);
+    a.press(Buttons.Attack);
+    for (let i = 0; i < 30; i++) {
+      v.x = 3; // keep it running sideways until the staggering hit lands
+      const before = a.events.length;
+      a.run(1);
+      if (
+        a.events.slice(before).some((e) => e.type === 'DamageDealt' && e.target === rabbit && e.staggered)
+      ) {
+        expect(v.x).toBe(0);
+        expect(v.y).toBe(0);
+        return;
+      }
+    }
+    throw new Error('the rabbit was never staggered');
+  });
+
   it('poise damage staggers and interrupts an attack', () => {
     const a = new Arena();
     const rabbit = a.game.spawnMonster(dummy(stonenibbler), 6.5, 5.3);
@@ -288,6 +310,104 @@ describe('monster AI', () => {
   });
 });
 
+describe('stagger', () => {
+  it('a staggered hero can neither move nor act (direct input or tap target)', () => {
+    const a = new Arena();
+    const start = { ...a.pos(a.hero) };
+    a.health(a.hero).stagger = 0.4;
+    a.input.move.x = 1;
+    a.press(Buttons.Attack).run(10);
+    expect(Math.hypot(a.pos(a.hero).x - start.x, a.pos(a.hero).y - start.y)).toBeLessThan(0.05);
+    expect(a.of('AttackStarted')).toHaveLength(0);
+
+    a.input.move.x = 0;
+    a.health(a.hero).stagger = 0.4;
+    a.input.target = { seq: 99, x: 10.5, y: 4.5 };
+    a.run(10);
+    expect(a.pos(a.hero).x - start.x).toBeLessThan(0.05);
+  });
+
+  it('a staggered monster stands still', () => {
+    const a = new Arena();
+    const r = a.game.spawnMonster(stonenibbler, 3.5, 4.5);
+    a.run(5);
+    const before = { ...a.pos(r) };
+    a.health(r).stagger = 0.4;
+    const v = a.game.world.require(r, Velocity);
+    v.x = 0; // as applyHit does when it staggers
+    v.y = 0;
+    a.run(10);
+    expect(Math.hypot(a.pos(r).x - before.x, a.pos(r).y - before.y)).toBeLessThan(0.05);
+  });
+});
+
+describe('monster FSM transitions', () => {
+  it('chase → idle when the hero is beyond loseRange, and a passive monster calms down', () => {
+    const a = new Arena();
+    const b = a.game.spawnMonster(bubbler, 6.5, 5.6);
+    const brain = a.game.world.require(b, Brain);
+    brain.aggro = true;
+    a.run(2);
+    expect(brain.state).toBe('chase');
+    // Teleport the hero out of reach (arena is 13 wide: 11 tiles > loseRange 5).
+    a.pos(a.hero).x = 11.5;
+    a.pos(a.hero).y = 1.5;
+    a.pos(b).x = 1.5;
+    a.pos(b).y = 7.5;
+    a.run(2);
+    expect(['idle', 'wander']).toContain(brain.state);
+    expect(brain.aggro).toBe(false);
+  });
+
+  it('guard → chase after the guard duration, then a guard cooldown', () => {
+    const a = new Arena();
+    const hog = a.game.spawnMonster(sparkhog, 6.5, 5.5);
+    const brain = a.game.world.require(hog, Brain);
+    a.run(3);
+    expect(brain.state).toBe('guard');
+    a.seconds((sparkhog.guard?.duration ?? 0) + 0.1);
+    expect(brain.state).not.toBe('guard');
+    expect(brain.guardCooldown).toBeGreaterThan(0);
+  });
+
+  it('a ranged monster backs off inside keepDistance', () => {
+    const a = new Arena();
+    const hog = a.game.spawnMonster(sparkhog, 6.5, 6.3); // 1.8 < keepDistance 2.2, outside guard range 1.3
+    const brain = a.game.world.require(hog, Brain);
+    brain.guardCooldown = 99;
+    brain.attackCooldown = 99;
+    a.run(2);
+    const d0 = Math.hypot(a.pos(hog).x - 6.5, a.pos(hog).y - 4.5);
+    a.seconds(0.6);
+    const d1 = Math.hypot(a.pos(hog).x - 6.5, a.pos(hog).y - 4.5);
+    expect(d1).toBeGreaterThan(d0);
+  });
+
+  it('waits attackCooldown between attacks', () => {
+    const a = new Arena();
+    const r = a.game.spawnMonster(stonenibbler, 6.5, 6.2);
+    a.health(a.hero).hp = 10_000;
+    a.seconds(8);
+    const starts: number[] = [];
+    let t = 0;
+    const b = new Arena();
+    const r2 = b.game.spawnMonster(stonenibbler, 6.5, 6.2);
+    b.health(b.hero).hp = 10_000;
+    for (let i = 0; i < 240; i++) {
+      const before = b.events.length;
+      b.run(1);
+      t += DT;
+      if (b.events.slice(before).some((e) => e.type === 'AttackStarted' && e.entity === r2)) starts.push(t);
+    }
+    expect(a.game.world.isAlive(r)).toBe(true);
+    expect(starts.length).toBeGreaterThan(1);
+    const minGap = pounce.windup + pounce.active + pounce.recovery + stonenibbler.ai.attackCooldown - 2 * DT;
+    for (let i = 1; i < starts.length; i++) {
+      expect((starts[i] as number) - (starts[i - 1] as number)).toBeGreaterThanOrEqual(minGap);
+    }
+  });
+});
+
 describe('death and waves', () => {
   it('killing a monster emits MonsterKilled with kill element, overkill and hits taken', () => {
     const a = new Arena();
@@ -311,6 +431,16 @@ describe('death and waves', () => {
     const tick = a.game.tick;
     a.run(10);
     expect(a.game.tick).toBe(tick);
+  });
+
+  it('a wave naming an unknown monster fails loudly', () => {
+    const game = new Game({
+      room,
+      player: tavi,
+      monsters,
+      waves: [{ delay: 0, spawns: [{ monster: 'nope', x: 2.5, y: 2.5 }] }],
+    });
+    expect(() => game.step(createInputState(), DT)).toThrow(/unknown monster/);
   });
 
   it('arena waves spawn one after another and end with ArenaCleared', () => {

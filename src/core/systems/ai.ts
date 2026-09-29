@@ -1,3 +1,4 @@
+import { BALANCE } from '@content/balance';
 import {
   Attacker,
   Brain,
@@ -14,14 +15,12 @@ import type { Entity, World } from '../ecs/World';
 import type { Rng } from '../rng';
 import { turnToward } from './movement';
 
-/** Idle wander tries this many random points before giving up for this cycle. */
-const WANDER_TRIES = 4;
-/** A wander leg is abandoned after this long (stuck on a wall). */
-const WANDER_TIMEOUT = 4;
-/** Distance at which a wander point counts as reached. */
-const WANDER_REACHED = 0.2;
-/** Chasers stop closing in at this fraction of their attack range. */
-const CLOSE_IN = 0.7;
+const {
+  closeIn: CLOSE_IN,
+  wanderTimeout: WANDER_TIMEOUT,
+  wanderReached: WANDER_REACHED,
+  wanderTries: WANDER_TRIES,
+} = BALANCE.ai;
 
 function findHero(world: World): Entity | undefined {
   for (const e of world.query(PlayerControlled, Transform, Health)) {
