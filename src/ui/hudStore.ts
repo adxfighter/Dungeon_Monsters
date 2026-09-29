@@ -23,6 +23,8 @@ export interface HudState {
   toasts: readonly Toast[];
   /** The butchery mini-game in progress (the fight is paused), or null. */
   butchery: ButcherySession | null;
+  /** The pause menu (⏸) is open: the fight and all animation are frozen. */
+  paused: boolean;
 }
 
 /** What the backpack screen shows (already translated). */
@@ -68,6 +70,7 @@ export class HudStore {
     carcassHint: false,
     toasts: [],
     butchery: null,
+    paused: false,
   };
   private readonly listeners = new Set<Listener>();
 
@@ -117,6 +120,13 @@ export class HudStore {
   /** Opens (session) or closes (null) the butchery board. */
   setButchery(session: ButcherySession | null): void {
     this.state = { ...this.state, butchery: session };
+    this.emit();
+  }
+
+  /** Opens (true) or closes (false) the pause menu. */
+  setPaused(paused: boolean): void {
+    if (this.state.paused === paused) return;
+    this.state = { ...this.state, paused };
     this.emit();
   }
 

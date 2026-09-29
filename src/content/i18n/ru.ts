@@ -22,6 +22,8 @@ export const ru: Locale = {
   'hud.restart': 'Ещё раз',
   'hud.blocked': 'Блок!',
   'hud.settings': 'Настройки',
+  'hud.pause': 'Пауза',
+  'hud.resume': 'Продолжить',
   'settings.shake': 'Тряска камеры',
   'settings.haptics': 'Вибрация',
   'settings.testVibration': 'Проверить вибрацию',

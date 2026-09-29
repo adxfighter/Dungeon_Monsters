@@ -21,6 +21,8 @@ export const en: Locale = {
   'hud.restart': 'Again',
   'hud.blocked': 'Block!',
   'hud.settings': 'Settings',
+  'hud.pause': 'Pause',
+  'hud.resume': 'Resume',
   'settings.shake': 'Camera shake',
   'settings.haptics': 'Vibration',
   'settings.testVibration': 'Test vibration',

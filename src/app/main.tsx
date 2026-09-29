@@ -348,8 +348,8 @@ function start(): void {
   const loop = new GameLoop({
     step(dt) {
       if (!game) return;
-      // The butchery board and the backpack screen pause the fight (both are modal).
-      if (hud.get().butchery) return;
+      // The pause menu, the butchery board and the backpack screen pause the fight (all are modal).
+      if (hud.get().paused || hud.get().butchery) return;
       if (hud.get().backpack) {
         // Paused, but a discard from the screen still has to reach core: one step with no input applies it.
         if (pendingBagRefresh) {
@@ -395,7 +395,9 @@ function start(): void {
             hud.toast(format(i18n.t(key), values));
           }
         }
-        roomScene.update(alpha, dt);
+        // Paused: freeze everything on the last simulated state (no idle animation, no interpolation drift).
+        const frozen = hud.get().paused;
+        roomScene.update(frozen ? 1 : alpha, frozen ? 0 : dt);
         if (worldOverlay) {
           worldOverlay.beginBars();
           for (const e of game.world.query(Brain, Health)) {
@@ -407,7 +409,7 @@ function start(): void {
             }
           }
           worldOverlay.endBars();
-          worldOverlay.updateNumbers(dt, project);
+          worldOverlay.updateNumbers(frozen ? 0 : dt, project);
         }
         tapTargeting?.frame(performance.now());
         const h = game.world.get(game.player, Health);
