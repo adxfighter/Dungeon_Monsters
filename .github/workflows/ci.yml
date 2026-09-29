@@ -31,6 +31,14 @@ jobs:
       - run: npm run test
       - run: npm run build
 
+      - name: Zod stays out of the production bundle
+        # Content schemas are for dev validation and tests only (DECISIONS_LOG 2026-09-29).
+        run: |
+          if grep -l 'ZodError' dist/assets/*.js; then
+            echo '::error::Zod leaked into the production bundle (a runtime import of @content/schemas?)'
+            exit 1
+          fi
+
       - name: Report bundle size (gzip)
         run: |
           echo "### Bundle size" >> "$GITHUB_STEP_SUMMARY"

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DIFFICULTY_IDS } from './difficulty';
 
 /**
  * Room template as ASCII rows (ARCHITECTURE §8).
@@ -210,7 +211,7 @@ export const WavesSchema = z
 export type Waves = z.infer<typeof WavesSchema>;
 
 /** Difficulty levels chosen at the start of an arena (user request 2026-09-29). */
-export const DIFFICULTY_IDS = ['easy', 'medium', 'hard'] as const;
+export { DIFFICULTY_IDS };
 export const DifficultyIdSchema = z.enum(DIFFICULTY_IDS);
 export type DifficultyId = z.infer<typeof DifficultyIdSchema>;
 

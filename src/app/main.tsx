@@ -3,7 +3,7 @@ import { render as renderUi } from 'preact';
 import { Brain, Health, MoveTarget, Transform } from '@core/components';
 import { Game } from '@core/Game';
 import { arenas, characters, locales, monsters, rooms } from '@content/index';
-import { DIFFICULTY_IDS } from '@content/schemas';
+import { DIFFICULTY_IDS } from '@content/difficulty';
 import { InputController } from '@platform/input/InputController';
 import { createI18n, pickLocale } from '@platform/i18n/i18n';
 import { Renderer } from '@render/Renderer';
