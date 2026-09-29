@@ -6,6 +6,7 @@ import type { Arena } from '../schemas';
  */
 export const arenaNew: Arena = {
   id: 'arena_new',
+  nameKey: 'arena.arena_new',
   room: {
     id: 'arena_new',
     rows: [

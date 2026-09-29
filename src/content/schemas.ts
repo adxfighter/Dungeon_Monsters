@@ -266,6 +266,8 @@ export const ArenaDifficultySchema = z.object({
 
 export const ArenaSchema = z.object({
   id: z.string().min(1),
+  /** Arena name on the start screen, i18n key. */
+  nameKey: z.string().min(1),
   room: RoomTemplateSchema,
   difficulties: z.object({
     easy: ArenaDifficultySchema,

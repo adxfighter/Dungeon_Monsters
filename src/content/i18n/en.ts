@@ -27,6 +27,8 @@ export const en: Locale = {
   'settings.side.left': 'Left',
   'settings.side.right': 'Right',
   'difficulty.title': 'Choose difficulty',
+  'arena.arena_test': 'Tier I',
+  'arena.arena_new': 'New monsters',
   'difficulty.easy': 'Easy',
   'difficulty.easy.hint': 'Three waves, weaker monsters — dodging is optional.',
   'difficulty.medium': 'Medium',

@@ -28,6 +28,8 @@ export const ru: Locale = {
   'settings.side.left': 'Слева',
   'settings.side.right': 'Справа',
   'difficulty.title': 'Выберите сложность',
+  'arena.arena_test': 'Ярус I',
+  'arena.arena_new': 'Новые монстры',
   'difficulty.easy': 'Лёгкий',
   'difficulty.easy.hint': 'Три волны, монстры слабее — можно не уворачиваться.',
   'difficulty.medium': 'Средний',
