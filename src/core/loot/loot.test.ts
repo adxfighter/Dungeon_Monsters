@@ -3,7 +3,7 @@ import { tavi } from '@content/characters/tavi';
 import { ingredients, monsters } from '@content/index';
 import type { IngredientDef, MonsterDef } from '@content/schemas';
 import { Buttons, createInputState } from '@shared/input';
-import { Arsenal, Attacker, Backpack, Carrion, Health, Transform } from '../components';
+import { Arsenal, Attacker, Backpack, Carrion, Health, Status, Transform } from '../components';
 import { Game } from '../Game';
 import type { GameEvent } from '../state/events';
 import { lootableCarcass } from '../systems/loot';
@@ -139,6 +139,54 @@ describe('butchering a carcass', () => {
     ]);
   });
 
+  it('a full backpack keeps what does not fit on the floor (stored < count)', () => {
+    const a = arena();
+    const bag = a.w.require(a.game.player, Backpack);
+    bag.maxWeight = 0;
+    const v = a.game.spawnMonster(victim, 4.5, 4.3);
+    a.w.require(v, Health).hp = 0;
+    a.run(2);
+    a.run(2, Buttons.Action);
+    const loot = a.events.find((e) => e.type === 'LootTaken');
+    expect(loot?.type === 'LootTaken' && loot.items[0]?.stored).toBe(0);
+    expect(bag.stacks).toEqual([]);
+  });
+
+  it('no butchering while grabbed', () => {
+    const a = arena();
+    const v = a.game.spawnMonster(victim, 4.5, 4.3);
+    a.w.require(v, Health).hp = 0;
+    a.run(2);
+    const holder = a.game.spawnMonster(pouncer, 1.5, 1.5);
+    const status = a.w.require(a.game.player, Status);
+    status.heldBy = holder;
+    status.heldT = 5;
+    a.run(1, Buttons.Action);
+    expect(a.events.some((e) => e.type === 'LootTaken')).toBe(false);
+    expect(a.w.query(Carrion).length).toBe(1);
+  });
+
+  it('overkill is measured against the level-scaled max HP (difficulty modifiers)', () => {
+    // hp ×0.1 → the victim has 3 max HP: a ~10-damage blade kill is a heavy overkill (−1 star).
+    const game = new Game({
+      room,
+      player: tavi,
+      monsters: { ...monsters, victim },
+      ingredients,
+      seed: 2,
+      modifiers: { hp: 0.1, atk: 1, attackCooldown: 1 },
+    });
+    const input = createInputState();
+    game.world.require(game.player, Transform).rot = 0;
+    game.spawnMonster(victim, 4.5, 4.3);
+    for (let i = 0; i < 20; i++) {
+      input.buttons = i === 0 ? Buttons.Attack : i === 18 ? Buttons.Action : 0;
+      game.step(input, DT);
+    }
+    const c = game.world.require(game.player, Backpack).stacks[0];
+    expect(c).toEqual({ ingredientId: 'toadhog_ham', stars: 2, count: 1 }); // ★2 cut + blade +1 − overkill 1
+  });
+
   it('Action does nothing out of reach', () => {
     const a = arena();
     a.game.spawnMonster(victim, 1.5, 1.5);
@@ -150,6 +198,34 @@ describe('butchering a carcass', () => {
     a.run(2, Buttons.Action);
     expect(a.events.some((ev) => ev.type === 'LootTaken')).toBe(false);
     expect(a.w.query(Carrion).length).toBe(1);
+  });
+});
+
+describe('arena end', () => {
+  it('the win screen waits until the carcasses of the last wave are butchered', () => {
+    const game = new Game({
+      room,
+      player: tavi,
+      monsters: { ...monsters, victim },
+      ingredients,
+      seed: 2,
+      waves: [{ delay: 0, spawns: [{ monster: 'victim', x: 4.5, y: 4.3 }] }],
+    });
+    const input = createInputState();
+    const step = (buttons = 0) => {
+      input.buttons = buttons;
+      game.step(input, DT);
+    };
+    step();
+    step();
+    const monster = game.world.query(Health).find((e) => e !== game.player) ?? -1;
+    game.world.require(monster, Health).hp = 0;
+    for (let i = 0; i < 10; i++) step();
+    expect(game.world.query(Carrion).length).toBe(1);
+    expect(game.status).toBe('playing'); // the carcass is still there to butcher
+    step(Buttons.Action);
+    step();
+    expect(game.status).toBe('cleared');
   });
 });
 
@@ -166,11 +242,15 @@ describe('weapon swap', () => {
     expect(attacker.attacks[0]?.element).toBe('slash');
   });
 
-  it('cannot swap in the middle of a swing', () => {
+  it('a swap pressed mid-swing waits for the swing to end, then applies', () => {
     const a = arena();
     a.run(1, Buttons.Attack);
     expect(a.w.require(a.game.player, Attacker).current).not.toBeNull();
     a.run(1, Buttons.Swap);
-    expect(a.w.require(a.game.player, Arsenal).index).toBe(0);
+    expect(a.w.require(a.game.player, Arsenal).index).toBe(0); // not in the middle of the swing
+    a.run(20);
+    expect(a.w.require(a.game.player, Attacker).current).toBeNull();
+    expect(a.w.require(a.game.player, Arsenal).index).toBe(1);
+    expect(a.w.require(a.game.player, Attacker).attacks[0]?.element).toBe('fire');
   });
 });

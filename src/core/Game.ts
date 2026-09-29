@@ -14,6 +14,7 @@ import {
   Attacker,
   Backpack,
   Brain,
+  Carrion,
   Collider,
   Dodge,
   ForcedVelocity,
@@ -308,7 +309,7 @@ export class Game {
     world.add(e, Collider, { radius: character.radius });
     world.add(e, MoveStats, { ...character.movement });
     world.add(e, PlayerControlled, {});
-    world.add(e, Arsenal, { weapons: combat.weapons, index: 0 });
+    world.add(e, Arsenal, { weapons: combat.weapons, index: 0, swapQueued: false });
     world.add(e, Backpack, {
       stacks: [],
       maxWeight: BALANCE.backpack.maxWeight,
@@ -360,6 +361,9 @@ export class Game {
     if (this.waves.length === 0 || this.statusValue !== 'playing') return;
     if (this.waveIndex >= 0 && this.monstersAlive > 0) return;
     if (this.waveIndex >= this.waves.length - 1) {
+      // Leave time to butcher the last kills: the win screen waits until no carcass is left on the floor
+      // (butchered, eaten or rotten — at most BALANCE.carrionTtl).
+      if (this.world.query(Carrion).length > 0) return;
       this.statusValue = 'cleared';
       this.pending.push({ type: 'ArenaCleared' });
       return;

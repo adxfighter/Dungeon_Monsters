@@ -117,15 +117,12 @@ export function heroCombatInputSystem(world: World, input: Readonly<InputState>,
       continue;
     }
 
-    // Swap weapon (blade ↔ torch) between swings: the next attack uses the new weapon's combo.
+    // Swap weapon (blade ↔ torch) between swings: the next attack uses the new weapon's combo. A press during a
+    // swing or a dash is remembered and applied as soon as it ends (like the buffered combo hit).
     const arsenal = world.get(e, Arsenal);
-    if (
-      input.buttons & Buttons.Swap &&
-      arsenal &&
-      arsenal.weapons.length > 1 &&
-      !attacker.current &&
-      dodge.t <= 0
-    ) {
+    if (arsenal && input.buttons & Buttons.Swap) arsenal.swapQueued = !arsenal.swapQueued;
+    if (arsenal && arsenal.swapQueued && arsenal.weapons.length > 1 && !attacker.current && dodge.t <= 0) {
+      arsenal.swapQueued = false;
       arsenal.index = (arsenal.index + 1) % arsenal.weapons.length;
       const weapon = arsenal.weapons[arsenal.index];
       if (weapon) {

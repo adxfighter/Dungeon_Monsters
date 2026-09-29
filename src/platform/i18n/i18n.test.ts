@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createI18n, pickLocale } from './i18n';
+import { createI18n, pickLocale, format } from './i18n';
 
 describe('i18n', () => {
   it('picks the first supported base language', () => {
@@ -14,5 +14,12 @@ describe('i18n', () => {
     expect(i18n.t('a')).toBe('А');
     expect(i18n.t('b')).toBe('B');
     expect(i18n.t('missing.key')).toBe('missing.key');
+  });
+});
+
+describe('format', () => {
+  it('fills placeholders and leaves unknown ones', () => {
+    expect(format('+{count} {name} {stars}', { count: 2, name: 'Стейк', stars: '★★' })).toBe('+2 Стейк ★★');
+    expect(format('{a} {b}', { a: 1 })).toBe('1 {b}');
   });
 });

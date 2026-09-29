@@ -210,7 +210,12 @@ export const Carrion = defineComponent<{
 }>('Carrion');
 
 /** The hero's weapons (blade, torch, …) and which one is in hand; its combo is `Attacker.attacks`. */
-export const Arsenal = defineComponent<{ weapons: readonly WeaponDef[]; index: number }>('Arsenal');
+export const Arsenal = defineComponent<{
+  weapons: readonly WeaponDef[];
+  index: number;
+  /** Swap pressed during a swing: switch as soon as it ends. */
+  swapQueued: boolean;
+}>('Arsenal');
 
 /** The hero's backpack (M3): ingredient stacks with weight/slot limits. */
 export const Backpack = defineComponent<BackpackData>('Backpack');

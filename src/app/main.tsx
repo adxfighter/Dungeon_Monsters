@@ -6,7 +6,7 @@ import { Game } from '@core/Game';
 import { arenas, characters, ingredients, locales, monsters, rooms } from '@content/index';
 import { DIFFICULTY_IDS } from '@content/difficulty';
 import { InputController } from '@platform/input/InputController';
-import { createI18n, pickLocale } from '@platform/i18n/i18n';
+import { createI18n, format, pickLocale } from '@platform/i18n/i18n';
 import { Renderer } from '@render/Renderer';
 import { DemoScene } from '@render/scenes/DemoScene';
 import { RoomScene } from '@render/scenes/RoomScene';
@@ -236,8 +236,14 @@ function start(): void {
           for (const item of e.items) {
             const ing = ingredients[item.ingredientId];
             const name = ing ? i18n.t(ing.nameKey) : item.ingredientId;
-            const full = item.stored < item.count ? ` (${i18n.t('hud.loot.full')})` : '';
-            hud.toast(`+${item.stored} ${name} ${i18n.t(`hud.stars${item.stars}`)}${full}`);
+            const values = { count: item.stored, name, stars: i18n.t(`hud.stars${item.stars}`) };
+            const key =
+              item.stored === 0
+                ? 'hud.loot.none'
+                : item.stored < item.count
+                  ? 'hud.loot.partial'
+                  : 'hud.loot.line';
+            hud.toast(format(i18n.t(key), values));
           }
         }
         roomScene.update(alpha, dt);

@@ -322,6 +322,7 @@
 .hud-extra {
   position: absolute;
   bottom: 24px;
+  width: 78px;
   display: flex;
   flex-direction: column;
   align-items: center;

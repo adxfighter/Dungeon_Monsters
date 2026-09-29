@@ -240,21 +240,19 @@ const TRAIL_COLOR: Readonly<Record<string, number>> = { fire: 0xff8a3d };
 const TRAIL_DEFAULT = 0xfff4e0;
 
 /** A torch held in the right hand (M3 weapon swap): a wooden stick with an unlit-bright flame. 2 draw calls. */
-function torch(): { group: Group; flame: Mesh } {
+function torch(): { group: Group; flame: Mesh; stickMaterial: ReturnType<typeof createToonMaterial> } {
   const group = new Group();
   group.name = 'chibi-torch';
-  const stick = new Mesh(
-    new CylinderGeometry(0.022, 0.028, 0.3, 8),
-    createToonMaterial({ color: '#7a4a2a', rimStrength: 0 }),
-  );
+  const stickMaterial = createToonMaterial({ color: '#7a4a2a', rimStrength: 0 });
+  const stick = new Mesh(new CylinderGeometry(0.026, 0.032, 0.34, 8), stickMaterial);
   stick.position.y = 0.05;
-  const flame = new Mesh(new ConeGeometry(0.06, 0.16, 10), new MeshBasicMaterial({ color: 0xffa43a }));
-  flame.position.y = 0.25;
+  const flame = new Mesh(new ConeGeometry(0.09, 0.22, 10), new MeshBasicMaterial({ color: 0xffa43a }));
+  flame.position.y = 0.3;
   group.add(stick, flame);
   group.position.set(0.25, 0.02, 0.1);
   group.rotation.x = 0.35;
   group.visible = false;
-  return { group, flame };
+  return { group, flame, stickMaterial };
 }
 
 /** Crescent slash trail shown during the active phase of a swing. */
@@ -376,7 +374,15 @@ export function createChibi(character: Character): Rig {
   let idlePhase = 0;
   return {
     root,
-    materials: [skin, hair, outfit, accent, ...(legsMat === accent ? [] : [legsMat]), ...extraMaterials],
+    materials: [
+      skin,
+      hair,
+      outfit,
+      accent,
+      held.stickMaterial,
+      ...(legsMat === accent ? [] : [legsMat]),
+      ...extraMaterials,
+    ],
     update(dt, speed01, pose) {
       const s = Math.min(Math.max(speed01, 0), 1);
       held.group.visible = pose.weapon === 'torch';
