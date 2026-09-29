@@ -2,7 +2,9 @@ import {
   CanvasTexture,
   DoubleSide,
   RingGeometry,
+  BoxGeometry,
   CapsuleGeometry,
+  CylinderGeometry,
   ConeGeometry,
   type BufferGeometry,
   Euler,
@@ -65,20 +67,78 @@ function placed(
   return geometry;
 }
 
-/** Torso with arms merged in (arms don't animate separately in M1). */
-function bodyGeometry(): BufferGeometry {
-  const torso = new CapsuleGeometry(DIM.bodyRadius, DIM.bodyLength, 6, 16);
-  const armL = placed(new CapsuleGeometry(DIM.armRadius, DIM.armLength, 4, 8), 0.19, 0, 0, 0, 0.35);
-  const armR = placed(new CapsuleGeometry(DIM.armRadius, DIM.armLength, 4, 8), -0.19, 0, 0, 0, -0.35);
-  const merged = mergeGeometries([torso, armL, armR]);
-  torso.dispose();
-  armL.dispose();
-  armR.dispose();
-  if (!merged) throw new Error('chibi: failed to merge body');
+function mergeOrThrow(parts: BufferGeometry[], what: string): BufferGeometry {
+  // mergeGeometries needs matching attributes and indexing: all primitives used here are indexed
+  // with position, normal and uv.
+  const merged = mergeGeometries(parts);
+  for (const g of parts) g.dispose();
+  if (!merged) throw new Error(`chibi: failed to merge ${what}`);
   return merged;
 }
 
-/** Hair cap tilted back to show the forehead, optional bangs and ponytail — one geometry. */
+/** Torso with arms merged in (arms don't animate separately). Kimono: flared hem and wide hanging sleeves. */
+function bodyGeometry(style: 'tunic' | 'kimono'): BufferGeometry {
+  if (style === 'kimono') {
+    const h = DIM.bodyLength + DIM.bodyRadius * 2;
+    return mergeOrThrow(
+      [
+        new CylinderGeometry(DIM.bodyRadius * 0.85, DIM.bodyRadius * 1.3, h, 18),
+        // Wide sleeves: truncated cones hanging from the shoulders, open end down.
+        placed(new CylinderGeometry(0.045, 0.1, 0.22, 10), 0.19, 0.02, 0, 0, 0.35),
+        placed(new CylinderGeometry(0.045, 0.1, 0.22, 10), -0.19, 0.02, 0, 0, -0.35),
+      ],
+      'kimono',
+    );
+  }
+  return mergeOrThrow(
+    [
+      new CapsuleGeometry(DIM.bodyRadius, DIM.bodyLength, 6, 16),
+      placed(new CapsuleGeometry(DIM.armRadius, DIM.armLength, 4, 8), 0.19, 0, 0, 0, 0.35),
+      placed(new CapsuleGeometry(DIM.armRadius, DIM.armLength, 4, 8), -0.19, 0, 0, 0, -0.35),
+    ],
+    'body',
+  );
+}
+
+/** Obi sash around the waist with a flat bow at the back. */
+function obiGeometry(): BufferGeometry {
+  return mergeOrThrow(
+    [
+      new CylinderGeometry(DIM.bodyRadius * 1.02, DIM.bodyRadius * 1.08, 0.09, 18),
+      placed(new BoxGeometry(0.2, 0.1, 0.05), 0, 0.01, -DIM.bodyRadius * 1.1),
+    ],
+    'obi',
+  );
+}
+
+/** Kanzashi: two thin crossed pins through the bun (metal), returned separately from the flower. */
+function kanzashiGeometry(r: number): BufferGeometry {
+  const y = r * 1.05;
+  const z = -r * 0.2;
+  return mergeOrThrow(
+    [
+      placed(new CylinderGeometry(0.014, 0.014, 0.38, 6), 0, y, z, 0, 1.2),
+      placed(new CylinderGeometry(0.014, 0.014, 0.36, 6), 0, y + 0.03, z, 0.3, -1.05),
+      placed(new SphereGeometry(0.026, 8, 6), 0.18, y + 0.07, z),
+      placed(new SphereGeometry(0.026, 8, 6), -0.16, y + 0.13, z + 0.05),
+    ],
+    'kanzashi',
+  );
+}
+
+/** Small five-petal flower on the side of the bun. */
+function flowerGeometry(r: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    parts.push(
+      placed(new SphereGeometry(0.028, 8, 6), 0.1 + Math.cos(a) * 0.03, r * 0.95 + Math.sin(a) * 0.03, 0.02),
+    );
+  }
+  return mergeOrThrow(parts, 'flower');
+}
+
+/** Hair cap tilted back to show the forehead, optional bangs, ponytail and bun — one geometry. */
 function hairGeometry(style: Character['appearance']['hairStyle']): BufferGeometry {
   const r = DIM.headRadius * 1.08;
   const parts: BufferGeometry[] = [
@@ -97,16 +157,15 @@ function hairGeometry(style: Character['appearance']['hairStyle']): BufferGeomet
   if (style.ponytail) {
     parts.push(placed(new CapsuleGeometry(0.075, 0.2, 4, 10), 0, 0.02, -r * 1.05, -0.6));
   }
-  // mergeGeometries needs matching attributes and indexing: sphere/cone/capsule are all indexed
-  // with position, normal and uv.
-  const merged = mergeGeometries(parts);
-  for (const g of parts) g.dispose();
-  if (!merged) throw new Error('chibi: failed to merge hair');
-  return merged;
+  if (style.bun) {
+    // A big round bun on top, slightly back — the geisha silhouette.
+    parts.push(placed(new SphereGeometry(0.13, 16, 12), 0, r * 1.05, -r * 0.2));
+  }
+  return mergeOrThrow(parts, 'hair');
 }
 
 /** Big anime eyes + blush drawn on a canvas, mapped onto a spherical patch in front of the face. */
-function faceTexture(eyeColor: string): CanvasTexture {
+function faceTexture(eyeColor: string, lips: string | undefined): CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 128;
@@ -148,17 +207,29 @@ function faceTexture(eyeColor: string): CanvasTexture {
     g.ellipse(cx, 104, 18, 8, 0, 0, Math.PI * 2);
     g.fill();
   }
-  // Small smile
-  g.strokeStyle = '#7a2e2e';
-  g.lineWidth = 4;
-  g.beginPath();
-  g.arc(128, 100, 10, Math.PI * 0.15, Math.PI * 0.85);
-  g.stroke();
+  if (lips) {
+    // Small painted lips.
+    g.fillStyle = lips;
+    g.beginPath();
+    g.ellipse(128, 104, 8, 5, 0, 0, Math.PI * 2);
+    g.fill();
+  } else {
+    // Small smile
+    g.strokeStyle = '#7a2e2e';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.arc(128, 100, 10, Math.PI * 0.15, Math.PI * 0.85);
+    g.stroke();
+  }
 
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   return texture;
 }
+
+/** Fallback kanzashi colours when a character's data doesn't set them. */
+const DEFAULT_ORNAMENT_METAL = '#f2c14e';
+const DEFAULT_ORNAMENT = '#ff8fb3';
 
 /** Upper-body twist for the swing: wind back, whip through, settle (radians). */
 const SWING_BACK = 0.75;
@@ -191,6 +262,8 @@ export function createChibi(character: Character): Rig {
   const hair = createToonMaterial({ color: appearance.hair });
   const outfit = createToonMaterial({ color: appearance.outfit });
   const accent = createToonMaterial({ color: appearance.accent });
+  const legsMat = appearance.legs ? createToonMaterial({ color: appearance.legs }) : accent;
+  const kimono = appearance.outfitStyle === 'kimono';
 
   const root = new Group();
   root.name = `chibi:${character.id}`;
@@ -203,7 +276,7 @@ export function createChibi(character: Character): Rig {
   for (const side of [1, -1]) {
     const pivot = new Group();
     pivot.position.set(side * DIM.legSpread, DIM.hipY, 0);
-    const leg = new Mesh(new CapsuleGeometry(DIM.legRadius, DIM.legLength, 4, 8), accent);
+    const leg = new Mesh(new CapsuleGeometry(DIM.legRadius, DIM.legLength, 4, 8), legsMat);
     leg.name = 'chibi-leg';
     leg.position.y = -(DIM.legLength / 2 + DIM.legRadius) + 0.02;
     addOutline(leg);
@@ -212,7 +285,7 @@ export function createChibi(character: Character): Rig {
     legs.push(pivot);
   }
 
-  const body = new Mesh(bodyGeometry(), outfit);
+  const body = new Mesh(bodyGeometry(kimono ? 'kimono' : 'tunic'), outfit);
   body.name = 'chibi-body';
   body.position.y = DIM.bodyY - DIM.hipY;
   addOutline(body);
@@ -224,10 +297,34 @@ export function createChibi(character: Character): Rig {
   head.rotation.x = HEAD_TILT;
   addOutline(head);
 
+  if (kimono) {
+    const obi = new Mesh(obiGeometry(), accent);
+    obi.name = 'chibi-obi';
+    obi.position.y = 0.02;
+    addOutline(obi, { thickness: 0.02 });
+    body.add(obi);
+  }
+
   const hairMesh = new Mesh(hairGeometry(appearance.hairStyle), hair);
   hairMesh.name = 'chibi-hair';
   addOutline(hairMesh, { thickness: 0.025 });
   head.add(hairMesh);
+  const extraMaterials = [];
+  if (appearance.hairStyle.kanzashi) {
+    const r = DIM.headRadius * 1.08;
+    const metal = createToonMaterial({
+      color: appearance.ornamentMetal ?? DEFAULT_ORNAMENT_METAL,
+      rimStrength: 0.2,
+    });
+    const pins = new Mesh(kanzashiGeometry(r), metal);
+    pins.name = 'chibi-kanzashi';
+    const petal = createToonMaterial({ color: appearance.ornament ?? DEFAULT_ORNAMENT });
+    const flower = new Mesh(flowerGeometry(r), petal);
+    flower.name = 'chibi-flower';
+    addOutline(flower, { thickness: 0.012 });
+    head.add(pins, flower);
+    extraMaterials.push(metal, petal);
+  }
 
   // Spherical patch centred on +Z (phi = π/2), slightly above the skin to avoid z-fighting.
   const facePatch = new SphereGeometry(
@@ -241,7 +338,7 @@ export function createChibi(character: Character): Rig {
   );
   const face = new Mesh(
     facePatch,
-    new MeshBasicMaterial({ map: faceTexture(appearance.eyes), transparent: true }),
+    new MeshBasicMaterial({ map: faceTexture(appearance.eyes, appearance.lips), transparent: true }),
   );
   face.name = 'chibi-face';
   head.add(face);
@@ -255,7 +352,7 @@ export function createChibi(character: Character): Rig {
   let idlePhase = 0;
   return {
     root,
-    materials: [skin, hair, outfit, accent],
+    materials: [skin, hair, outfit, accent, ...(legsMat === accent ? [] : [legsMat]), ...extraMaterials],
     update(dt, speed01, pose) {
       const s = Math.min(Math.max(speed01, 0), 1);
       idlePhase += dt * IDLE_RATE;

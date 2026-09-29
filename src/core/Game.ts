@@ -1,4 +1,11 @@
-import type { Arena, Character, MonsterDef, RoomTemplate } from '@content/schemas';
+import type {
+  Character,
+  MonsterDef,
+  MonsterModifiers,
+  MonsterOverride,
+  RoomTemplate,
+  Waves,
+} from '@content/schemas';
 import type { InputState } from '@shared/input';
 import {
   Attacker,
@@ -51,10 +58,19 @@ export interface GameOptions {
   /** Monster definitions by id (for waves and `spawnMonster`). */
   monsters?: Readonly<Record<string, MonsterDef>>;
   /** Arena waves; without them the room is peaceful. */
-  waves?: Arena['waves'];
+  waves?: Waves;
+  /** Monster stat multipliers (difficulty); default ×1. */
+  modifiers?: MonsterModifiers;
+  /** Exact stats per monster id for this level (applied before `modifiers`). */
+  overrides?: Readonly<Record<string, MonsterOverride>>;
+  /**
+   * Arena lobby: the run waits in status 'ready' (hero can walk, no waves) until `startArena` picks the
+   * difficulty's waves and modifiers.
+   */
+  awaitStart?: boolean;
 }
 
-export type GameStatus = 'playing' | 'defeated' | 'cleared';
+export type GameStatus = 'ready' | 'playing' | 'defeated' | 'cleared';
 
 function healthFrom(
   stats: { hp: number; poise: number },
@@ -86,7 +102,9 @@ export class Game {
   private pending: GameEvent[] = [];
   private readonly ctx: CombatContext;
   private readonly monsters: Readonly<Record<string, MonsterDef>>;
-  private readonly waves: Arena['waves'];
+  private waves: Waves | readonly never[];
+  private modifiers: MonsterModifiers = { hp: 1, atk: 1, attackCooldown: 1 };
+  private overrides: Readonly<Record<string, MonsterOverride>> = {};
   private waveIndex = -1;
   private waveTimer = 0;
   private statusValue: GameStatus = 'playing';
@@ -95,6 +113,9 @@ export class Game {
     this.map = TileMap.fromTemplate(options.room);
     this.monsters = options.monsters ?? {};
     this.waves = options.waves ?? [];
+    if (options.modifiers) this.modifiers = options.modifiers;
+    if (options.overrides) this.overrides = options.overrides;
+    if (options.awaitStart) this.statusValue = 'ready';
     this.ctx = {
       world: this.world,
       map: this.map,
@@ -121,6 +142,21 @@ export class Game {
 
   get waveCount(): number {
     return this.waves.length;
+  }
+
+  /** Leaves the lobby: sets the chosen difficulty's waves and monster modifiers and starts the countdown. */
+  startArena(
+    waves: Waves,
+    modifiers: MonsterModifiers,
+    overrides: Readonly<Record<string, MonsterOverride>> = {},
+  ): void {
+    if (this.statusValue !== 'ready') return;
+    this.waves = waves;
+    this.modifiers = modifiers;
+    this.overrides = overrides;
+    this.waveIndex = -1;
+    this.waveTimer = waves[0]?.delay ?? 0;
+    this.statusValue = 'playing';
   }
 
   /** Advances the simulation by one fixed step. After defeat the world is frozen. */
@@ -179,15 +215,22 @@ export class Game {
     world.add(e, Collider, { radius: def.radius });
     world.add(e, MoveStats, { ...def.movement });
     world.add(e, Team, { side: 'monster' });
-    world.add(e, Stats, { atk: def.stats.atk, def: def.stats.def });
+    const mod = this.modifiers;
+    const over = this.overrides[def.id] ?? {};
+    const baseHp = over.hp ?? def.stats.hp;
+    const baseCooldown = over.attackCooldown ?? def.ai.attackCooldown;
+    world.add(e, Stats, { atk: (over.atk ?? def.stats.atk) * mod.atk, def: def.stats.def });
     world.add(
       e,
       Health,
-      healthFrom(def.stats, {
-        hitIFrames: 0,
-        resist: def.resist,
-        backVulnerability: def.backVulnerability ?? null,
-      }),
+      healthFrom(
+        { hp: Math.max(1, Math.round(baseHp * mod.hp)), poise: def.stats.poise },
+        {
+          hitIFrames: 0,
+          resist: def.resist,
+          backVulnerability: def.backVulnerability ?? null,
+        },
+      ),
     );
     world.add(e, Attacker, {
       attacks: def.attacks,
@@ -208,7 +251,9 @@ export class Game {
       goalY: y,
       idleFor: this.ctx.rng.range(def.ai.idleMin, def.ai.idleMax),
       aggro: false,
-      attackCooldown: def.ai.attackCooldown,
+      attackCooldown: baseCooldown * mod.attackCooldown,
+      // Later attacks: def.ai.attackCooldown × cooldownMult — fold the override in so both paths agree.
+      cooldownMult: (baseCooldown / def.ai.attackCooldown) * mod.attackCooldown,
       guardCooldown: 0,
     });
     world.add(e, Kind, { kind: 'monster', defId: def.id });

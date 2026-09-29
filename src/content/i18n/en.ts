@@ -21,6 +21,13 @@ export const en: Locale = {
   'settings.buttonsSide': 'Buttons',
   'settings.side.left': 'Left',
   'settings.side.right': 'Right',
+  'difficulty.title': 'Choose difficulty',
+  'difficulty.easy': 'Easy',
+  'difficulty.easy.hint': 'Three waves, weaker monsters — dodging is optional.',
+  'difficulty.medium': 'Medium',
+  'difficulty.medium.hint': 'Four waves. Dodge the attacks marked on the floor.',
+  'difficulty.hard': 'Hard',
+  'difficulty.hard.hint': 'Four dense waves; monsters hit hard and often.',
   'error.webgl.title': 'Could not start 3D',
   'error.webgl.body':
     'This browser does not support WebGL2 or it is disabled. Update the browser or enable hardware acceleration.',

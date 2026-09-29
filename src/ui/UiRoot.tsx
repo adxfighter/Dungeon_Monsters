@@ -1,5 +1,7 @@
 import type { InputController } from '@platform/input/InputController';
 import type { Settings } from '@platform/settings';
+import type { DifficultyId } from '@content/schemas';
+import type { DifficultyOption } from './hud/DifficultyPicker';
 import { Hud } from './hud/Hud';
 import type { HudStore } from './hudStore';
 import { Joystick } from './joystick/Joystick';
@@ -20,6 +22,8 @@ interface Props {
   settings: Settings;
   onSettingsChange(settings: Settings): void;
   onTestVibration(): boolean;
+  difficulties: readonly DifficultyOption[];
+  onPickDifficulty(id: DifficultyId): void;
 }
 
 /** Root of the Preact overlay above the canvas: movement layer below, HUD and buttons above it. */
@@ -35,6 +39,8 @@ export function UiRoot(props: Props) {
     settings,
     onSettingsChange,
     onTestVibration,
+    difficulties,
+    onPickDifficulty,
   } = props;
   return (
     <div class="ui-root">
@@ -51,6 +57,8 @@ export function UiRoot(props: Props) {
         settings={settings}
         onSettingsChange={onSettingsChange}
         onTestVibration={onTestVibration}
+        difficulties={difficulties}
+        onPickDifficulty={onPickDifficulty}
       />
     </div>
   );

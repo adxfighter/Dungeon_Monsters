@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { tavi } from '@content/characters/tavi';
 import { monsters } from '@content/index';
 import { arenaTest } from '@content/rooms/arena_test';
+import type { DifficultyId } from '@content/schemas';
 import { Buttons, createInputState } from '@shared/input';
 import { Attacker, Brain, Health, Transform } from './components';
 import { Game } from './Game';
@@ -23,8 +24,17 @@ interface BotResult {
  * Arena bot: tap-walks to the nearest monster and mashes attack. With `dodge`, it also dashes sideways when
  * a telegraphed attack aimed near it is about to land (it reads the windup like a player reads the decal).
  */
-function runBot(seed: number, dodge: boolean): BotResult {
-  const game = new Game({ room: arenaTest.room, player: tavi, monsters, waves: arenaTest.waves, seed });
+function runBot(level: DifficultyId, seed: number, dodge: boolean): BotResult {
+  const d = arenaTest.difficulties[level];
+  const game = new Game({
+    room: arenaTest.room,
+    player: tavi,
+    monsters,
+    waves: d.waves,
+    modifiers: d.monsters,
+    ...(d.overrides ? { overrides: d.overrides } : {}),
+    seed,
+  });
   const input = createInputState();
   const { world } = game;
   let step = 0;
@@ -99,28 +109,54 @@ const describeRuns = (label: string, runs: BotResult[]): string =>
     .join('\n');
 
 /**
- * Difficulty guard rails for the test arena (playtest 2026-09-29: "too easy, 55 HP left without dodging").
- * Standing and trading hits must lose; reading telegraphs and dodging must be able to win.
+ * Difficulty guard rails for the test arena, one block per level (user: hard "too hard", easy = as before PR #8).
+ * The run table is printed only when an assertion fails (as the expect message) — handy when tuning.
  */
+const count = (runs: BotResult[], status: BotResult['status']): number =>
+  runs.filter((r) => r.status === status).length;
+
 describe('arena difficulty (balance sanity)', () => {
-  let faceTank: BotResult[] = [];
-  let dodger: BotResult[] = [];
+  const runs: Record<DifficultyId, { tank: BotResult[]; dodger: BotResult[] }> = {
+    easy: { tank: [], dodger: [] },
+    medium: { tank: [], dodger: [] },
+    hard: { tank: [], dodger: [] },
+  };
   beforeAll(() => {
-    faceTank = SEEDS.map((s) => runBot(s, false));
-    dodger = SEEDS.map((s) => runBot(s, true));
+    for (const level of ['easy', 'medium', 'hard'] as const) {
+      runs[level].tank = SEEDS.map((s) => runBot(level, s, false));
+      runs[level].dodger = SEEDS.map((s) => runBot(level, s, true));
+    }
+  });
+  const report = (level: DifficultyId): string =>
+    describeRuns(`${level} face-tank:`, runs[level].tank) +
+    '\n' +
+    describeRuns(`${level} dodger:`, runs[level].dodger);
+
+  it('easy: even a bot that never dodges clears the arena in most runs', () => {
+    expect(count(runs.easy.tank, 'cleared'), report('easy')).toBeGreaterThanOrEqual(SEEDS.length - 1);
+    expect(count(runs.easy.dodger, 'cleared'), report('easy')).toBe(SEEDS.length);
   });
 
-  // The run table is printed only when an assertion fails (as the expect message) — handy when tuning.
-  it('a bot that never dodges loses in most runs, but not in the first wave', () => {
-    const report = describeRuns('face-tank:', faceTank);
-    const losses = faceTank.filter((r) => r.status === 'defeated').length;
-    expect(losses, report).toBeGreaterThanOrEqual(SEEDS.length - 1);
-    for (const r of faceTank) expect(r.wave, report).toBeGreaterThanOrEqual(2);
+  it('medium: dodging always wins, face-tanking loses at least a third of the time', () => {
+    expect(count(runs.medium.dodger, 'cleared'), report('medium')).toBe(SEEDS.length);
+    expect(count(runs.medium.tank, 'defeated'), report('medium')).toBeGreaterThanOrEqual(
+      Math.ceil(SEEDS.length / 3),
+    );
   });
 
-  it('a bot that dodges telegraphed attacks clears the arena in most runs', () => {
-    const report = describeRuns('dodger:', dodger);
-    const wins = dodger.filter((r) => r.status === 'cleared').length;
-    expect(wins, report).toBeGreaterThanOrEqual(Math.ceil(SEEDS.length * 0.6));
+  it('hard: a bot that never dodges loses in most runs (not in wave 1); dodging still wins most runs', () => {
+    const tank = runs.hard.tank;
+    expect(count(tank, 'defeated'), report('hard')).toBeGreaterThanOrEqual(SEEDS.length - 1);
+    for (const r of tank) expect(r.wave, report('hard')).toBeGreaterThanOrEqual(2);
+    expect(count(runs.hard.dodger, 'cleared'), report('hard')).toBeGreaterThanOrEqual(
+      Math.ceil(SEEDS.length * 0.6),
+    );
+  });
+
+  it('levels are ordered: harder levels leave the dodging bot with less HP on average', () => {
+    const avgHp = (level: DifficultyId) =>
+      runs[level].dodger.reduce((sum, r) => sum + Math.max(0, r.hp), 0) / SEEDS.length;
+    expect(avgHp('easy'), report('easy')).toBeGreaterThan(avgHp('medium'));
+    expect(avgHp('medium'), report('medium')).toBeGreaterThan(avgHp('hard'));
   });
 });

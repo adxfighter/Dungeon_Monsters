@@ -10,10 +10,42 @@ async function tapElement(cdp: CDPSession, page: Page, testId: string): Promise<
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
-test.beforeEach(async ({ page }) => {
+/** Opens the arena and starts it on `level` from the difficulty picker. */
+async function startArena(page: Page, level: 'easy' | 'medium' | 'hard' = 'hard'): Promise<void> {
   // Low render resolution: SwiftShader frames are slow, and slow frames delay input events.
   await page.goto('/?pr=0.5');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await page.getByTestId(`difficulty-${level}`).click();
+  await expect(page.getByTestId('difficulty-picker')).toHaveCount(0);
+}
+
+test.beforeEach(async ({ page }, info) => {
+  if (info.title.startsWith('picker:')) return; // picker tests drive the start screen themselves
+  await startArena(page);
+});
+
+test('picker: the arena starts with a difficulty choice, medium pre-selected, the choice is remembered', async ({
+  page,
+}) => {
+  await page.goto('/?pr=0.5');
+  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  const picker = page.getByTestId('difficulty-picker');
+  await expect(picker).toContainText('Выберите сложность');
+  await expect(page.getByTestId('difficulty-medium')).toHaveClass(/selected/);
+  await page.getByTestId('difficulty-easy').click();
+  await expect(picker).toHaveCount(0);
+  await expect(page.getByTestId('wave')).toContainText(/Волна \d\/3/, { timeout: 5000 }); // easy = 3 waves
+  await page.reload();
+  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await expect(page.getByTestId('difficulty-easy')).toHaveClass(/selected/);
+});
+
+test('picker: no waves spawn before a level is picked', async ({ page }) => {
+  await page.goto('/?pr=0.5');
+  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await page.waitForTimeout(2500); // longer than the first wave delay
+  const alive = await page.evaluate(() => window.__debug?.getMonsters().length);
+  expect(alive).toBe(0);
 });
 
 test('HUD shows hero HP, wave counter and Russian action buttons', async ({ page }) => {
@@ -54,6 +86,7 @@ test('losing all HP shows the defeat screen, and "again" restarts', async ({ pag
   await expect(screen).toContainText('Вас вынесли');
   await screen.getByRole('button').click();
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await expect(page.getByTestId('difficulty-picker')).toBeVisible(); // a new run starts with the choice
   await expect(page.getByTestId('hero-hp')).toContainText('100 / 100');
 });
 
@@ -90,29 +123,27 @@ test('settings toggle shake and vibration and persist across reloads', async ({ 
   await expect(shake).toBeChecked();
   await shake.click();
   await expect(shake).not.toBeChecked();
-  await page.reload();
-  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  await startArena(page);
   await page.getByTestId('btn-settings').click();
   await expect(page.getByTestId('settings').getByRole('checkbox').first()).not.toBeChecked();
 });
 
-test('action buttons: left by default, dodge above attack, side switch persists', async ({ page }) => {
+test('action buttons: right by default, dodge above attack, side switch persists', async ({ page }) => {
   const attack = await page.getByTestId('btn-attack').boundingBox();
   const dodge = await page.getByTestId('btn-dodge').boundingBox();
   if (!attack || !dodge) throw new Error('buttons not visible');
   const vw = page.viewportSize()?.width ?? 390;
-  expect(attack.x + attack.width / 2).toBeLessThan(vw / 2); // left side
+  expect(attack.x + attack.width / 2).toBeGreaterThan(vw / 2); // right side (user default)
   expect(dodge.y + dodge.height).toBeLessThanOrEqual(attack.y); // dodge stacked above
   expect(attack.width).toBeGreaterThan(dodge.width);
 
   await page.getByTestId('btn-settings').click();
-  await page.getByTestId('side-right').click();
+  await page.getByTestId('side-left').click();
   const moved = await page.getByTestId('btn-attack').boundingBox();
-  expect((moved?.x ?? 0) + (moved?.width ?? 0) / 2).toBeGreaterThan(vw / 2);
-  await page.reload();
-  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
+  expect((moved?.x ?? 0) + (moved?.width ?? 0) / 2).toBeLessThan(vw / 2);
+  await startArena(page);
   const after = await page.getByTestId('btn-attack').boundingBox();
-  expect((after?.x ?? 0) + (after?.width ?? 0) / 2).toBeGreaterThan(vw / 2);
+  expect((after?.x ?? 0) + (after?.width ?? 0) / 2).toBeLessThan(vw / 2);
 });
 
 test('the vibration test explains the result', async ({ page }) => {

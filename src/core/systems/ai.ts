@@ -130,7 +130,7 @@ export function aiSystem(world: World, map: TileMap, rng: Rng, dt: number): void
       case 'attack': {
         // The action system runs the swing; wait until it is over (it may also be cancelled by stagger).
         if (attacker.current || attacker.request >= 0) break;
-        brain.attackCooldown = ai.attackCooldown;
+        brain.attackCooldown = ai.attackCooldown * brain.cooldownMult;
         brain.state = 'chase';
         brain.t = 0;
         break;

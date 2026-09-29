@@ -3,6 +3,7 @@ import { render as renderUi } from 'preact';
 import { Brain, Health, MoveTarget, Transform } from '@core/components';
 import { Game } from '@core/Game';
 import { arenas, characters, locales, monsters, rooms } from '@content/index';
+import { DIFFICULTY_IDS } from '@content/difficulty';
 import { InputController } from '@platform/input/InputController';
 import { createI18n, pickLocale } from '@platform/i18n/i18n';
 import { Renderer } from '@render/Renderer';
@@ -127,14 +128,10 @@ function start(): void {
       game = new Game({ room: peaceful, player: hero });
     } else {
       if (!arena) throw new Error('content: arena_test missing');
-      game = new Game({
-        room: arena.room,
-        player: hero,
-        monsters,
-        waves: arena.waves,
-        seed: params.seed ?? 1,
-      });
+      // The arena waits in the lobby (status 'ready') until the player picks a difficulty.
+      game = new Game({ room: arena.room, player: hero, monsters, awaitStart: true, seed: params.seed ?? 1 });
     }
+    const currentGame = game;
     roomScene = new RoomScene(game);
     roomScene.shakeEnabled = settings.shake;
     stage = roomScene;
@@ -164,6 +161,20 @@ function start(): void {
           saveSettings(storage, next);
         }}
         onTestVibration={() => haptics.test()}
+        difficulties={
+          peaceful || !arena
+            ? []
+            : DIFFICULTY_IDS.map((id) => ({
+                id,
+                nameKey: arena.difficulties[id].nameKey,
+                hintKey: arena.difficulties[id].hintKey,
+              }))
+        }
+        onPickDifficulty={(id) => {
+          if (!arena) return;
+          const level = arena.difficulties[id];
+          currentGame.startArena(level.waves, level.monsters, level.overrides);
+        }}
       />,
       uiRoot,
     );

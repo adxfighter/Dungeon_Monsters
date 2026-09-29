@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 export interface HudState {
   hp: number;
   maxHp: number;
-  status: 'playing' | 'defeated' | 'cleared';
+  status: 'ready' | 'playing' | 'defeated' | 'cleared';
   wave: number;
   waveTotal: number;
 }
