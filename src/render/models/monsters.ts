@@ -57,6 +57,22 @@ function eyes(r: number, spread: number, y: number, z: number): Mesh {
   return mesh;
 }
 
+/** A thin, fin-like disc: a sphere squashed flat across X (the fin plane is YZ). */
+const finDisc = (r: number, height: number, depth: number) =>
+  new SphereGeometry(r, 16, 10).scale(0.1, height, depth);
+
+/**
+ * Forked caudal fin (user's pick of three, 2026-09-29; the old cone read as a spike): a narrow tail stalk and two
+ * pointed lobes in a V.
+ */
+function fuguTail(): BufferGeometry[] {
+  return [
+    placed(new SphereGeometry(0.075, 12, 8).scale(0.7, 0.85, 1.3), 0, 0, -0.35),
+    placed(finDisc(0.17, 1, 0.5), 0, 0.11, -0.53, -0.65),
+    placed(finDisc(0.17, 1, 0.5), 0, -0.11, -0.53, 0.65),
+  ];
+}
+
 /**
  * Fugu: a pink puffer-fish covered in sea-urchin spines, floating in the air. Windup: inflates, the spines
  * stand up and tremble; then the ring of spines fires (projectiles come from the core).
@@ -95,9 +111,10 @@ function fugu(def: MonsterDef): MonsterRig {
   const finMat = createToonMaterial({ color: '#ffc2d9' });
   const fins = new Mesh(
     merge([
-      placed(new ConeGeometry(0.09, 0.2, 8), 0.33, -0.02, 0, 0, 0, -Math.PI / 2),
-      placed(new ConeGeometry(0.09, 0.2, 8), -0.33, -0.02, 0, 0, 0, Math.PI / 2),
-      placed(new ConeGeometry(0.13, 0.24, 8), 0, 0, -0.42, -Math.PI / 2, 0, 0),
+      // Flat pectoral fins, swept back (cones read as spikes).
+      placed(finDisc(0.09, 0.8, 1), 0.33, -0.02, -0.02, 0, 0.5, 0),
+      placed(finDisc(0.09, 0.8, 1), -0.33, -0.02, -0.02, 0, -0.5, 0),
+      ...fuguTail(),
       placed(new TorusGeometry(0.045, 0.02, 6, 12), 0, -0.07, 0.32), // round "o" lips
     ]),
     finMat,
