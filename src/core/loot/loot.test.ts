@@ -236,6 +236,29 @@ describe('arena end', () => {
   });
 });
 
+describe('arena end with a full backpack', () => {
+  it('carcasses that give nothing (backpack full) do not hold back the win', () => {
+    const game = new Game({
+      room,
+      player: tavi,
+      monsters: { ...monsters, victim },
+      ingredients,
+      seed: 2,
+      waves: [{ delay: 0, spawns: [{ monster: 'victim', x: 4.5, y: 4.3 }] }],
+    });
+    const input = createInputState();
+    game.world.require(game.player, Backpack).maxWeight = 0;
+    game.step(input, DT);
+    game.step(input, DT);
+    const monster = game.world.query(Health).find((e) => e !== game.player) ?? -1;
+    game.world.require(monster, Health).hp = 0;
+    for (let i = 0; i < 5; i++) game.step(input, DT);
+    expect(game.world.query(Carrion).length).toBe(1);
+    expect(game.awaitingCarcasses).toBe(false);
+    expect(game.status).toBe('cleared');
+  });
+});
+
 describe('weapon swap', () => {
   it('Swap switches the combo to the torch (fire) and back', () => {
     const a = arena();

@@ -3,7 +3,7 @@ import type { IngredientDef, MonsterDef } from '@content/schemas';
 import { Buttons, type InputState } from '@shared/input';
 import { Backpack, Carrion, Health, PlayerControlled, Transform } from '../components';
 import type { Entity, World } from '../ecs/World';
-import { addToBackpack } from '../loot/backpack';
+import { addToBackpack, canFitOne } from '../loot/backpack';
 import { ingredientStars, type Stars } from '../loot/quality';
 import type { CombatContext } from './combat';
 import { isHeld } from './combat';
@@ -24,6 +24,32 @@ export function lootableCarcass(world: World, hero: Entity, doomed?: ReadonlySet
     }
   }
   return best;
+}
+
+/**
+ * Carcasses the hero could still take something from — the win screen waits only for these (a full backpack
+ * shouldn't keep the arena waiting 25 s for meat that can't be carried).
+ */
+export function worthButchering(world: World, catalog: LootCatalog): number {
+  let n = 0;
+  for (const hero of world.query(PlayerControlled, Backpack)) {
+    const bag = world.require(hero, Backpack);
+    for (const c of world.query(Carrion)) {
+      const carrion = world.require(c, Carrion);
+      const drops = carrion.left ?? catalog.monsters[carrion.monsterId]?.drops ?? [];
+      const fits = drops.some((d) => {
+        const ing = catalog.ingredients[d.ingredientId];
+        if (!ing) return false;
+        const stars = ingredientStars(ing, BALANCE.loot.placeholderCutStars as Stars, {
+          element: carrion.killElement,
+          overkillRatio: carrion.overkillRatio,
+        });
+        return canFitOne(bag, catalog.ingredients, d.ingredientId, stars);
+      });
+      if (fits) n++;
+    }
+  }
+  return n;
 }
 
 export interface LootCatalog {

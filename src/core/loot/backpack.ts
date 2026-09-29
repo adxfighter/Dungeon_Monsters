@@ -49,6 +49,21 @@ export function addToBackpack(
   return n;
 }
 
+/** Would at least one piece fit (weight room and a matching stack or a free slot)? Doesn't change the bag. */
+export function canFitOne(
+  bag: Readonly<BackpackData>,
+  catalog: Catalog,
+  ingredientId: string,
+  stars: Stars,
+): boolean {
+  const def = catalog[ingredientId];
+  if (!def || backpackWeight(bag, catalog) + def.weight > bag.maxWeight + 1e-9) return false;
+  return (
+    bag.stacks.length < bag.maxSlots ||
+    bag.stacks.some((s) => s.ingredientId === ingredientId && s.stars === stars)
+  );
+}
+
 /** Removes up to `count` pieces of a stack (throwing away / cooking). Returns how many were removed. */
 export function removeFromBackpack(
   bag: BackpackData,

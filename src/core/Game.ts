@@ -14,7 +14,6 @@ import {
   Attacker,
   Backpack,
   Brain,
-  Carrion,
   Collider,
   Dodge,
   ForcedVelocity,
@@ -38,7 +37,7 @@ import { World, type Entity } from './ecs/World';
 import { Rng } from './rng';
 import type { GameEvent } from './state/events';
 import { aiSystem } from './systems/ai';
-import { lootSystem, type LootCatalog } from './systems/loot';
+import { lootSystem, worthButchering, type LootCatalog } from './systems/loot';
 import {
   actionSystem,
   carrionSystem,
@@ -214,18 +213,21 @@ export class Game {
     return this.world.get(entity, Transform);
   }
 
-  /** Number of living monsters. */
-  /** Last wave beaten, only carcasses left on the floor: the win waits for them (UI shows a hint). */
+  /**
+   * Last wave beaten, only carcasses left that the hero can still carry something from: the win waits for them
+   * (UI shows a hint).
+   */
   get awaitingCarcasses(): boolean {
     return (
       this.statusValue === 'playing' &&
       this.waves.length > 0 &&
       this.waveIndex >= this.waves.length - 1 &&
       this.monstersAlive === 0 &&
-      this.world.query(Carrion).length > 0
+      worthButchering(this.world, this.catalog) > 0
     );
   }
 
+  /** Number of living monsters. */
   get monstersAlive(): number {
     let n = 0;
     for (const e of this.world.query(Brain, Health)) if (this.world.require(e, Health).hp > 0) n++;
@@ -372,9 +374,9 @@ export class Game {
     if (this.waves.length === 0 || this.statusValue !== 'playing') return;
     if (this.waveIndex >= 0 && this.monstersAlive > 0) return;
     if (this.waveIndex >= this.waves.length - 1) {
-      // Leave time to butcher the last kills: the win screen waits until no carcass is left on the floor
-      // (butchered, eaten or rotten — at most BALANCE.carrionTtl).
-      if (this.world.query(Carrion).length > 0) return;
+      // Leave time to butcher the last kills: the win screen waits while a carcass still has something that fits
+      // the backpack (butchered, eaten or rotten — at most BALANCE.carrionTtl).
+      if (worthButchering(this.world, this.catalog) > 0) return;
       this.statusValue = 'cleared';
       this.pending.push({ type: 'ArenaCleared' });
       return;
