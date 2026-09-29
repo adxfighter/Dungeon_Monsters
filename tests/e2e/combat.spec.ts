@@ -166,16 +166,13 @@ test('the vibration test explains the result', async ({ page }) => {
   await expect(page.getByTestId('vibration-status')).toBeVisible();
 });
 
-test('picker: arena tabs switch to the new-monsters arena and it plays', async ({ page }) => {
+test('picker: one arena, no arena tabs; easy starts with its first wave', async ({ page }) => {
   await page.goto('/?pr=0.5');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
-  await expect(page.getByTestId('arena-arena_test')).toHaveAttribute('aria-selected', 'true');
-  await page.getByTestId('arena-arena_new').click();
-  await expect(page).toHaveURL(/arena=arena_new/);
-  await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
-  await expect(page.getByTestId('arena-arena_new')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('difficulty-picker')).toBeVisible();
+  await expect(page.locator('[role=tab]')).toHaveCount(0);
   await page.getByTestId('difficulty-easy').click();
   await expect
     .poll(() => page.evaluate(() => window.__debug?.getMonsters().map((m) => m.id) ?? []), { timeout: 6000 })
-    .toEqual(expect.arrayContaining(['toadhog', 'fugu']));
+    .toEqual(expect.arrayContaining(['toadhog', 'brooklash']));
 });

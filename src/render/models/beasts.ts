@@ -4,12 +4,15 @@ import {
   Color,
   type ColorRepresentation,
   ConeGeometry,
+  CylinderGeometry,
   type BufferGeometry,
   Euler,
   Float32BufferAttribute,
   Group,
+  InstancedMesh,
   Matrix4,
   Mesh,
+  Object3D,
   MeshBasicMaterial,
   SphereGeometry,
 } from 'three';
@@ -80,6 +83,52 @@ function painted(): ReturnType<typeof createToonMaterial> {
   const m = createToonMaterial({ color: 0xffffff });
   m.vertexColors = true;
   return m;
+}
+
+/**
+ * Walking legs: one InstancedMesh (1 draw call) of a leg hanging down from its hip, each instance swung about X.
+ * `phases` offsets the gait per leg (diagonal pairs for quadrupeds, opposite for bipeds).
+ */
+class Legs {
+  readonly mesh: InstancedMesh;
+  private readonly dummy = new Object3D();
+  private clock = 0;
+  private readonly hips: readonly (readonly [number, number, number])[];
+  private readonly phases: readonly number[];
+  private readonly stride: number;
+
+  constructor(
+    geometry: BufferGeometry,
+    material: ReturnType<typeof createToonMaterial>,
+    hips: readonly (readonly [number, number, number])[],
+    phases: readonly number[],
+    stride: number,
+  ) {
+    this.hips = hips;
+    this.phases = phases;
+    this.stride = stride;
+    this.mesh = new InstancedMesh(geometry, material, hips.length);
+    this.mesh.frustumCulled = false; // instances move around their hips; the default bounds would clip them
+    this.update(0, 0, 0);
+  }
+
+  /** `speed01` drives the stride; `cadence` is steps per second at full speed; `bend` adds a pose-driven tilt. */
+  update(dt: number, speed01: number, bend: number, cadence = 7): void {
+    const move = Math.min(2, speed01);
+    this.clock += dt * cadence * (0.3 + move);
+    for (let i = 0; i < this.hips.length; i++) {
+      const [x, y, z] = this.hips[i] ?? [0, 0, 0];
+      this.dummy.position.set(x, y, z);
+      this.dummy.rotation.set(
+        Math.sin(this.clock + (this.phases[i] ?? 0)) * this.stride * Math.min(1, move) + bend,
+        0,
+        0,
+      );
+      this.dummy.updateMatrix();
+      this.mesh.setMatrixAt(i, this.dummy.matrix);
+    }
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
 }
 
 const DARK = '#1a1414';
@@ -176,8 +225,6 @@ function yak(def: MonsterDef): Rig {
       // Shaggy fringe hanging off the flanks and belly.
       ...both(() => new SphereGeometry(0.16, 12, 8).scale(0.6, 1.2, 1.6), shag, 0.27, 0.3, -0.04),
       part(new SphereGeometry(0.2, 12, 8).scale(1.4, 0.6, 1.8), shag, 0, 0.2, -0.04),
-      ...both(() => new CapsuleGeometry(0.07, 0.14, 4, 8), shag, 0.2, 0.1, 0.24),
-      ...both(() => new CapsuleGeometry(0.07, 0.14, 4, 8), shag, 0.2, 0.1, -0.3),
     ]),
     mat,
   );
@@ -201,7 +248,24 @@ function yak(def: MonsterDef): Rig {
   headMesh.name = 'yak-head';
   addOutline(headMesh, { thickness: 0.02 });
   head.add(headMesh);
-  body.add(torso, head);
+  // Four sturdy legs with dark hooves; diagonal pairs step together (a trot, a gallop in the charge).
+  const legs = new Legs(
+    merge([
+      part(new CapsuleGeometry(0.075, 0.16, 4, 8), shag, 0, -0.12, 0),
+      part(new CylinderGeometry(0.075, 0.085, 0.07, 10), DARK, 0, -0.27, 0.01),
+    ]),
+    mat,
+    [
+      [0.2, 0.3, 0.24],
+      [-0.2, 0.3, 0.24],
+      [0.2, 0.3, -0.3],
+      [-0.2, 0.3, -0.3],
+    ],
+    [0, Math.PI, Math.PI, 0],
+    0.55,
+  );
+  legs.mesh.name = 'yak-legs';
+  body.add(torso, head, legs.mesh);
   root.add(createBlobShadow(0.48));
 
   let t = 0;
@@ -210,10 +274,13 @@ function yak(def: MonsterDef): Rig {
     materials: [mat],
     update(dt, speed01, pose) {
       t += dt;
-      body.position.y = Math.abs(Math.sin(t * 7)) * 0.04 * speed01;
+      body.position.y = Math.abs(Math.sin(t * 7)) * 0.04 * Math.min(1, speed01);
       body.rotation.x = 0;
       body.rotation.z = 0;
       head.rotation.x = Math.sin(t * 1.5) * 0.05;
+      // Pawing the ground in the windup: the legs keep stamping (a trot on the spot) even when standing still.
+      const paw = pose.phase === 'windup' ? 0.6 : 0;
+      legs.update(dt, Math.max(speed01, paw), 0, pose.phase === 'active' ? 11 : 6);
       if (pose.phase === 'windup') {
         // Telegraph: head down, horns forward, pawing the ground (the body rocks back and forth).
         const k = easeOut(pose.t01);
@@ -240,62 +307,98 @@ function dinostrich(def: MonsterDef): Rig {
   root.add(body);
   const skin = def.appearance.body;
   const dark = def.appearance.accent;
+  const claw = '#3a2a22';
   const mat = painted();
+  // Raptor build (user: "the dinosaur must show"): horizontal body, a long stiff tail for balance, raptor stripes
+  // on the back; the emu part is the shaggy plumage on the rump and the feathered arms.
   const torso = new Mesh(
     merge([
-      part(new SphereGeometry(0.24, 18, 12).scale(0.9, 0.8, 1.2), skin, 0, 0.56, -0.04),
-      // Emu-like feather tuft and a raptor tail.
-      part(new ConeGeometry(0.12, 0.34, 8), dark, 0, 0.6, -0.36, -Math.PI / 2 - 0.3),
-      part(new SphereGeometry(0.13, 10, 8).scale(1.1, 0.6, 1), dark, 0, 0.66, -0.2),
-      // Long strong legs with claws.
-      ...both(() => new CapsuleGeometry(0.06, 0.18, 4, 8), skin, 0.1, 0.36, 0.0, -0.3),
-      ...both(() => new CapsuleGeometry(0.035, 0.2, 4, 8), dark, 0.1, 0.14, 0.04, 0.2),
-      ...both(() => new ConeGeometry(0.035, 0.12, 5), dark, 0.1, 0.03, 0.12, Math.PI / 2),
-      // Tiny raptor arms.
-      ...both(() => new CapsuleGeometry(0.025, 0.08, 3, 6), skin, 0.18, 0.54, 0.18, 0.9),
+      part(new SphereGeometry(0.22, 18, 12).scale(0.85, 0.75, 1.35), skin, 0, 0.5, -0.02),
+      // Long tapering tail, held out straight behind.
+      part(new ConeGeometry(0.13, 0.62, 10), skin, 0, 0.52, -0.52, -Math.PI / 2 - 0.08),
+      // Dark raptor stripes across the back and tail.
+      part(new CapsuleGeometry(0.03, 0.26, 3, 6).scale(1, 1, 0.5), dark, 0, 0.66, 0.06, 0, 0, Math.PI / 2),
+      part(new CapsuleGeometry(0.03, 0.28, 3, 6).scale(1, 1, 0.5), dark, 0, 0.67, -0.1, 0, 0, Math.PI / 2),
+      part(new CapsuleGeometry(0.025, 0.2, 3, 6).scale(1, 1, 0.5), dark, 0, 0.6, -0.34, 0, 0, Math.PI / 2),
+      part(new CapsuleGeometry(0.02, 0.12, 3, 6).scale(1, 1, 0.5), dark, 0, 0.56, -0.56, 0, 0, Math.PI / 2),
+      // Emu plumage: a shaggy tuft over the hips.
+      part(new SphereGeometry(0.15, 10, 8).scale(1.2, 0.7, 1), dark, 0, 0.62, -0.2),
+      // Feathered raptor arms with little claws.
+      ...both(() => new CapsuleGeometry(0.03, 0.12, 3, 6), skin, 0.15, 0.46, 0.2, 1.1, 0, 0.2),
+      ...both(() => new ConeGeometry(0.05, 0.16, 5).scale(0.4, 1, 1), dark, 0.18, 0.43, 0.16, 1.4, 0, 0.3),
     ]),
     mat,
   );
   torso.name = 'dinostrich-body';
   addOutline(torso);
-  // Neck + head on a pivot at the shoulders: pulls back and snaps forward for the bite.
+  // Neck + raptor head on a pivot at the shoulders: pulls back and snaps forward for the bite.
   const neck = new Group();
-  neck.position.set(0, 0.62, 0.16);
+  neck.position.set(0, 0.56, 0.22);
   const neckMesh = new Mesh(
     merge([
-      part(new CapsuleGeometry(0.06, 0.3, 4, 8), skin, 0, 0.18, 0.02, 0.25),
-      part(new SphereGeometry(0.1, 14, 10).scale(1, 0.9, 1.2), skin, 0, 0.38, 0.08),
-      part(new ConeGeometry(0.06, 0.16, 8).scale(1, 1, 0.6), '#c98a4a', 0, 0.36, 0.22, Math.PI / 2), // jaw
-      ...both(() => new ConeGeometry(0.012, 0.04, 4), WHITE, 0.03, 0.33, 0.2, Math.PI), // teeth
-      ...both(() => new SphereGeometry(0.025, 8, 6), DARK, 0.07, 0.42, 0.13),
-      part(new ConeGeometry(0.05, 0.12, 6), dark, 0, 0.47, 0.02, -0.6), // crest
+      part(new CapsuleGeometry(0.06, 0.2, 4, 8), skin, 0, 0.12, 0.05, 0.45),
+      // Long raptor skull and snout.
+      part(new SphereGeometry(0.1, 14, 10).scale(0.9, 0.8, 1.3), skin, 0, 0.27, 0.14),
+      part(new SphereGeometry(0.07, 12, 8).scale(0.9, 0.7, 1.6), skin, 0, 0.24, 0.27),
+      // Lower jaw and a row of teeth on each side.
+      part(new SphereGeometry(0.055, 10, 6).scale(0.9, 0.5, 1.8), '#c9a27a', 0, 0.19, 0.24),
+      ...[0.2, 0.25, 0.3, 0.35].flatMap((z) =>
+        both(() => new ConeGeometry(0.012, 0.035, 4), WHITE, 0.045, 0.205, z, Math.PI),
+      ),
+      // Eyes under a heavy brow ridge.
+      ...both(() => new SphereGeometry(0.025, 8, 6), '#ffcc33', 0.07, 0.3, 0.18),
+      ...both(() => new SphereGeometry(0.014, 6, 4), DARK, 0.085, 0.3, 0.19),
+      ...both(() => new CapsuleGeometry(0.02, 0.06, 3, 6), dark, 0.06, 0.34, 0.17, Math.PI / 2),
+      // Emu feathers down the back of the neck.
+      part(new ConeGeometry(0.05, 0.14, 6), dark, 0, 0.36, 0.05, -0.9),
     ]),
     mat,
   );
   neckMesh.name = 'dinostrich-neck';
   addOutline(neckMesh, { thickness: 0.02 });
   neck.add(neckMesh);
-  body.add(torso, neck);
-  root.add(createBlobShadow(0.34));
+  // Two strong legs: thigh, shin, long foot with a raised sickle claw.
+  const legs = new Legs(
+    merge([
+      part(new CapsuleGeometry(0.065, 0.14, 4, 8), skin, 0, -0.1, 0, -0.35),
+      part(new CapsuleGeometry(0.035, 0.18, 4, 8), dark, 0, -0.3, -0.02, 0.35),
+      part(new CapsuleGeometry(0.03, 0.08, 3, 6), dark, 0, -0.43, 0.06, Math.PI / 2),
+      part(new ConeGeometry(0.02, 0.08, 5), claw, 0, -0.38, 0.05, -0.6), // sickle claw
+      ...[-0.03, 0, 0.03].map((x) =>
+        part(new ConeGeometry(0.014, 0.05, 4), claw, x, -0.45, 0.13, Math.PI / 2),
+      ),
+    ]),
+    mat,
+    [
+      [0.11, 0.46, 0],
+      [-0.11, 0.46, 0],
+    ],
+    [0, Math.PI],
+    0.7,
+  );
+  legs.mesh.name = 'dinostrich-legs';
+  body.add(torso, neck, legs.mesh);
+  root.add(createBlobShadow(0.36));
 
   let t = 0;
-  let run = 0;
   return {
     root,
     materials: [mat],
     update(dt, speed01, pose) {
       t += dt;
-      run += dt * 16 * speed01;
-      body.position.y = Math.abs(Math.sin(run)) * 0.05 * speed01;
+      const move = Math.min(1, speed01);
+      body.position.y = Math.abs(Math.sin(t * 16 * (0.3 + move))) * 0.04 * move;
       body.rotation.x = 0;
       body.scale.set(1, 1, 1);
-      neck.rotation.x = Math.sin(run) * 0.1 * speed01 + Math.sin(t * 2) * 0.04;
+      neck.rotation.x = Math.sin(t * 8) * 0.08 * move + Math.sin(t * 2) * 0.04;
+      let bend = 0;
       const stomp = pose.attackId === 'dinostrich.stomp';
       if (pose.phase === 'windup') {
         const k = easeOut(pose.t01);
         if (stomp) {
-          body.position.y = 0.18 * k; // rears up on its toes
-          body.rotation.x = -0.25 * k;
+          body.position.y = 0.16 * k; // rears up on its toes, legs tucked forward
+          body.rotation.x = -0.3 * k;
+          bend = 0.3 * k;
         } else {
           neck.rotation.x = -0.6 * k; // head pulled back, jaws open
         }
@@ -306,6 +409,7 @@ function dinostrich(def: MonsterDef): Rig {
           neck.rotation.x = 0.8; // the snap
         }
       }
+      legs.update(dt, speed01, bend, 9);
       body.rotation.z = pose.staggered ? Math.sin(t * 20) * 0.25 : 0;
     },
   };
