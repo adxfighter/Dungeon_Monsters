@@ -1,7 +1,7 @@
 import { expect, test, type CDPSession, type Page } from '@playwright/test';
 
 /**
- * Touch movement e2e (M1 §11). Playwright has no finger-drag API, so touches go through CDP
+ * Joystick control e2e (`?joystick=1`, kept for comparison with tap-to-move). Playwright has no finger-drag API, so touches go through CDP
  * `Input.dispatchTouchEvent`; Chromium turns them into Pointer Events for the joystick.
  */
 
@@ -40,7 +40,8 @@ async function drag(page: Page, cdp: CDPSession, from: Pos, to: Pos, holdMs: num
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  // Low render resolution: SwiftShader frames are slow, and slow frames delay pointer events.
+  await page.goto('/?joystick=1&pr=0.5');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
 });
 

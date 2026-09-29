@@ -74,7 +74,7 @@
 │  ├─ content/               characters/, monsters/, ingredients/, recipes/, rooms/, floors/, ecology/,
 │  │                         dialogue/, balance.ts, schemas.ts
 │  ├─ render/                Renderer, materials/toon, outline, camera, fx, view-синхронизация сущностей
-│  ├─ ui/                    hud/, joystick/, cooking-minigames/, menus/, dialogue/
+│  ├─ ui/                    hud/, tapToMove/, joystick/, cooking-minigames/, menus/, dialogue/
 │  ├─ platform/              input, audio, storage, haptics, i18n
 │  └─ shared/                math (vec2/vec3), types, utils без зависимостей
 ├─ public/                   статические ассеты (модели .glb, звуки, шрифты)
@@ -88,13 +88,20 @@
 - `core` порождает **события** (`DamageDealt`, `MonsterKilled`, `DishCooked`...), на которые подписаны
   render (VFX), ui (попапы), audio. Core ничего не знает о подписчиках.
 - Реализация (M1): `app/GameLoop.ts` (clamp кадра ≤ 0.25 с, пауза по `visibilitychange` и потере WebGL-контекста),
-  `core/Game.ts` (`step(input, dt)`: snapshot → steering → physics), `render/EntityViews.ts` (интерполяция
+  `core/Game.ts` (`step(input, dt)`: snapshot → playerInput → navigation → steeringMovement → physics), `render/EntityViews.ts` (интерполяция
   `PrevTransform → Transform` по `alpha`, вью создаются по `EntitySpawned/Despawned`). Ввод сэмплируется на каждом
   шаге симуляции (`platform/input` → `shared/input.InputState`) — задержка ≤ 1 шага.
+- Управление (с 2026-09-29) — тап по точке: `ui/tapToMove` → `app/TapTargeting` (экран → пол через
+  `RoomScene.screenToGround`; удержание > 350 мс перепроецируется каждый кадр) → `InputController.setMoveTarget`
+  → `InputState.target {seq, x, y}` → core: `playerInputSystem` планирует путь `core/dungeon/pathfinding.ts`
+  (A* 8 направлений без срезания углов, string pulling, конечная точка выталкивается из стен на радиус) в
+  `MoveTarget`; `navigationSystem` ведёт по точкам в `Steering` (торможение без перелёта, сброс при застревании);
+  `steeringMovementSystem` — общий для всех, кто движется (ИИ монстров — тоже через `Steering`).
 - **Координаты:** симуляция 2D, 1 единица = 1 тайл; `x` — вправо по экрану, `y` — к камере (вниз по экрану);
   тайл (tx, ty) = [tx, tx+1) × [ty, ty+1), строка 0 шаблона — дальняя. Мир three: (x, y) → (x, 0, y).
   `rot` — угол взгляда, направление (sin rot, cos rot); в three это `rotation.y = rot`.
-  Камера фиксированной ориентации смотрит с +Z под 52°, поэтому экранные направления джойстика = оси симуляции.
+  Камера фиксированной ориентации смотрит с +Z под 52°, поэтому экранные направления (джойстик `?joystick=1`,
+  WASD) = оси симуляции.
 
 ## 6. ECS-lite
 Собственная минимальная ECS: сущность = number; компоненты = typed-объекты в `Map`/массивах; системы —

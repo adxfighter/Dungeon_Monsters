@@ -1,0 +1,6 @@
+.tap-zone {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  touch-action: none;
+}

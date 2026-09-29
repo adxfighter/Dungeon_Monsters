@@ -5,13 +5,13 @@ const PITCH_RAD = (52 * Math.PI) / 180;
 /** Narrow lens + long distance ≈ near-isometric look without fisheye on tall portrait screens. */
 const V_FOV_DEG = 30;
 /** Ground width (tiles) visible across the screen at the focus point, kept on every aspect ratio. */
-const VIEW_WIDTH_TILES = 8;
+const VIEW_WIDTH_TILES = 4;
 /** Minimum ground height (tiles) visible at the focus, for landscape screens. */
-const MIN_VIEW_HEIGHT_TILES = 7;
+const MIN_VIEW_HEIGHT_TILES = 4;
 /** Follow stiffness, 1/s (exponential smoothing, frame-rate independent). */
 const FOLLOW_RATE = 7;
 /** Look-ahead: seconds of current velocity added to the focus point. */
-const LOOK_AHEAD_S = 0.3;
+const LOOK_AHEAD_S = 0.15;
 /** How far (tiles) past the room edge the view may reach before the camera stops following. */
 const OVERSCAN_TILES = 0.75;
 

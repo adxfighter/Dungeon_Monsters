@@ -47,8 +47,13 @@ _По итогам M1 (2026-09-29):_
   (snapshot → steering → physics → combat …). Координаты и `rot` — ARCHITECTURE §5.
 - События: `core/state/events.ts` (`GameEvent`), `Game.drainEvents()` раз в кадр в `app/main.tsx` → `RoomScene.handleEvents`.
   `EntityDespawned` уже поддержан в `EntityViews` (dispose вью) — использовать для смерти монстров.
-- Ввод: кнопки добавлять битами в `shared/input.ts` (`Buttons`) и в `InputController`; правая половина экрана
-  свободна (джойстик захватывает только первый палец слева). Кнопки — Preact в `ui/`, ≥ 48 dp.
+- Ввод: управление — **тап по точке** (`ui/tapToMove`, слой на весь экран; `InputState.target` с `seq`), джойстик —
+  `?joystick=1`. Кнопки добавлять битами в `shared/input.ts` (`Buttons`) и в `InputController`; кнопки — Preact
+  в `ui/` **поверх** tap-слоя (`pointer-events: auto`, `stopPropagation` в `onPointerDown`), ≥ 48 dp.
+  Тап по монстру (M2) — вероятно «атаковать цель»: решить в дизайне M2 (экранная точка → ground → ближайший враг).
+- Навигация: `core/dungeon/pathfinding.ts` (`findPath`, `segmentClear`, `nearestFloorTile`) и компоненты
+  `Steering`/`MoveTarget` — ИИ монстров может использовать тот же путь (`navigationSystem` + `steeringMovementSystem`).
+- Камера показывает ~4 тайла по ширине: телеграфы атак и монстры должны помещаться в этот кадр.
 - Коллизии: `core/systems/collision.ts` (`moveCircle`, `resolveCircleVsTiles`) — переиспользовать для монстров.
 - Вью монстров: по аналогии с `render/models/chibi.ts` (`createChibi` → `{ root, update }`), выбор фабрики — по
   `Kind.kind` в `EntityViews.handle`. Бюджет: комната+герой = 18 draw calls; на монстра ≤ 6.

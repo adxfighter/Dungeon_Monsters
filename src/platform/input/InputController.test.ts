@@ -60,6 +60,17 @@ describe('InputController', () => {
     expect(input.sample(createInputState()).move).toEqual({ x: 1, y: 0 });
   });
 
+  it('passes tap targets through with an increasing sequence number', () => {
+    const input = new InputController();
+    const state = createInputState();
+    expect(input.sample(state).target.seq).toBe(0);
+    input.setMoveTarget(3.5, 4.25);
+    expect(input.sample(state).target).toEqual({ seq: 1, x: 3.5, y: 4.25 });
+    expect(input.sample(state).target.seq).toBe(1); // re-sampling is not a new command
+    input.setMoveTarget(3.5, 4.25);
+    expect(input.sample(state).target.seq).toBe(2); // same point tapped again is
+  });
+
   it('writes into the given state without allocating a new one', () => {
     const input = new InputController();
     const state = createInputState();
