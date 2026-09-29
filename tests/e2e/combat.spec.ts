@@ -193,6 +193,8 @@ test('gathering a plant and throwing it away in the backpack screen', async ({ p
   await page.getByTestId('btn-backpack').click();
   await expect(page.getByTestId('backpack')).toBeVisible();
   await expect(page.getByTestId('stack-glowcap-2')).toContainText('×2');
+  const discardBox = await page.getByTestId('discard-glowcap-2').boundingBox();
+  expect(discardBox?.height).toBeGreaterThanOrEqual(48); // ≥ 48 dp
   await page.getByTestId('discard-glowcap-2').click();
   await expect(page.getByTestId('stack-glowcap-2')).toContainText('×1');
   await page.getByTestId('discard-glowcap-2').click();

@@ -71,6 +71,7 @@ export const en: Locale = {
   'backpack.slots': 'slots',
   'backpack.empty': 'Empty. Butcher carcasses and gather plants.',
   'backpack.discard': 'Throw away',
+  'backpack.close': 'Close the backpack',
   'hud.butcher': 'Butcher',
   'hud.carcassHint': 'Waves beaten: butcher the carcasses before they rot',
   'hud.loot.line': '+{count} {name} {stars}',

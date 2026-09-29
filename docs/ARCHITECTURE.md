@@ -97,7 +97,7 @@
   случайную из доступных по дистанции (RNG тянется, только когда выбор есть).
 - Добыча (M3): туша `Carrion {monsterId, killElement, overkillRatio}` от `deathSystem`; `core/loot/quality.ts`
   (`ingredientStars` — чистая функция), `core/loot/backpack.ts` (стаки, вес/слоты), `core/systems/loot.ts`
-  (`lootSystem`, селектор `lootableCarcass` для кнопки UI); событие `LootTaken`. Разделка — команда UI →
+  (`lootSystem`); событие `LootTaken`. Разделка — команда UI →
   core: `Game.butcher(carcass, cuts, skipped)` (применяется на следующем шаге); мини-игра `ui/butchery/ButcherBoard`
   оценивает свайп чистыми функциями `core/loot/cut.ts` (`scoreSwipe`, `tapStep`), на время доски main не шагает sim.
   Растения — `RoomTemplate.plants` → сущности `Gatherable`; команды `Game.gather` / `Game.discard` (`bagSystem`),

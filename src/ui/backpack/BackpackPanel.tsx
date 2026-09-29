@@ -21,7 +21,13 @@ export function BackpackPanel({ view, t, onClose, onDiscard }: Props) {
       <div class="backpack-card" onPointerDown={(e) => e.stopPropagation()}>
         <div class="backpack-head">
           <h2>{t('hud.backpack')}</h2>
-          <button type="button" class="backpack-close" data-testid="backpack-close" onClick={onClose}>
+          <button
+            type="button"
+            class="backpack-close"
+            aria-label={t('backpack.close')}
+            data-testid="backpack-close"
+            onClick={onClose}
+          >
             ✕
           </button>
         </div>

@@ -72,6 +72,7 @@ export const ru: Locale = {
   'backpack.slots': 'места',
   'backpack.empty': 'Пусто. Разделывайте туши и собирайте растения.',
   'backpack.discard': 'Выбросить',
+  'backpack.close': 'Закрыть рюкзак',
   'hud.butcher': 'Разделать',
   'hud.carcassHint': 'Волны позади — разделайте туши, пока не сгнили',
   'hud.loot.line': '+{count} {name} {stars}',

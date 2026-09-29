@@ -402,6 +402,39 @@ describe('plants and discarding', () => {
     expect(game.interaction?.kind).toBe('full');
   });
 
+  it('applyCommands applies a discard without advancing the simulation (menus pause the fight)', () => {
+    const { game } = make();
+    const bag = game.world.require(game.player, Backpack);
+    bag.stacks.push({ ingredientId: 'yak_steak', stars: 2, count: 2 });
+    const e = game.spawnMonster(victim, 7.5, 5.5);
+    game.world.require(e, Health).hp = 0;
+    game.step(createInputState(), DT);
+    game.drainEvents();
+    const tick = game.tick;
+    const ttl = game.world.require(game.world.query(Carrion)[0] ?? -1, Carrion).ttl;
+    game.discard('yak_steak', 2, 1);
+    game.applyCommands();
+    expect(bag.stacks).toEqual([{ ingredientId: 'yak_steak', stars: 2, count: 1 }]);
+    expect(game.tick).toBe(tick);
+    expect(game.world.require(game.world.query(Carrion)[0] ?? -1, Carrion).ttl).toBe(ttl);
+    expect(game.drainEvents()).toContainEqual({
+      type: 'Discarded',
+      by: game.player,
+      ingredientId: 'yak_steak',
+      stars: 2,
+      count: 1,
+    });
+  });
+
+  it('no gathering while staggered', () => {
+    const { game, input } = make();
+    const plant = game.interaction?.entity ?? -1;
+    game.world.require(game.player, Health).stagger = 1;
+    game.gather(plant);
+    game.step(input, DT);
+    expect(game.backpack?.stacks).toEqual([]);
+  });
+
   it('discard throws pieces out of a stack', () => {
     const { game, input } = make();
     const bag = game.world.require(game.player, Backpack);

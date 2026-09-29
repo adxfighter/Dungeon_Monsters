@@ -10,7 +10,7 @@ import { Renderer } from '@render/Renderer';
 import { DemoScene } from '@render/scenes/DemoScene';
 import { RoomScene } from '@render/scenes/RoomScene';
 import { createInputState } from '@shared/input';
-import { HudStore, UiRoot, WorldOverlay, type BackpackView } from '@ui/index';
+import { HudStore, UiRoot, WorldOverlay, ingredientIcon, type BackpackView } from '@ui/index';
 import { createHaptics } from '@platform/haptics';
 import { loadSettings, saveSettings, type Settings } from '@platform/settings';
 import { DebugOverlay } from './DebugOverlay';
@@ -217,23 +217,6 @@ function start(): void {
     else if (i.kind === 'butcher') openButchery(g, i.entity);
   }
 
-  /** Emoji per ingredient icon id (backpack screen). */
-  const ICONS: Readonly<Record<string, string>> = {
-    meat: '🍖',
-    fish: '🐟',
-    roe: '🫧',
-    fat: '🧈',
-    shell: '🐚',
-    spines: '🌵',
-    flame: '🌶️',
-    vial: '🧪',
-    tentacle: '🦑',
-    mushroom: '🍄',
-    root: '🥕',
-    onion: '🧅',
-    moss: '🌿',
-  };
-
   /** Snapshot of the backpack for the screen (translated). */
   function backpackView(g: Game): BackpackView | null {
     const bag = g.backpack;
@@ -243,7 +226,7 @@ function start(): void {
       return {
         ingredientId: s.ingredientId,
         name: ing ? i18n.t(ing.nameKey) : s.ingredientId,
-        icon: ICONS[ing?.iconKey ?? ''] ?? '•',
+        icon: ingredientIcon(ing?.iconKey),
         stars: s.stars,
         count: s.count,
         weight: (ing?.weight ?? 0) * s.count,

@@ -2,4 +2,5 @@
 export { UiRoot } from './UiRoot';
 export { HudStore } from './hudStore';
 export type { BackpackView } from './hudStore';
+export { ingredientIcon } from './backpack/icons';
 export { WorldOverlay } from './overlay/WorldOverlay';
