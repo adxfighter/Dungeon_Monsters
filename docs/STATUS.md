@@ -81,9 +81,17 @@ M0 — Фундамент · **закрыт 2026-09-29** (PR #2 `6c5e976`, те�
   12 draw calls; toon-ступени и контур видны. 60, а не 120 FPS — вероятно, ограничение браузера/вкладки. M0 закрыт.
 
 ## Следующий шаг
-1. **PR #18 `m3/bestiary`** (https://github.com/adxfighter/Dungeon_Monsters/pull/18) — открыт, идёт независимое ревью
-   (субагент `reviewer` в своём worktree). Дальше: исправить findings → повторное ревью до APPROVE → CI →
-   squash-merge → деплой. Основной каталог сейчас на ветке `m3/bestiary`.
+1. **PR #18 `m3/bestiary`** (https://github.com/adxfighter/Dungeon_Monsters/pull/18) — ревью №1 @ `334a183`:
+   **REQUEST_CHANGES**, исправить (основной каталог на ветке `m3/bestiary`):
+   - (major) `core/bestiary.ts` `bestKillElement` учитывает только положительные `kill`; у Жука-костегрыза сдвиги только
+     отрицательные (`bonegnaw_fat {fire:-1}`, `bonegnaw_shell {blunt:-1}`) → книга пишет «Любой — на качество не влияет»,
+     а в слабостях «дробящий» (который портит панцирь). Сделать `{best, avoid[]}`: если улучшающего нет, но есть
+     вредные — «Не огнём и не дробящим» (новый i18n-ключ с подстановкой); тест на bonegnaw.
+   - (minor) повадки десятинога в i18n содержат «до 3 секунд» — дублирует `decapus.grab.duration`; подставлять
+     `{seconds}` из данных (через `format`) или убрать число.
+   - (nit) `platform/bestiaryStore.ts` — комментарий называет тип core `StoredBestiary`, в core он `BestiaryData`.
+   - (nit) `ui/bestiary/bestiary.css` — линовка 27px, текст 21px: выставить `line-height: 27px` у `.bestiary-page`.
+   Затем повторное ревью до APPROVE → CI → squash-merge → деплой.
 2. Спросить пользователя: плейтест M3 на S22 Ultra (цикл «убил → Разделать → свайпы → рюкзак», факел vs клинок,
    рюкзак и «Выбросить», растения, бестиарий) — или закрыть M3 без ручной проверки. Затем закрыть M3 (DoD в
    `docs/prompts/milestones/M3_loot_butchery.md`, тег `v0.3.0`, CHANGELOG [0.3.0]) → M4
