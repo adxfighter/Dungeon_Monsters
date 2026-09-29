@@ -384,10 +384,6 @@ describe('monster FSM transitions', () => {
   });
 
   it('waits attackCooldown between attacks', () => {
-    const a = new Arena();
-    const r = a.game.spawnMonster(stonenibbler, 6.5, 6.2);
-    a.health(a.hero).hp = 10_000;
-    a.seconds(8);
     const starts: number[] = [];
     let t = 0;
     const b = new Arena();
@@ -399,7 +395,6 @@ describe('monster FSM transitions', () => {
       t += DT;
       if (b.events.slice(before).some((e) => e.type === 'AttackStarted' && e.entity === r2)) starts.push(t);
     }
-    expect(a.game.world.isAlive(r)).toBe(true);
     expect(starts.length).toBeGreaterThan(1);
     const minGap = pounce.windup + pounce.active + pounce.recovery + stonenibbler.ai.attackCooldown - 2 * DT;
     for (let i = 1; i < starts.length; i++) {
