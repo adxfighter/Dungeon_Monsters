@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Box3 } from 'three';
-import { bubbler, sparkhog, stonenibbler } from '@content/monsters/tier1';
+import { fugu, porcupine } from '@content/monsters/newcomers';
+import { pouncer } from '@core/testing/monsters';
 import { tavi } from '@content/characters/tavi';
 import type { AttackDef } from '@content/schemas';
 import { footprint } from './Telegraphs';
@@ -15,14 +16,14 @@ const first = (list: readonly AttackDef[]): AttackDef => {
 
 describe('telegraph footprints (floor plane, pointing along +Z)', () => {
   it('lie flat on the floor', () => {
-    for (const def of [first(bubbler.attacks), first(sparkhog.attacks), first(stonenibbler.attacks)]) {
+    for (const def of [first(fugu.attacks), first(porcupine.attacks), first(pouncer.attacks)]) {
       const b = box(def);
       expect(b.max.y - b.min.y).toBeCloseTo(0, 5);
     }
   });
 
   it('a lunge covers the whole path: from the attacker to lunge distance + offset + radius', () => {
-    const pounce = first(stonenibbler.attacks);
+    const pounce = first(pouncer.attacks);
     const shape = pounce.shape;
     if (shape?.kind !== 'circle') throw new Error('expected a circle');
     const b = box(pounce);
@@ -42,7 +43,7 @@ describe('telegraph footprints (floor plane, pointing along +Z)', () => {
   });
 
   it('projectile lanes fan out symmetrically ahead to the range', () => {
-    const quills = first(sparkhog.attacks);
+    const quills = first(porcupine.attacks);
     const p = quills.projectile;
     if (!p) throw new Error('expected projectiles');
     const b = box(quills);

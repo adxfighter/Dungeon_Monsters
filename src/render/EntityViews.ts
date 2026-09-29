@@ -19,6 +19,12 @@ import { createCarcass } from './models/newcomers';
 import { HitFlash } from './fx/HitFlash';
 import type { Pose } from './models/pose';
 
+/** Projectile colour by attack id (projectile views are keyed by the attack that fired them). */
+const PROJECTILE_COLORS = new Map<string, string>();
+for (const def of Object.values(monsters)) {
+  for (const a of def.attacks) if (a.projectile?.color) PROJECTILE_COLORS.set(a.id, a.projectile.color);
+}
+
 interface View {
   object: Object3D;
   /** Procedural animation (characters, monsters); absent for projectiles. */
@@ -75,7 +81,7 @@ export class EntityViews {
       return { object: rig.root, update: rig.update, flash: new HitFlash(rig.materials), disposable: true };
     }
     if (kind === 'carrion') return { object: createCarcass(), disposable: false };
-    return { object: createQuill(), disposable: false };
+    return { object: createQuill(PROJECTILE_COLORS.get(defId)), disposable: false };
   }
 
   sync(world: World, alpha: number, dtSeconds: number): void {

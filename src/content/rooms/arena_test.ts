@@ -1,11 +1,12 @@
 import type { Arena } from '../schemas';
 
 /**
- * M2 test arena: an open cave with a few pillars. Three difficulty levels (user request 2026-09-29), chosen at the
- * start; each is tuned with the bots in src/core/balance.test.ts:
- * - easy   — the pre-PR-#8 balance (3 small waves, weaker monsters): even standing and trading hits wins;
- * - medium — 4 waves, a notch softer than hard: dodging wins comfortably, face-tanking usually loses;
- * - hard   — the PR #8 balance: face-tanking always loses, dodging wins.
+ * Tier I arena: an open cave with a few pillars. Tier I after the third playtest (user, 2026-09-29) is the
+ * Brooklash (ambush eel) and the Bonegnaw (scavenger). Three difficulty levels, each tuned with the bots in
+ * src/core/balance.test.ts:
+ * - easy   — 3 small waves: even standing and trading hits wins;
+ * - medium — 4 waves: dodging wins comfortably, face-tanking usually loses;
+ * - hard   — 4 dense waves: face-tanking always loses, dodging wins.
  */
 export const arenaTest: Arena = {
   id: 'arena_test',
@@ -30,28 +31,25 @@ export const arenaTest: Arena = {
     easy: {
       nameKey: 'difficulty.easy',
       hintKey: 'difficulty.easy.hint',
-      // Exactly the original M2 numbers (before PR #8) — the user asked for "как было".
-      monsters: { hp: 1, atk: 1, attackCooldown: 1 },
-      overrides: {
-        bubbler: { hp: 30, atk: 8, attackCooldown: 1.2 },
-        sparkhog: { hp: 45, atk: 7, attackCooldown: 1.6 },
-        stonenibbler: { hp: 35, atk: 12, attackCooldown: 0.9 },
-      },
+      monsters: { hp: 0.8, atk: 0.7, attackCooldown: 1.3 },
       waves: [
-        { delay: 1, spawns: [{ monster: 'bubbler', x: 6.5, y: 2.5 }] },
+        {
+          delay: 1,
+          spawns: [{ monster: 'brooklash', x: 6.5, y: 1.5 }],
+        },
         {
           delay: 2,
           spawns: [
-            { monster: 'stonenibbler', x: 2.5, y: 2.5 },
-            { monster: 'sparkhog', x: 10.5, y: 2.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'brooklash', x: 10.5, y: 2.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'bubbler', x: 2.5, y: 8.5 },
-            { monster: 'sparkhog', x: 10.5, y: 8.5 },
-            { monster: 'stonenibbler', x: 6.5, y: 1.5 },
+            { monster: 'brooklash', x: 2.5, y: 2.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 2.5 },
           ],
         },
       ],
@@ -59,37 +57,37 @@ export const arenaTest: Arena = {
     medium: {
       nameKey: 'difficulty.medium',
       hintKey: 'difficulty.medium.hint',
-      monsters: { hp: 0.9, atk: 0.85, attackCooldown: 1.1 },
+      monsters: { hp: 1.1, atk: 1.3, attackCooldown: 0.85 },
       waves: [
         {
           delay: 1,
           spawns: [
-            { monster: 'bubbler', x: 6.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 2.5, y: 8.5 },
+            { monster: 'brooklash', x: 6.5, y: 1.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'stonenibbler', x: 2.5, y: 2.5 },
-            { monster: 'sparkhog', x: 10.5, y: 2.5 },
+            { monster: 'brooklash', x: 2.5, y: 2.5 },
+            { monster: 'brooklash', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'bubbler', x: 2.5, y: 8.5 },
-            { monster: 'sparkhog', x: 10.5, y: 8.5 },
-            { monster: 'stonenibbler', x: 6.5, y: 1.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'brooklash', x: 10.5, y: 2.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2.5,
           spawns: [
-            { monster: 'stonenibbler', x: 2.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 10.5, y: 2.5 },
-            { monster: 'sparkhog', x: 2.5, y: 8.5 },
-            { monster: 'bubbler', x: 10.5, y: 8.5 },
+            { monster: 'brooklash', x: 2.5, y: 2.5 },
+            { monster: 'brooklash', x: 10.5, y: 2.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
           ],
         },
       ],
@@ -97,40 +95,41 @@ export const arenaTest: Arena = {
     hard: {
       nameKey: 'difficulty.hard',
       hintKey: 'difficulty.hard.hint',
-      monsters: { hp: 1, atk: 1, attackCooldown: 1 },
+      monsters: { hp: 1.1, atk: 1.3, attackCooldown: 0.85 },
       waves: [
         {
           delay: 1,
           spawns: [
-            { monster: 'bubbler', x: 6.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 2.5, y: 8.5 },
+            { monster: 'brooklash', x: 6.5, y: 1.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'stonenibbler', x: 2.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 10.5, y: 8.5 },
-            { monster: 'sparkhog', x: 10.5, y: 2.5 },
+            { monster: 'brooklash', x: 2.5, y: 2.5 },
+            { monster: 'brooklash', x: 10.5, y: 2.5 },
+            { monster: 'brooklash', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'bubbler', x: 2.5, y: 8.5 },
-            { monster: 'sparkhog', x: 10.5, y: 8.5 },
-            { monster: 'sparkhog', x: 2.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 6.5, y: 1.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'brooklash', x: 10.5, y: 2.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
+            { monster: 'brooklash', x: 6.5, y: 1.5 },
           ],
         },
         {
           delay: 2.5,
           spawns: [
-            { monster: 'stonenibbler', x: 2.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 10.5, y: 2.5 },
-            { monster: 'stonenibbler', x: 6.5, y: 9.5 },
-            { monster: 'sparkhog', x: 2.5, y: 8.5 },
-            { monster: 'bubbler', x: 10.5, y: 8.5 },
+            { monster: 'brooklash', x: 2.5, y: 2.5 },
+            { monster: 'brooklash', x: 10.5, y: 2.5 },
+            { monster: 'brooklash', x: 6.5, y: 9.5 },
+            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
           ],
         },
       ],

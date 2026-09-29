@@ -1,8 +1,9 @@
 import type { Arena } from '../schemas';
 
 /**
- * Test arena for the five new monsters (user decision 2026-09-29): Toadhog, Dragochick, Mossback, Brooklash and
- * Bonegnaw. Same three difficulty levels as arena_test, tuned with the bots in src/core/balance.test.ts.
+ * "New monsters" test arena (user decisions 2026-09-29, third playtest): the reworked Fugu, Polar porcupine,
+ * Toadhog and Dragochick; the four brand-new monsters join in the next PR. Same three difficulty levels as
+ * arena_test, tuned with the bots in src/core/balance.test.ts.
  */
 export const arenaNew: Arena = {
   id: 'arena_new',
@@ -27,26 +28,26 @@ export const arenaNew: Arena = {
     easy: {
       nameKey: 'difficulty.easy',
       hintKey: 'difficulty.easy.hint',
-      monsters: { hp: 0.7, atk: 0.55, attackCooldown: 1.4 },
+      monsters: { hp: 0.75, atk: 0.6, attackCooldown: 1.35 },
       waves: [
         {
           delay: 1,
           spawns: [
-            { monster: 'toadhog', x: 6.5, y: 2.5 },
-            { monster: 'dragochick', x: 10.5, y: 8.5 },
+            { monster: 'toadhog', x: 6.5, y: 1.5 },
+            { monster: 'fugu', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'mossback', x: 2.5, y: 2.5 },
-            { monster: 'brooklash', x: 10.5, y: 2.5 },
+            { monster: 'porcupine', x: 2.5, y: 2.5 },
+            { monster: 'dragochick', x: 10.5, y: 2.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'fugu', x: 2.5, y: 8.5 },
             { monster: 'toadhog', x: 10.5, y: 8.5 },
             { monster: 'dragochick', x: 6.5, y: 1.5 },
           ],
@@ -56,38 +57,38 @@ export const arenaNew: Arena = {
     medium: {
       nameKey: 'difficulty.medium',
       hintKey: 'difficulty.medium.hint',
-      monsters: { hp: 0.85, atk: 0.72, attackCooldown: 1.2 },
+      monsters: { hp: 0.9, atk: 1, attackCooldown: 1.05 },
       waves: [
         {
           delay: 1,
           spawns: [
-            { monster: 'toadhog', x: 6.5, y: 2.5 },
+            { monster: 'toadhog', x: 6.5, y: 1.5 },
             { monster: 'dragochick', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'mossback', x: 2.5, y: 2.5 },
-            { monster: 'brooklash', x: 10.5, y: 2.5 },
-            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
-          ],
-        },
-        {
-          delay: 2,
-          spawns: [
+            { monster: 'porcupine', x: 2.5, y: 2.5 },
+            { monster: 'fugu', x: 10.5, y: 2.5 },
             { monster: 'toadhog', x: 2.5, y: 8.5 },
-            { monster: 'dragochick', x: 10.5, y: 8.5 },
-            { monster: 'brooklash', x: 6.5, y: 1.5 },
+          ],
+        },
+        {
+          delay: 2,
+          spawns: [
+            { monster: 'dragochick', x: 2.5, y: 8.5 },
+            { monster: 'fugu', x: 10.5, y: 8.5 },
+            { monster: 'porcupine', x: 6.5, y: 1.5 },
           ],
         },
         {
           delay: 2.5,
           spawns: [
-            { monster: 'mossback', x: 10.5, y: 2.5 },
             { monster: 'toadhog', x: 2.5, y: 2.5 },
-            { monster: 'dragochick', x: 6.5, y: 9.5 },
-            { monster: 'bonegnaw', x: 10.5, y: 8.5 },
+            { monster: 'dragochick', x: 10.5, y: 2.5 },
+            { monster: 'fugu', x: 2.5, y: 8.5 },
+            { monster: 'porcupine', x: 10.5, y: 8.5 },
           ],
         },
       ],
@@ -95,41 +96,41 @@ export const arenaNew: Arena = {
     hard: {
       nameKey: 'difficulty.hard',
       hintKey: 'difficulty.hard.hint',
-      monsters: { hp: 0.95, atk: 0.9, attackCooldown: 1.05 },
+      monsters: { hp: 1, atk: 1, attackCooldown: 1 },
       waves: [
         {
           delay: 1,
           spawns: [
-            { monster: 'toadhog', x: 6.5, y: 2.5 },
+            { monster: 'toadhog', x: 6.5, y: 1.5 },
             { monster: 'dragochick', x: 10.5, y: 8.5 },
-            { monster: 'bonegnaw', x: 2.5, y: 8.5 },
+            { monster: 'fugu', x: 2.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'mossback', x: 2.5, y: 2.5 },
-            { monster: 'brooklash', x: 10.5, y: 2.5 },
-            { monster: 'brooklash', x: 2.5, y: 8.5 },
-          ],
-        },
-        {
-          delay: 2,
-          spawns: [
+            { monster: 'porcupine', x: 2.5, y: 2.5 },
+            { monster: 'fugu', x: 10.5, y: 2.5 },
             { monster: 'toadhog', x: 2.5, y: 8.5 },
-            { monster: 'toadhog', x: 10.5, y: 8.5 },
-            { monster: 'dragochick', x: 6.5, y: 1.5 },
-            { monster: 'bonegnaw', x: 10.5, y: 2.5 },
+          ],
+        },
+        {
+          delay: 2,
+          spawns: [
+            { monster: 'dragochick', x: 2.5, y: 8.5 },
+            { monster: 'dragochick', x: 10.5, y: 8.5 },
+            { monster: 'porcupine', x: 6.5, y: 1.5 },
+            { monster: 'toadhog', x: 10.5, y: 2.5 },
           ],
         },
         {
           delay: 2.5,
           spawns: [
-            { monster: 'mossback', x: 10.5, y: 2.5 },
             { monster: 'toadhog', x: 2.5, y: 2.5 },
-            { monster: 'dragochick', x: 6.5, y: 9.5 },
-            { monster: 'dragochick', x: 2.5, y: 8.5 },
-            { monster: 'brooklash', x: 10.5, y: 8.5 },
+            { monster: 'dragochick', x: 10.5, y: 2.5 },
+            { monster: 'fugu', x: 2.5, y: 8.5 },
+            { monster: 'porcupine', x: 10.5, y: 8.5 },
+            { monster: 'fugu', x: 6.5, y: 9.5 },
           ],
         },
       ],

@@ -3,12 +3,10 @@ import type { Locale } from '../schemas';
 /** Russian — primary language. Every key must exist in `en.ts` too (checked by content.test.ts). */
 export const ru: Locale = {
   'character.tavi.name': 'Тави',
-  'monster.bubbler.name': 'Пузырник',
-  'monster.sparkhog.name': 'Искроёж',
-  'monster.stonenibbler.name': 'Кроль-камнеед',
+  'monster.fugu.name': 'Рыба Фугу',
+  'monster.porcupine.name': 'Полярный дикообраз',
   'monster.toadhog.name': 'Жаба-свин',
   'monster.dragochick.name': 'Драго-цып',
-  'monster.mossback.name': 'Мшистый панцирник',
   'monster.brooklash.name': 'Ручейный хлыст',
   'monster.bonegnaw.name': 'Жук-костегрыз',
   'hud.attack': 'Удар',

@@ -1,6 +1,7 @@
 import { type BufferGeometry, CircleGeometry, Group, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { AttackDef } from '@content/schemas';
+import { projectileAngle } from '@core/combat/shapes';
 import type { Entity } from '@core/ecs/World';
 
 const DEG = Math.PI / 180;
@@ -18,7 +19,7 @@ export function footprint(def: AttackDef): BufferGeometry {
     const p = def.projectile;
     const lanes: BufferGeometry[] = [];
     for (let i = 0; i < p.count; i++) {
-      const a = p.count === 1 ? 0 : (i / (p.count - 1) - 0.5) * p.spreadDeg * DEG;
+      const a = projectileAngle(i, p.count, p.spreadDeg);
       const lane = new PlaneGeometry(p.radius * 2 + LANE_MARGIN, p.range).rotateX(-Math.PI / 2);
       lane.translate(0, 0, p.range / 2).rotateY(a);
       lanes.push(lane);

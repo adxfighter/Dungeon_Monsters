@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { tavi } from '@content/characters/tavi';
-import { bubbler, sparkhog, stonenibbler } from '@content/monsters/tier1';
+import { monsters as roster } from '@content/index';
+import { fugu, porcupine } from '@content/monsters/newcomers';
 import { arenaTest } from '@content/rooms/arena_test';
 import type { MonsterDef } from '@content/schemas';
 import { Buttons, createInputState, type InputState } from '@shared/input';
@@ -8,6 +9,7 @@ import { Attacker, Brain, Dodge, Health, Transform, Velocity } from '../componen
 import type { Entity } from '../ecs/World';
 import { Game } from '../Game';
 import type { GameEvent } from '../state/events';
+import { pouncer } from '../testing/monsters';
 
 const DT = 1 / 30;
 const room = {
@@ -24,15 +26,15 @@ const room = {
     '#############',
   ],
 };
-const monsters = { bubbler, sparkhog, stonenibbler };
+const monsters = { ...roster, pouncer };
 
 function first<T>(items: readonly T[]): T {
   const item = items[0];
   if (item === undefined) throw new Error('empty list');
   return item;
 }
-const pounce = first(stonenibbler.attacks);
-const quills = first(sparkhog.attacks);
+const pounce = first(pouncer.attacks);
+const quills = first(porcupine.attacks);
 
 /** A monster that stands still and never attacks — a training dummy with the real stats. */
 function dummy(def: MonsterDef): MonsterDef {
@@ -97,14 +99,14 @@ class Arena {
 describe('hero combo', () => {
   it('a single press does one swing; presses within the window chain up to 3 hits', () => {
     const a = new Arena();
-    const m = a.game.spawnMonster(dummy(bubbler), 6.5, 5.3); // right in front (hero faces +y)
+    const m = a.game.spawnMonster(dummy(fugu), 6.5, 5.3); // right in front (hero faces +y)
     a.press(Buttons.Attack).seconds(1);
     expect(a.of('AttackStarted').map((e) => e.attackId)).toEqual(['tavi.slash1']);
     expect(a.health(m).hitsTaken).toBe(1);
 
     // Press again during each swing: buffered → full chain.
     const b = new Arena();
-    const n = b.game.spawnMonster(dummy(sparkhog), 6.5, 5.3);
+    const n = b.game.spawnMonster(dummy(porcupine), 6.5, 5.3);
     b.press(Buttons.Attack).run(3).press(Buttons.Attack).run(15).press(Buttons.Attack).seconds(1.5);
     expect(b.of('AttackStarted').map((e) => e.attackId)).toEqual([
       'tavi.slash1',
@@ -131,7 +133,7 @@ describe('hero combo', () => {
 
   it('each swing hits a target at most once', () => {
     const a = new Arena();
-    const m = a.game.spawnMonster(dummy(sparkhog), 6.5, 5.3);
+    const m = a.game.spawnMonster(dummy(porcupine), 6.5, 5.3);
     a.press(Buttons.Attack).seconds(1);
     expect(a.of('DamageDealt').filter((e) => e.target === m)).toHaveLength(1);
   });
@@ -139,7 +141,7 @@ describe('hero combo', () => {
   it('auto-aims at the nearest enemy inside the 60° cone', () => {
     const a = new Arena();
     // Hero faces +y; enemy slightly to the side (24°, inside the 30° half-cone) gets aimed at.
-    const m = a.game.spawnMonster(dummy(sparkhog), 6.9, 5.4);
+    const m = a.game.spawnMonster(dummy(porcupine), 6.9, 5.4);
     a.press(Buttons.Attack).seconds(0.8);
     expect(a.health(m).hitsTaken).toBe(1);
     const rot = a.pos(a.hero).rot;
@@ -168,7 +170,7 @@ describe('dodge', () => {
 
   it('dodging through a monster attack avoids the damage', () => {
     const a = new Arena();
-    const m = a.game.spawnMonster(stonenibbler, 6.5, 6.4); // below the hero, will pounce
+    const m = a.game.spawnMonster(pouncer, 6.5, 6.4); // below the hero, will pounce
     // Wait until the pounce windup starts, then dodge sideways during it.
     for (let i = 0; i < 200 && a.of('AttackStarted').filter((e) => e.entity === m).length === 0; i++)
       a.run(1);
@@ -184,8 +186,8 @@ describe('dodge', () => {
 describe('damage rules', () => {
   it('the hero gets i-frames after a hit: no second hit within the window', () => {
     const a = new Arena();
-    a.game.spawnMonster(stonenibbler, 6.5, 5.6);
-    a.game.spawnMonster(stonenibbler, 7.3, 4.5); // two attackers to make overlapping hits likely
+    a.game.spawnMonster(pouncer, 6.5, 5.6);
+    a.game.spawnMonster(pouncer, 7.3, 4.5); // two attackers to make overlapping hits likely
     const hitSteps: number[] = [];
     for (let i = 0; i < 300; i++) {
       const before = a.events.length;
@@ -201,9 +203,9 @@ describe('damage rules', () => {
     }
   });
 
-  it('a guarding sparkhog blocks hits from the front but not from behind', () => {
+  it('a guarding porcupine blocks hits from the front but not from behind', () => {
     const front = new Arena();
-    const hog = front.game.spawnMonster(sparkhog, 6.5, 5.5); // hero at 6.5,4.5, within guard trigger range
+    const hog = front.game.spawnMonster(porcupine, 6.5, 5.5); // hero at 6.5,4.5, within guard trigger range
     const brain = front.game.world.require(hog, Brain);
     front.run(3);
     expect(brain.state).toBe('guard');
@@ -211,10 +213,10 @@ describe('damage rules', () => {
     front.press(Buttons.Attack).seconds(0.4);
     const hit = front.of('DamageDealt').find((e) => e.target === hog);
     expect(hit?.blocked).toBe(true);
-    expect(front.health(hog).hp).toBe(sparkhog.stats.hp);
+    expect(front.health(hog).hp).toBe(porcupine.stats.hp);
 
     const back = new Arena();
-    const hog2 = back.game.spawnMonster(sparkhog, 6.5, 5.5);
+    const hog2 = back.game.spawnMonster(porcupine, 6.5, 5.5);
     back.run(3);
     back.pos(hog2).rot = 0; // back turned to the hero
     back.game.world.require(hog2, Brain).state = 'guard';
@@ -226,7 +228,7 @@ describe('damage rules', () => {
 
   it('a staggering hit stops the target dead', () => {
     const a = new Arena();
-    const rabbit = a.game.spawnMonster(stonenibbler, 6.5, 5.3); // a real, moving rabbit
+    const rabbit = a.game.spawnMonster(pouncer, 6.5, 5.3); // a real, moving rabbit
     a.game.world.require(rabbit, Brain).attackCooldown = 99;
     a.health(rabbit).poise = 1;
     const v = a.game.world.require(rabbit, Velocity);
@@ -248,21 +250,22 @@ describe('damage rules', () => {
 
   it('poise damage staggers and interrupts an attack', () => {
     const a = new Arena();
-    const rabbit = a.game.spawnMonster(dummy(stonenibbler), 6.5, 5.3);
+    const rabbit = a.game.spawnMonster(dummy(pouncer), 6.5, 5.3);
     // Full combo: 10 + 10 + 26 poise ≥ 25 → stagger somewhere in the chain.
     a.press(Buttons.Attack).run(3).press(Buttons.Attack).run(15).press(Buttons.Attack).seconds(1.2);
     expect(a.of('DamageDealt').some((e) => e.target === rabbit && e.staggered)).toBe(true);
   });
 
-  it('elements apply resistances (bubbler is weak to fire)', () => {
-    expect(bubbler.resist.fire).toBeGreaterThan(1);
+  it('elements apply resistances (fugu is weak to fire)', () => {
+    expect(fugu.resist.fire).toBeGreaterThan(1);
   });
 });
 
 describe('monster AI', () => {
-  it('passive bubbler ignores a distant hero but fights back once hit', () => {
+  it('a passive monster ignores a distant hero but fights back once hit', () => {
     const a = new Arena();
-    const b = a.game.spawnMonster(bubbler, 6.5, 7.5); // 3 tiles away > noticeRange 1.6
+    const shy = { ...pouncer, ai: { ...pouncer.ai, temperament: 'passive', noticeRange: 1.6 } } as MonsterDef;
+    const b = a.game.spawnMonster(shy, 6.5, 7.5); // 3 tiles away > noticeRange 1.6
     a.seconds(3);
     expect(a.of('AttackStarted').filter((e) => e.entity === b)).toHaveLength(0);
     a.game.world.require(b, Brain).aggro = true;
@@ -272,15 +275,15 @@ describe('monster AI', () => {
 
   it('aggressive monsters notice, chase and attack with a telegraph of at least 0.6 s', () => {
     const a = new Arena();
-    const r = a.game.spawnMonster(stonenibbler, 3.5, 4.5);
+    const r = a.game.spawnMonster(pouncer, 3.5, 4.5);
     a.seconds(4);
     const starts = a.of('AttackStarted').filter((e) => e.entity === r);
     expect(starts.length).toBeGreaterThan(0);
     for (const s of starts) expect(s.windup).toBeGreaterThanOrEqual(0.6);
   });
 
-  it('every Tier I monster attack telegraphs for 0.6–1.0 s (GDD §4.3)', () => {
-    for (const m of [bubbler, sparkhog, stonenibbler]) {
+  it('every monster attack telegraphs for 0.6–1.0 s (GDD §4.3)', () => {
+    for (const m of Object.values(roster)) {
       for (const atk of m.attacks) {
         expect(atk.windup).toBeGreaterThanOrEqual(0.6);
         expect(atk.windup).toBeLessThanOrEqual(1);
@@ -290,7 +293,7 @@ describe('monster AI', () => {
 
   it('a missed pounce leaves the rabbit open (long recovery)', () => {
     const a = new Arena();
-    const r = a.game.spawnMonster(stonenibbler, 6.5, 6.3);
+    const r = a.game.spawnMonster(pouncer, 6.5, 6.3);
     for (let i = 0; i < 200 && !a.game.world.require(r, Attacker).current; i++) a.run(1);
     a.pos(a.hero).x = 11.5; // step far aside: the pounce whiffs
     a.pos(a.hero).y = 1.5;
@@ -300,9 +303,9 @@ describe('monster AI', () => {
     expect(cur?.extraRecovery).toBe(pounce.missRecovery);
   });
 
-  it('sparkhog fires a fan of quills that travel and can hit', () => {
+  it('porcupine fires a fan of quills that travel and can hit', () => {
     const a = new Arena();
-    a.game.spawnMonster(sparkhog, 6.5, 7.2); // 2.7 tiles away: in quill range, outside guard range
+    a.game.spawnMonster(porcupine, 6.5, 7.2); // 2.7 tiles away: in quill range, outside guard range
     a.seconds(4);
     const fired = a.of('EntitySpawned').filter((e) => e.kind === 'projectile');
     expect(fired.length).toBeGreaterThanOrEqual(quills.projectile?.count ?? 1);
@@ -329,7 +332,7 @@ describe('stagger', () => {
 
   it('a staggered monster stands still', () => {
     const a = new Arena();
-    const r = a.game.spawnMonster(stonenibbler, 3.5, 4.5);
+    const r = a.game.spawnMonster(pouncer, 3.5, 4.5);
     a.run(5);
     const before = { ...a.pos(r) };
     a.health(r).stagger = 0.4;
@@ -344,7 +347,7 @@ describe('stagger', () => {
 describe('monster FSM transitions', () => {
   it('chase → idle when the hero is beyond loseRange, and a passive monster calms down', () => {
     const a = new Arena();
-    const b = a.game.spawnMonster(bubbler, 6.5, 5.6);
+    const b = a.game.spawnMonster(fugu, 6.5, 5.6);
     const brain = a.game.world.require(b, Brain);
     brain.aggro = true;
     a.run(2);
@@ -361,18 +364,18 @@ describe('monster FSM transitions', () => {
 
   it('guard → chase after the guard duration, then a guard cooldown', () => {
     const a = new Arena();
-    const hog = a.game.spawnMonster(sparkhog, 6.5, 5.5);
+    const hog = a.game.spawnMonster(porcupine, 6.5, 5.5);
     const brain = a.game.world.require(hog, Brain);
     a.run(3);
     expect(brain.state).toBe('guard');
-    a.seconds((sparkhog.guard?.duration ?? 0) + 0.1);
+    a.seconds((porcupine.guard?.duration ?? 0) + 0.1);
     expect(brain.state).not.toBe('guard');
     expect(brain.guardCooldown).toBeGreaterThan(0);
   });
 
   it('a ranged monster backs off inside keepDistance', () => {
     const a = new Arena();
-    const hog = a.game.spawnMonster(sparkhog, 6.5, 6.3); // 1.8 < keepDistance 2.2, outside guard range 1.3
+    const hog = a.game.spawnMonster(porcupine, 6.5, 6.3); // 1.8 < keepDistance 2.2, outside guard range 1.3
     const brain = a.game.world.require(hog, Brain);
     brain.guardCooldown = 99;
     brain.attackCooldown = 99;
@@ -387,7 +390,7 @@ describe('monster FSM transitions', () => {
     const starts: number[] = [];
     let t = 0;
     const b = new Arena();
-    const r2 = b.game.spawnMonster(stonenibbler, 6.5, 6.2);
+    const r2 = b.game.spawnMonster(pouncer, 6.5, 6.2);
     b.health(b.hero).hp = 10_000;
     for (let i = 0; i < 240; i++) {
       const before = b.events.length;
@@ -396,7 +399,7 @@ describe('monster FSM transitions', () => {
       if (b.events.slice(before).some((e) => e.type === 'AttackStarted' && e.entity === r2)) starts.push(t);
     }
     expect(starts.length).toBeGreaterThan(1);
-    const minGap = pounce.windup + pounce.active + pounce.recovery + stonenibbler.ai.attackCooldown - 2 * DT;
+    const minGap = pounce.windup + pounce.active + pounce.recovery + pouncer.ai.attackCooldown - 2 * DT;
     for (let i = 1; i < starts.length; i++) {
       expect((starts[i] as number) - (starts[i - 1] as number)).toBeGreaterThanOrEqual(minGap);
     }
@@ -406,11 +409,11 @@ describe('monster FSM transitions', () => {
 describe('death and waves', () => {
   it('killing a monster emits MonsterKilled with kill element, overkill and hits taken', () => {
     const a = new Arena();
-    const m = a.game.spawnMonster(dummy(bubbler), 6.5, 5.3);
+    const m = a.game.spawnMonster(dummy(fugu), 6.5, 5.3);
     a.health(m).hp = 3;
     a.press(Buttons.Attack).seconds(0.6);
     const kill = a.of('MonsterKilled')[0];
-    expect(kill).toMatchObject({ entity: m, monsterId: 'bubbler', killElement: 'slash', hitsTaken: 1 });
+    expect(kill).toMatchObject({ entity: m, monsterId: 'fugu', killElement: 'slash', hitsTaken: 1 });
     expect(kill?.overkill).toBeGreaterThanOrEqual(0);
     expect(a.game.world.isAlive(m)).toBe(false);
     expect(a.of('EntityDespawned').some((e) => e.entity === m)).toBe(true);
@@ -418,7 +421,7 @@ describe('death and waves', () => {
 
   it('the hero at 0 HP is defeated and the world freezes', () => {
     const a = new Arena();
-    a.game.spawnMonster(stonenibbler, 6.5, 5.6);
+    a.game.spawnMonster(pouncer, 6.5, 5.6);
     a.health(a.hero).hp = 1;
     a.seconds(5);
     expect(a.game.status).toBe('defeated');
