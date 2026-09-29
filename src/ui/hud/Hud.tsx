@@ -12,8 +12,10 @@ interface Props {
   onRestart(): void;
   settings: Settings;
   onSettingsChange(settings: Settings): void;
-  /** Fires a long vibration right away, inside the tap (satisfies the browser's user-activation rule). */
-  /** Returns false when the browser has no Vibration API or refused the call. */
+  /**
+   * Fires a long vibration right away, inside the tap (satisfies the browser's user-activation rule).
+   * Returns false when the browser has no Vibration API or refused the call.
+   */
   onTestVibration(): boolean;
 }
 

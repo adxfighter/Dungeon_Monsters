@@ -166,6 +166,7 @@ function sparkhog(def: MonsterDef): MonsterRig {
       quillMat.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 + charge * 1.6 + curl * 0.4;
       quills.rotation.y = charge * Math.sin(t * 40) * 0.05;
       body.rotation.z = pose.staggered ? Math.sin(t * 20) * 0.2 : 0;
+      faceGroup.rotation.z = body.rotation.z; // the face wobbles with the body (same pivot)
     },
   };
 }
