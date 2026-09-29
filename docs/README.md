@@ -19,7 +19,7 @@
 | Документ | Содержание |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Стек, слои, структура, цикл, рендер, perf-бюджет, тесты, деплой |
-| [adr/](adr/) | Architecture Decision Records (0001 стек, 0002 IP, 0003 хостинг) |
+| [adr/](adr/) | Architecture Decision Records (0001 стек, 0002 IP, 0003 хостинг, 0004 добыча: команды UI → core и модальная пауза) |
 | [ASSETS.md](ASSETS.md) | Реестр ассетов и лицензий |
 
 ## Управление
