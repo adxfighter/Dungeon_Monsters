@@ -10,7 +10,17 @@ import { Renderer } from '@render/Renderer';
 import { DemoScene } from '@render/scenes/DemoScene';
 import { RoomScene } from '@render/scenes/RoomScene';
 import { createInputState } from '@shared/input';
-import { HudStore, UiRoot, WorldOverlay, ingredientIcon, type BackpackView } from '@ui/index';
+import {
+  HudStore,
+  UiRoot,
+  WorldOverlay,
+  ingredientIcon,
+  type BackpackView,
+  type BestiaryEntry,
+} from '@ui/index';
+import { bestKillElement, recordBestiary, weaknesses } from '@core/bestiary';
+import { loadBestiary, saveBestiary } from '@platform/bestiaryStore';
+import { ELEMENTS } from '@content/elements';
 import { createHaptics } from '@platform/haptics';
 import { loadSettings, saveSettings, type Settings } from '@platform/settings';
 import { DebugOverlay } from './DebugOverlay';
@@ -116,6 +126,8 @@ function start(): void {
     }
   })();
   let settings: Settings = loadSettings(storage);
+  /** Bestiary (M3): learned from encounters and butchering, kept across runs in local storage. */
+  const bestiary = loadBestiary(storage);
   const haptics = createHaptics(navigator);
   haptics.enabled = settings.haptics;
   /** Canvas CSS size (kept by the resize handler) for world → client projection without layout reads. */
@@ -238,7 +250,37 @@ function start(): void {
       maxWeight: bag.maxWeight,
       slots: bag.stacks.length,
       maxSlots: bag.maxSlots,
+      bestiary: bestiaryEntries(),
     };
+  }
+
+  /** Bestiary pages, translated; details appear as the monster is met / butchered. */
+  function bestiaryEntries(): BestiaryEntry[] {
+    const el = (e: string) => i18n.t(`element.${e}`);
+    return Object.values(monsters).map((m) => {
+      const seen = bestiary.seen.includes(m.id);
+      const butchered = bestiary.butchered.includes(m.id);
+      const best = bestKillElement(m, ingredients, ELEMENTS);
+      return {
+        id: m.id,
+        name: i18n.t(m.nameKey),
+        seen,
+        butchered,
+        description: seen ? i18n.t(`${m.bestiaryKey}.desc`) : '',
+        habits: seen ? i18n.t(`${m.bestiaryKey}.habits`) : '',
+        weaknesses: seen ? weaknesses(m).map(el).join(', ') : '',
+        parts: butchered
+          ? m.drops
+              .map((d) => {
+                const ing = ingredients[d.ingredientId];
+                return ing ? i18n.t(ing.nameKey) : d.ingredientId;
+              })
+              .join(', ')
+          : '',
+        bestKill: butchered ? (best ? el(best) : i18n.t('bestiary.anyKill')) : '',
+        color: m.appearance.body,
+      };
+    });
   }
 
   function openBackpack(): void {
@@ -316,6 +358,7 @@ function start(): void {
         const events = game.drainEvents();
         roomScene.handleEvents(events);
         feedback?.handle(events);
+        if (recordBestiary(bestiary, events)) saveBestiary(storage, bestiary);
         for (const e of events) {
           if (e.type === 'Gathered') {
             const ing = ingredients[e.ingredientId];

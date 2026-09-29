@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHaptics } from './haptics';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './settings';
+import { loadBestiary, saveBestiary } from './bestiaryStore';
 
 function memoryStorage() {
   const data = new Map<string, string>();
@@ -81,5 +82,18 @@ describe('haptics', () => {
     expect(calls).toEqual([20]);
     expect(() => createHaptics(undefined).pulse(10)).not.toThrow();
     expect(() => createHaptics({}).pulse(10)).not.toThrow();
+  });
+});
+
+describe('bestiary storage', () => {
+  it('round-trips and survives broken data', () => {
+    const s = memoryStorage();
+    expect(loadBestiary(s)).toEqual({ seen: [], butchered: [] });
+    saveBestiary(s, { seen: ['yak', 'fugu'], butchered: ['yak'] });
+    expect(loadBestiary(s)).toEqual({ seen: ['yak', 'fugu'], butchered: ['yak'] });
+    s.setItem('dm.bestiary.v1', '{"seen": 5, "butchered": ["a", 1]}');
+    expect(loadBestiary(s)).toEqual({ seen: [], butchered: [] });
+    s.setItem('dm.bestiary.v1', 'not json');
+    expect(loadBestiary(s)).toEqual({ seen: [], butchered: [] });
   });
 });

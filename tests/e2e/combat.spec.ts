@@ -203,6 +203,28 @@ test('gathering a plant and throwing it away in the backpack screen', async ({ p
   await expect(page.getByTestId('backpack')).toHaveCount(0);
 });
 
+test('bestiary: a met monster opens its page; butchering adds its parts', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.spawnMonster('decapus', 6.5, 6.1);
+  });
+  await page.getByTestId('btn-backpack').click();
+  await page.getByTestId('tab-bestiary').click();
+  await expect(page.getByTestId('bestiary-decapus')).toContainText('Десятиног');
+  await page.getByTestId('bestiary-decapus').click();
+  await expect(page.getByTestId('bestiary-page-decapus')).toContainText('Разделайте, чтобы узнать');
+  await page.getByTestId('backpack-close').click();
+  await page.evaluate(() => window.__debug?.killMonsters());
+  await expect(page.getByTestId('btn-butcher')).toBeVisible({ timeout: 5000 });
+  await tapElement(cdp, page, 'btn-butcher');
+  await page.getByTestId('butchery-skip').click();
+  await page.getByTestId('btn-backpack').click();
+  await page.getByTestId('tab-bestiary').click();
+  await page.getByTestId('bestiary-decapus').click();
+  await expect(page.getByTestId('bestiary-parts')).toContainText('Щупальце десятинога');
+});
+
 test('skipping the butchery gives ★1 for everything', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
   await page.evaluate(() => {

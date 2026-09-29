@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import type { BestiaryEntry } from './bestiary/BestiaryBook';
 import type { ButcherySession } from './butchery/ButcherBoard';
 
 /** What the HUD shows. The app writes it every frame; subscribers re-render only when a value changes. */
@@ -38,6 +39,8 @@ export interface BackpackView {
   maxWeight: number;
   slots: number;
   maxSlots: number;
+  /** Bestiary pages (second tab of the same card). */
+  bestiary: readonly BestiaryEntry[];
 }
 
 export interface Toast {
