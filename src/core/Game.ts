@@ -2,6 +2,7 @@ import { BALANCE } from '@content/balance';
 import type {
   Character,
   IngredientDef,
+  PlantSpot,
   MonsterDef,
   MonsterModifiers,
   MonsterOverride,
@@ -17,6 +18,7 @@ import {
   Collider,
   Dodge,
   ForcedVelocity,
+  Gatherable,
   Health,
   Kind,
   MoveStats,
@@ -34,15 +36,19 @@ import {
 } from './components';
 import { TileMap } from './dungeon/TileMap';
 import { World, type Entity } from './ecs/World';
+import type { BackpackData } from './loot/backpack';
 import type { Stars } from './loot/quality';
 import { Rng } from './rng';
 import type { GameEvent } from './state/events';
 import { aiSystem } from './systems/ai';
 import {
-  butcherableCarcass,
+  bagSystem,
+  interaction,
   lootSystem,
   worthButchering,
+  type BagCommand,
   type ButcherCommand,
+  type Interaction,
   type LootCatalog,
 } from './systems/loot';
 import {
@@ -122,6 +128,7 @@ export class Game {
   private readonly monsters: Readonly<Record<string, MonsterDef>>;
   private readonly catalog: LootCatalog;
   private readonly butcherQueue: ButcherCommand[] = [];
+  private readonly bagQueue: BagCommand[] = [];
   private waves: Waves | readonly never[];
   private modifiers: MonsterModifiers = { hp: 1, atk: 1, attackCooldown: 1 };
   private overrides: Readonly<Record<string, MonsterOverride>> = {};
@@ -145,6 +152,7 @@ export class Game {
       doomed: new Set(),
     };
     this.player = this.spawnPlayer(options.player);
+    for (const p of options.room.plants ?? []) this.spawnPlant(p);
     this.waveTimer = this.waves[0]?.delay ?? 0;
   }
 
@@ -193,6 +201,8 @@ export class Game {
     heroCombatInputSystem(world, input, ctx);
     lootSystem(ctx, this.butcherQueue, this.catalog);
     this.butcherQueue.length = 0;
+    bagSystem(ctx, this.bagQueue, this.catalog);
+    this.bagQueue.length = 0;
     aiSystem(ctx, dt);
     navigationSystem(world, dt);
     actionSystem(ctx, dt);
@@ -222,9 +232,34 @@ export class Game {
     return this.world.get(entity, Transform);
   }
 
-  /** Carcass the hero can butcher now (-1 = none): the Butcher button shows only then (selector for the UI). */
-  get butcherable(): Entity {
-    return butcherableCarcass(this.world, this.player, this.catalog);
+  /** What the context button does now (butcher / gather / backpack full / nothing) — selector for the UI. */
+  get interaction(): Interaction {
+    return interaction(this.world, this.player, this.catalog);
+  }
+
+  /**
+   * Applies queued backpack commands (discard) without advancing the simulation — for menus that pause the fight.
+   * Their events go to the next `drainEvents`.
+   */
+  applyCommands(): void {
+    bagSystem(this.ctx, this.bagQueue, this.catalog);
+    this.bagQueue.length = 0;
+    this.flushDoomed();
+  }
+
+  /** UI command: gather the plant (applied on the next step). */
+  gather(plant: Entity): void {
+    this.bagQueue.push({ kind: 'gather', plant });
+  }
+
+  /** UI command: throw `count` pieces of a backpack stack away (applied on the next step). */
+  discard(ingredientId: string, stars: Stars, count = 1): void {
+    this.bagQueue.push({ kind: 'discard', ingredientId, stars, count });
+  }
+
+  /** The hero's backpack (read-only view for the UI). */
+  get backpack(): Readonly<BackpackData> | undefined {
+    return this.world.get(this.player, Backpack);
   }
 
   /**
@@ -381,6 +416,16 @@ export class Game {
     world.add(e, Kind, { kind: 'player', defId: character.id });
     this.pending.push({ type: 'EntitySpawned', entity: e, kind: 'player', defId: character.id });
     return e;
+  }
+
+  private spawnPlant(p: PlantSpot): void {
+    const { world } = this;
+    const e = world.create();
+    world.add(e, Transform, { x: p.x, y: p.y, rot: 0 });
+    world.add(e, PrevTransform, { x: p.x, y: p.y, rot: 0 });
+    world.add(e, Gatherable, { ingredientId: p.ingredientId, count: p.count });
+    world.add(e, Kind, { kind: 'plant', defId: p.ingredientId });
+    this.pending.push({ type: 'EntitySpawned', entity: e, kind: 'plant', defId: p.ingredientId });
   }
 
   private flushDoomed(): void {

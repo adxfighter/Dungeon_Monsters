@@ -15,7 +15,7 @@
 
 .hp-bar {
   position: relative;
-  flex: 0 1 180px;
+  flex: 0 1 160px;
   height: 18px;
   border: 2px solid #1a1414;
   border-radius: 9px;
@@ -41,6 +41,7 @@
 .wave {
   margin-left: auto;
   padding: 4px 8px;
+  white-space: nowrap;
   border-radius: 8px;
   background: rgb(26 20 20 / 55%);
 }
@@ -130,7 +131,8 @@
 .gear {
   pointer-events: auto;
   order: 3;
-  /* ≥ 48 dp touch target (mobile checklist). */
+  /* ≥ 48 dp touch target (mobile checklist); never squeezed by the top bar. */
+  flex-shrink: 0;
   width: 48px;
   height: 48px;
   border: 2px solid #1a1414;
@@ -407,4 +409,19 @@
     sans-serif;
   text-align: center;
   pointer-events: none;
+}
+
+/* The context button when the backpack has no room: shown, but disabled. */
+.action.butcher.full {
+  background: rgb(160 150 150 / 85%);
+  font-size: 12px;
+}
+
+.action.butcher.gather {
+  background: rgb(150 214 120 / 90%);
+}
+
+.gear.bag {
+  margin-left: 6px;
+  font-size: 22px;
 }

@@ -5,6 +5,7 @@ import { Buttons } from '@shared/input';
 import { useHud, type HudStore } from '../hudStore';
 import type { DifficultyId } from '@content/schemas';
 import { ButcherBoard } from '../butchery/ButcherBoard';
+import { BackpackPanel } from '../backpack/BackpackPanel';
 import { DifficultyPicker, type ArenaOption, type DifficultyOption } from './DifficultyPicker';
 import './hud.css';
 
@@ -26,8 +27,11 @@ interface Props {
   arenas: readonly ArenaOption[];
   arena: string;
   onPickArena(id: string): void;
-  /** Opens the butchery mini-game for the carcass in reach. */
-  onButcher(): void;
+  /** Context button: butcher (opens the mini-game) or gather, whichever `interaction` says. */
+  onInteract(): void;
+  /** Backpack screen: open it, throw one piece of a stack away, close it. */
+  onBackpack(open: boolean): void;
+  onDiscard(ingredientId: string, stars: 1 | 2 | 3): void;
 }
 
 /**
@@ -36,7 +40,8 @@ interface Props {
  */
 export function Hud(props: Props) {
   const { input, hud, t, onRestart, settings, onSettingsChange, onTestVibration } = props;
-  const { difficulties, onPickDifficulty, arenas, arena, onPickArena, onButcher } = props;
+  const { difficulties, onPickDifficulty, arenas, arena, onPickArena, onInteract, onBackpack, onDiscard } =
+    props;
   const state = useHud(hud);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
@@ -70,6 +75,16 @@ export function Hud(props: Props) {
         </div>
         <button
           type="button"
+          class="gear bag"
+          aria-label={t('hud.backpack')}
+          data-testid="btn-backpack"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => onBackpack(true)}
+        >
+          🎒
+        </button>
+        <button
+          type="button"
           class="gear"
           aria-label={t('hud.settings')}
           data-testid="btn-settings"
@@ -91,6 +106,9 @@ export function Hud(props: Props) {
       )}
 
       {state.butchery && <ButcherBoard session={state.butchery} t={t} />}
+      {state.backpack && (
+        <BackpackPanel view={state.backpack} t={t} onClose={() => onBackpack(false)} onDiscard={onDiscard} />
+      )}
 
       {state.carcassHint && !state.grabbed && !state.butchery && (
         <div class="carcass-hint" role="status" data-testid="carcass-hint">
@@ -98,7 +116,7 @@ export function Hud(props: Props) {
         </div>
       )}
 
-      {state.toasts.length > 0 && !state.butchery && (
+      {state.toasts.length > 0 && !state.butchery && !state.backpack && (
         <ul class="loot-toasts" data-testid="loot-toasts" aria-live="polite">
           {state.toasts.map((toast) => (
             <li key={toast.id}>{toast.text}</li>
@@ -108,18 +126,31 @@ export function Hud(props: Props) {
 
       {/* Butcher (next to a carcass) above the weapon swap, inward of the main column. */}
       <div class={`hud-extra side-${current.buttonsSide}`}>
-        {state.canLoot && state.status === 'playing' && !state.butchery && (
+        {state.interaction && state.status === 'playing' && !state.butchery && !state.backpack && (
           <button
             type="button"
-            class="action butcher"
-            data-testid="btn-butcher"
+            class={`action butcher ${state.interaction}`}
+            data-testid={
+              state.interaction === 'gather'
+                ? 'btn-gather'
+                : state.interaction === 'full'
+                  ? 'btn-full'
+                  : 'btn-butcher'
+            }
+            disabled={state.interaction === 'full'}
             onPointerDown={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              onButcher();
+              if (state.interaction !== 'full') onInteract();
             }}
           >
-            {t('hud.butcher')}
+            {t(
+              state.interaction === 'gather'
+                ? 'hud.gather'
+                : state.interaction === 'full'
+                  ? 'hud.bagFull'
+                  : 'hud.butcher',
+            )}
           </button>
         )}
         {state.weaponKey && (

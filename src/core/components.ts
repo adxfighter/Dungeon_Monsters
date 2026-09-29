@@ -45,8 +45,8 @@ export interface MoveStatsData {
 export const MoveStats = defineComponent<MoveStatsData>('MoveStats');
 
 /** What the entity is, for render/ui to pick a view. */
-export type EntityKind = 'player' | 'monster' | 'projectile' | 'carrion' | 'hazard';
-/** `defId`: character id (player), monster id (monster/carrion) or attack id (projectile/hazard). */
+export type EntityKind = 'player' | 'monster' | 'projectile' | 'carrion' | 'hazard' | 'plant';
+/** `defId`: character id (player), monster id (monster/carrion), attack id (projectile/hazard), ingredient (plant). */
 export const Kind = defineComponent<{ kind: EntityKind; defId: string }>('Kind');
 
 // ---------------------------------------------------------------- combat
@@ -218,6 +218,9 @@ export const Arsenal = defineComponent<{
   /** Swap pressed during a swing: switch as soon as it ends. */
   swapQueued: boolean;
 }>('Arsenal');
+
+/** A plant to gather (M3): `count` pieces of `ingredientId` left on it. */
+export const Gatherable = defineComponent<{ ingredientId: string; count: number }>('Gatherable');
 
 /** The hero's backpack (M3): ingredient stacks with weight/slot limits. */
 export const Backpack = defineComponent<BackpackData>('Backpack');

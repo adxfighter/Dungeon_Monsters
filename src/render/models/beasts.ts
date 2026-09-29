@@ -33,7 +33,7 @@ const euler = new Euler();
 const tmp = new Color();
 
 /** Geometry rotated (XYZ Euler), moved into place and painted one flat colour (vertex colours). */
-function part(
+export function part(
   g: BufferGeometry,
   color: ColorRepresentation,
   x: number,
@@ -58,7 +58,7 @@ function part(
 }
 
 /** Left/right mirrored pair of parts. */
-function both(
+export function both(
   make: () => BufferGeometry,
   color: ColorRepresentation,
   x: number,
@@ -71,7 +71,7 @@ function both(
   return [part(make(), color, x, y, z, rx, ry, rz), part(make(), color, -x, y, z, rx, -ry, -rz)];
 }
 
-function merge(parts: BufferGeometry[]): BufferGeometry {
+export function merge(parts: BufferGeometry[]): BufferGeometry {
   const merged = mergeGeometries(parts);
   for (const p of parts) p.dispose();
   if (!merged) throw new Error('beasts: failed to merge geometry');
@@ -79,7 +79,7 @@ function merge(parts: BufferGeometry[]): BufferGeometry {
 }
 
 /** Toon material that takes its colour from the vertices. */
-function painted(): ReturnType<typeof createToonMaterial> {
+export function painted(): ReturnType<typeof createToonMaterial> {
   const m = createToonMaterial({ color: 0xffffff });
   m.vertexColors = true;
   return m;

@@ -26,6 +26,14 @@ export const arenaTest: Arena = {
       '#m.........m#',
       '#############',
     ],
+    // Five plants and fungi to gather (M3): one of each.
+    plants: [
+      { ingredientId: 'glowcap', x: 2.5, y: 1.6, count: 2 },
+      { ingredientId: 'pepper_puffball', x: 10.5, y: 1.6, count: 2 },
+      { ingredientId: 'sour_root', x: 1.6, y: 5.5, count: 1 },
+      { ingredientId: 'cave_onion', x: 11.4, y: 5.5, count: 2 },
+      { ingredientId: 'honey_moss', x: 6.5, y: 9.4, count: 2 },
+    ],
   },
   difficulties: {
     easy: {

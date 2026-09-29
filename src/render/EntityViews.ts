@@ -20,6 +20,7 @@ import { disposeObject } from './dispose';
 import { createChibi } from './models/chibi';
 import { createMonster, createQuill } from './models/monsters';
 import { createStinkCloud } from './models/beasts';
+import { createPlant } from './models/plants';
 import { createCarcass } from './models/newcomers';
 import { HitFlash } from './fx/HitFlash';
 import type { Pose } from './models/pose';
@@ -90,6 +91,10 @@ export class EntityViews {
       return { object: rig.root, update: rig.update, flash: new HitFlash(rig.materials), disposable: true };
     }
     if (kind === 'carrion') return { object: createCarcass(), disposable: false };
+    if (kind === 'plant') {
+      const rig = createPlant(defId);
+      return { object: rig.root, update: rig.update, disposable: true };
+    }
     if (kind === 'hazard') {
       const hz = HAZARDS.get(defId);
       if (!hz) throw new Error(`EntityViews: unknown hazard '${defId}'`);

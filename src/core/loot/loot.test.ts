@@ -291,23 +291,124 @@ describe('butchery results', () => {
   });
 });
 
-describe('butcherable selector (the Butcher button)', () => {
-  it('only when a part fits and the hero is free to act', () => {
+describe('context button (interaction selector)', () => {
+  const setup = () => {
     const game = new Game({ room, player: tavi, monsters: { ...monsters, victim }, ingredients, seed: 2 });
+    return { game, input: createInputState() };
+  };
+
+  it('butcher only when a part fits and the hero is free to act', () => {
+    const { game, input } = setup();
     const e = game.spawnMonster(victim, 4.5, 4.3);
     game.world.require(e, Health).hp = 0;
-    game.step(createInputState(), DT);
+    game.step(input, DT);
     const c = game.world.query(Carrion)[0] ?? -1;
-    expect(game.butcherable).toBe(c);
+    expect(game.interaction).toEqual({ kind: 'butcher', entity: c });
     game.world.require(game.player, Health).stagger = 1;
-    expect(game.butcherable).toBe(-1);
+    expect(game.interaction).toBeNull();
     game.world.require(game.player, Health).stagger = 0;
     const status = game.world.require(game.player, Status);
     status.heldBy = c; // any entity: "held"
-    expect(game.butcherable).toBe(-1);
+    expect(game.interaction).toBeNull();
     status.heldBy = -1;
     game.world.require(game.player, Backpack).maxWeight = 0;
-    expect(game.butcherable).toBe(-1); // nothing would fit
+    expect(game.interaction).toEqual({ kind: 'full', entity: c }); // in reach, nothing would fit
+  });
+
+  it('picks the nearest carcass that would give something, not just the nearest one', () => {
+    const heavy: MonsterDef = {
+      ...victim,
+      id: 'heavy',
+      drops: [
+        {
+          partId: 'steak',
+          ingredientId: 'yak_steak',
+          count: 1,
+          cutLine: [
+            [0, 0],
+            [1, 1],
+          ],
+        },
+      ],
+    };
+    const light: MonsterDef = {
+      ...victim,
+      id: 'light',
+      drops: [
+        {
+          partId: 'moss',
+          ingredientId: 'honey_moss',
+          count: 1,
+          cutLine: [
+            [0, 0],
+            [1, 1],
+          ],
+        },
+      ],
+    };
+    const game = new Game({
+      room,
+      player: tavi,
+      monsters: { ...monsters, heavy, light },
+      ingredients,
+      seed: 2,
+    });
+    const input = createInputState();
+    const near = game.spawnMonster(heavy, 4.5, 4.2); // 0.7 away
+    const far = game.spawnMonster(light, 4.5, 2.6); // 0.9 away, still in reach
+    game.world.require(near, Health).hp = 0;
+    game.world.require(far, Health).hp = 0;
+    game.step(input, DT);
+    game.world.require(game.player, Backpack).maxWeight = 1; // steak weighs 3, moss 0.5
+    const lightCarcass = game.world
+      .query(Carrion)
+      .find((c) => game.world.require(c, Carrion).monsterId === 'light');
+    expect(game.interaction).toEqual({ kind: 'butcher', entity: lightCarcass });
+  });
+});
+
+describe('plants and discarding', () => {
+  const plantRoom = { ...room, plants: [{ ingredientId: 'glowcap', x: 4.5, y: 4.2, count: 2 }] };
+  const make = () => {
+    const game = new Game({ room: plantRoom, player: tavi, monsters, ingredients, seed: 2 });
+    const input = createInputState();
+    game.step(input, DT);
+    return { game, input };
+  };
+
+  it('a plant in reach can be gathered: ★2 pieces into the backpack, the plant is gone', () => {
+    const { game, input } = make();
+    const i = game.interaction;
+    expect(i?.kind).toBe('gather');
+    if (i) game.gather(i.entity);
+    game.step(input, DT);
+    expect(game.backpack?.stacks).toEqual([{ ingredientId: 'glowcap', stars: 2, count: 2 }]);
+    expect(game.interaction).toBeNull();
+  });
+
+  it('a plant out of reach is ignored; what does not fit stays on the plant', () => {
+    const { game, input } = make();
+    const plant = game.interaction?.entity ?? -1;
+    game.world.require(game.player, Transform).x = 1.5;
+    game.gather(plant);
+    game.step(input, DT);
+    expect(game.backpack?.stacks).toEqual([]);
+    game.world.require(game.player, Transform).x = 4.5;
+    const bag = game.world.require(game.player, Backpack);
+    bag.maxWeight = 0.5; // one glowcap
+    game.gather(plant);
+    game.step(input, DT);
+    expect(bag.stacks).toEqual([{ ingredientId: 'glowcap', stars: 2, count: 1 }]);
+    expect(game.interaction?.kind).toBe('full');
+  });
+
+  it('discard throws pieces out of a stack', () => {
+    const { game, input } = make();
+    const bag = game.world.require(game.player, Backpack);
+    bag.stacks.push({ ingredientId: 'yak_steak', stars: 3, count: 2 });
+    game.discard('yak_steak', 3, 1);
+    game.step(input, DT);
+    expect(bag.stacks).toEqual([{ ingredientId: 'yak_steak', stars: 3, count: 1 }]);
   });
 });
 

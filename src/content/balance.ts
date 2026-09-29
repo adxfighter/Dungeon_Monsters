@@ -27,8 +27,10 @@ export const BALANCE = {
   carrionTtl: 25,
   /** Loot and butchery (M3). */
   loot: {
-    /** The Action button appears within this distance of a carcass, tiles. */
+    /** The Butcher / Gather button appears within this distance of a carcass or a plant, tiles. */
     reach: 1.2,
+    /** Star rating of gathered plants (no cut, no kill). */
+    plantStars: 2,
     /** Overkill above this fraction of max HP mangles the carcass: −1 star. */
     overkillRatio: 0.5,
   },

@@ -99,7 +99,10 @@
   (`ingredientStars` — чистая функция), `core/loot/backpack.ts` (стаки, вес/слоты), `core/systems/loot.ts`
   (`lootSystem`, селектор `lootableCarcass` для кнопки UI); событие `LootTaken`. Разделка — команда UI →
   core: `Game.butcher(carcass, cuts, skipped)` (применяется на следующем шаге); мини-игра `ui/butchery/ButcherBoard`
-  оценивает свайп чистыми функциями `core/loot/cut.ts` (`scoreSwipe`, `scoreTaps`), на время доски main не шагает sim. Оружие героини — `Arsenal`
+  оценивает свайп чистыми функциями `core/loot/cut.ts` (`scoreSwipe`, `tapStep`), на время доски main не шагает sim.
+  Растения — `RoomTemplate.plants` → сущности `Gatherable`; команды `Game.gather` / `Game.discard` (`bagSystem`),
+  селектор контекстной кнопки `Game.interaction` (butcher / gather / full); экран рюкзака ставит бой на паузу,
+  выброс применяется `Game.applyCommands()` без шага симуляции. Оружие героини — `Arsenal`
   (`CharacterDef.combat.weapons`), смена — `Buttons.Swap`, событие `WeaponSwapped`.
   Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
   Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.

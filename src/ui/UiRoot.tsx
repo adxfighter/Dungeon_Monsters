@@ -27,7 +27,9 @@ interface Props {
   arenas: readonly ArenaOption[];
   arena: string;
   onPickArena(id: string): void;
-  onButcher(): void;
+  onInteract(): void;
+  onBackpack(open: boolean): void;
+  onDiscard(ingredientId: string, stars: 1 | 2 | 3): void;
 }
 
 /** Root of the Preact overlay above the canvas: movement layer below, HUD and buttons above it. */
@@ -48,7 +50,9 @@ export function UiRoot(props: Props) {
     arenas,
     arena,
     onPickArena,
-    onButcher,
+    onInteract,
+    onBackpack,
+    onDiscard,
   } = props;
   return (
     <div class="ui-root">
@@ -70,7 +74,9 @@ export function UiRoot(props: Props) {
         arenas={arenas}
         arena={arena}
         onPickArena={onPickArena}
-        onButcher={onButcher}
+        onInteract={onInteract}
+        onBackpack={onBackpack}
+        onDiscard={onDiscard}
       />
     </div>
   );
