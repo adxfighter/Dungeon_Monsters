@@ -163,7 +163,19 @@ export const CharacterSchema = z.object({
     hairStyle: z.object({
       bangs: z.boolean(),
       ponytail: z.boolean(),
+      /** Hair gathered in a bun on top of the head. */
+      bun: z.boolean().optional(),
+      /** Kanzashi hairpins (and a small flower) through the bun. */
+      kanzashi: z.boolean().optional(),
     }),
+    /** Body shape: 'tunic' (default) or 'kimono' (flared hem, wide sleeves, obi sash in the accent colour). */
+    outfitStyle: z.enum(['tunic', 'kimono']).optional(),
+    /** Leg / sock colour; defaults to the accent colour. */
+    legs: HexColor.optional(),
+    /** Hair ornament colour (kanzashi flower). */
+    ornament: HexColor.optional(),
+    /** Lip colour drawn on the face. */
+    lips: HexColor.optional(),
   }),
   movement: MovementSchema,
   /** Collision circle radius, tiles. Must fit a 1-tile corridor. */
@@ -186,18 +198,49 @@ export const CharacterSchema = z.object({
 });
 export type Character = z.infer<typeof CharacterSchema>;
 
+export const WavesSchema = z
+  .array(
+    z.object({
+      /** Seconds after the previous wave is cleared (or after the start for the first wave). */
+      delay: Seconds,
+      spawns: z.array(z.object({ monster: z.string().min(1), x: z.number(), y: z.number() })).min(1),
+    }),
+  )
+  .min(1);
+export type Waves = z.infer<typeof WavesSchema>;
+
+/** Difficulty levels chosen at the start of an arena (user request 2026-09-29). */
+export const DIFFICULTY_IDS = ['easy', 'medium', 'hard'] as const;
+export const DifficultyIdSchema = z.enum(DIFFICULTY_IDS);
+export type DifficultyId = z.infer<typeof DifficultyIdSchema>;
+
+const Multiplier = z.number().positive();
+
+/** Monster stat multipliers applied at spawn. */
+export const MonsterModifiersSchema = z.object({
+  hp: Multiplier,
+  atk: Multiplier,
+  /** Multiplies the pause between a monster's attacks (> 1 = slower, easier). */
+  attackCooldown: Multiplier,
+});
+export type MonsterModifiers = z.infer<typeof MonsterModifiersSchema>;
+
+export const ArenaDifficultySchema = z.object({
+  nameKey: z.string().min(1),
+  /** One-line hint under the level name, i18n key. */
+  hintKey: z.string().min(1),
+  waves: WavesSchema,
+  monsters: MonsterModifiersSchema,
+});
+
 export const ArenaSchema = z.object({
   id: z.string().min(1),
   room: RoomTemplateSchema,
-  waves: z
-    .array(
-      z.object({
-        /** Seconds after the previous wave is cleared (or after the start for the first wave). */
-        delay: Seconds,
-        spawns: z.array(z.object({ monster: z.string().min(1), x: z.number(), y: z.number() })).min(1),
-      }),
-    )
-    .min(1),
+  difficulties: z.object({
+    easy: ArenaDifficultySchema,
+    medium: ArenaDifficultySchema,
+    hard: ArenaDifficultySchema,
+  }),
 });
 export type Arena = z.infer<typeof ArenaSchema>;
 

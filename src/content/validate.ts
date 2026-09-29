@@ -15,7 +15,7 @@ export function validateContent(): void {
   for (const arena of Object.values(arenas)) {
     ArenaSchema.parse(arena);
     // Referential integrity: every spawn names an existing monster and stands on the floor.
-    for (const wave of arena.waves) {
+    for (const wave of Object.values(arena.difficulties).flatMap((d) => d.waves)) {
       for (const spawn of wave.spawns) {
         if (!monsters[spawn.monster])
           throw new Error(`arena ${arena.id}: unknown monster '${spawn.monster}'`);

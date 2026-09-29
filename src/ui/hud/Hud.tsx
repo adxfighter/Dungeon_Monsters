@@ -3,6 +3,8 @@ import type { InputController } from '@platform/input/InputController';
 import type { Settings } from '@platform/settings';
 import { Buttons } from '@shared/input';
 import { useHud, type HudStore } from '../hudStore';
+import type { DifficultyId } from '@content/schemas';
+import { DifficultyPicker, type DifficultyOption } from './DifficultyPicker';
 import './hud.css';
 
 interface Props {
@@ -17,13 +19,18 @@ interface Props {
    * Returns false when the browser has no Vibration API or refused the call.
    */
   onTestVibration(): boolean;
+  /** Arena levels for the start screen (empty = peaceful room, no picker). */
+  difficulties: readonly DifficultyOption[];
+  onPickDifficulty(id: DifficultyId): void;
 }
 
 /**
  * Combat HUD: hero HP bar, action buttons (bottom, left or right per settings, ≥ 64 dp, above the tap layer) and the
  * end-of-fight screens. Buttons stop propagation so they never also send a move tap.
  */
-export function Hud({ input, hud, t, onRestart, settings, onSettingsChange, onTestVibration }: Props) {
+export function Hud(props: Props) {
+  const { input, hud, t, onRestart, settings, onSettingsChange, onTestVibration } = props;
+  const { difficulties, onPickDifficulty } = props;
   const state = useHud(hud);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
@@ -135,7 +142,19 @@ export function Hud({ input, hud, t, onRestart, settings, onSettingsChange, onTe
         </div>
       )}
 
-      {state.status !== 'playing' && (
+      {state.status === 'ready' && difficulties.length > 0 && (
+        <DifficultyPicker
+          options={difficulties}
+          selected={current.difficulty}
+          t={t}
+          onPick={(id) => {
+            change({ ...current, difficulty: id });
+            onPickDifficulty(id);
+          }}
+        />
+      )}
+
+      {(state.status === 'defeated' || state.status === 'cleared') && (
         <div class="end-screen" role="dialog" data-testid="end-screen">
           <h2>{t(state.status === 'defeated' ? 'hud.defeated' : 'hud.cleared')}</h2>
           <button type="button" class="restart" onClick={onRestart}>

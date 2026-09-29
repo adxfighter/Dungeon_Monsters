@@ -142,6 +142,8 @@ export interface BrainData {
   /** Passive monsters fight only once aggravated. */
   aggro: boolean;
   attackCooldown: number;
+  /** Difficulty multiplier for `def.ai.attackCooldown`. */
+  cooldownMult: number;
   guardCooldown: number;
 }
 export const Brain = defineComponent<BrainData>('Brain');

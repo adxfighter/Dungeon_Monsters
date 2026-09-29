@@ -1,16 +1,24 @@
 import type { Character } from '../schemas';
 
-/** Tavi Ryomin — protagonist, fighter (STORY §2). Original character, see docs/LEGAL.md. */
+/**
+ * Tavi Ryomin — protagonist, fighter (STORY §2). Original character, see docs/LEGAL.md.
+ * Look (user decision 2026-09-29): a geisha — dark hair in a bun with kanzashi pins, kimono with an obi sash,
+ * white tabi socks. Personality and story are unchanged.
+ */
 export const tavi: Character = {
   id: 'tavi',
   nameKey: 'character.tavi.name',
   appearance: {
-    skin: '#ffdcc4',
-    hair: '#e0673a',
-    eyes: '#3b8f5a',
-    outfit: '#f2c14e',
-    accent: '#7a4a2e',
-    hairStyle: { bangs: true, ponytail: true },
+    skin: '#ffe7da',
+    hair: '#231c2b',
+    eyes: '#5a3a2e',
+    outfit: '#c8323c',
+    accent: '#f2c14e',
+    legs: '#f4efe6',
+    ornament: '#ff8fb3',
+    lips: '#c8323c',
+    outfitStyle: 'kimono',
+    hairStyle: { bangs: true, ponytail: false, bun: true, kanzashi: true },
   },
   movement: {
     speed: 4.2,

@@ -22,6 +22,13 @@ export const ru: Locale = {
   'settings.buttonsSide': 'Кнопки',
   'settings.side.left': 'Слева',
   'settings.side.right': 'Справа',
+  'difficulty.title': 'Выберите сложность',
+  'difficulty.easy': 'Лёгкий',
+  'difficulty.easy.hint': 'Три волны, монстры слабее — можно не уворачиваться.',
+  'difficulty.medium': 'Средний',
+  'difficulty.medium.hint': 'Четыре волны. Уворачивайтесь от атак, отмеченных на полу.',
+  'difficulty.hard': 'Сложный',
+  'difficulty.hard.hint': 'Четыре плотные волны, монстры бьют больно и часто.',
   'error.webgl.title': 'Не удалось запустить 3D',
   'error.webgl.body':
     'Браузер не поддерживает WebGL2 или он отключён. Обновите браузер или включите аппаратное ускорение.',

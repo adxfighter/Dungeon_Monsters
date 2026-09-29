@@ -92,6 +92,9 @@
   separation (тела не проходят друг сквозь друга) → projectiles → meleeHit → death → удаление → волны арены.
   Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
   Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.
+- Сложность (M2): `Game({ awaitStart: true })` держит арену в статусе `ready` (героиня ходит, волн нет), пока UI
+  (`ui/hud/DifficultyPicker`) не вызовет `game.startArena(waves, modifiers)`; множители применяются при спавне
+  монстра (HP, ATK, пауза между атаками через `Brain.cooldownMult`).
 - Ощущение боя (M2, всё вне core, детерминизм не затронут): события `DamageDealt/MonsterKilled` →
   `render` (вспышка `fx/HitFlash`, искры `fx/Particles` — пул InstancedMesh, шейк `CameraRig.shake`),
   `app/CombatFeedback` (hit-stop `GameLoop.hitStop` — сим замирает, рендер идёт; вибро `platform/haptics`; цифры

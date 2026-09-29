@@ -4,11 +4,20 @@ export interface Settings {
   shake: boolean;
   /** Vibration on hits. */
   haptics: boolean;
-  /** Action buttons side: left- or right-handed play (user request: default left). */
+  /** Action buttons side: left- or right-handed play (user request 2026-09-29: default right). */
   buttonsSide: 'left' | 'right';
+  /** Last arena difficulty (pre-selected on the picker); default medium. */
+  difficulty: 'easy' | 'medium' | 'hard';
 }
 
-export const DEFAULT_SETTINGS: Readonly<Settings> = { shake: true, haptics: true, buttonsSide: 'left' };
+export const DEFAULT_SETTINGS: Readonly<Settings> = {
+  shake: true,
+  haptics: true,
+  buttonsSide: 'right',
+  difficulty: 'medium',
+};
+
+const DIFFICULTIES: readonly Settings['difficulty'][] = ['easy', 'medium', 'hard'];
 const KEY = 'dm.settings.v1';
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;
@@ -26,6 +35,9 @@ export function loadSettings(storage: Storage | undefined): Settings {
       haptics: typeof p.haptics === 'boolean' ? p.haptics : DEFAULT_SETTINGS.haptics,
       buttonsSide:
         p.buttonsSide === 'right' || p.buttonsSide === 'left' ? p.buttonsSide : DEFAULT_SETTINGS.buttonsSide,
+      difficulty: DIFFICULTIES.includes(p.difficulty as Settings['difficulty'])
+        ? (p.difficulty as Settings['difficulty'])
+        : DEFAULT_SETTINGS.difficulty,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

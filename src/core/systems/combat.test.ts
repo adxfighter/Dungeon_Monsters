@@ -55,7 +55,7 @@ class Arena {
       player: tavi,
       seed,
       monsters,
-      ...(waves ? { waves: arenaTest.waves } : {}),
+      ...(waves ? { waves: arenaTest.difficulties.hard.waves } : {}),
     });
   }
 
@@ -441,14 +441,18 @@ describe('death and waves', () => {
   it('arena waves spawn one after another and end with ArenaCleared', () => {
     const a = new Arena(1, true);
     a.seconds(1.2);
-    expect(a.of('WaveStarted')).toEqual([{ type: 'WaveStarted', index: 1, total: arenaTest.waves.length }]);
+    expect(a.of('WaveStarted')).toEqual([
+      { type: 'WaveStarted', index: 1, total: arenaTest.difficulties.hard.waves.length },
+    ]);
     // Kill everything each time a wave appears.
     for (let guard = 0; guard < 20 && a.game.status === 'playing'; guard++) {
       for (const e of a.game.world.query(Brain, Health)) a.health(e).hp = 0;
       a.seconds(2.5);
     }
     expect(a.game.status).toBe('cleared');
-    expect(a.of('WaveStarted').map((e) => e.index)).toEqual(arenaTest.waves.map((_, i) => i + 1));
+    expect(a.of('WaveStarted').map((e) => e.index)).toEqual(
+      arenaTest.difficulties.hard.waves.map((_, i) => i + 1),
+    );
     expect(a.of('ArenaCleared')).toHaveLength(1);
   });
 });

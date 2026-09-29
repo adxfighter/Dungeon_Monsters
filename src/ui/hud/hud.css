@@ -214,3 +214,54 @@
   font-size: 13px;
   color: #d8cfe0;
 }
+
+.difficulty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  pointer-events: auto;
+  background: rgb(20 16 28 / 72%);
+  color: #fff4e0;
+  font:
+    16px/1.3 system-ui,
+    sans-serif;
+}
+
+.difficulty h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.difficulty .level {
+  display: grid;
+  gap: 4px;
+  width: min(300px, 100%);
+  min-height: 72px;
+  padding: 10px 16px;
+  border: 3px solid #1a1414;
+  border-radius: 16px;
+  background: rgb(255 244 224 / 88%);
+  color: #1a1414;
+  text-align: left;
+}
+
+.difficulty .level.selected {
+  background: #f2c14e;
+  box-shadow: 0 0 0 3px #fff4e0;
+}
+
+.level-name {
+  font:
+    800 20px/1.1 system-ui,
+    sans-serif;
+}
+
+.level-hint {
+  font:
+    14px/1.25 system-ui,
+    sans-serif;
+}
