@@ -24,7 +24,7 @@ describe('parseLaunchParams', () => {
     expect(parseLaunchParams('?demo=1').demo).toBe(true);
     expect(parseLaunchParams('?joystick=1').joystick).toBe(true);
     expect(parseLaunchParams('?room=test_room&seed=7')).toMatchObject({ room: 'test_room', seed: '7' });
-    expect(parseLaunchParams('?arena=arena_new').arena).toBe('arena_new');
+    expect(parseLaunchParams('?arena=arena_test').arena).toBe('arena_test');
   });
 
   it('clamps pr and ignores invalid values', () => {
