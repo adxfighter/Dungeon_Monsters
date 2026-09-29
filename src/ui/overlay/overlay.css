@@ -1,0 +1,56 @@
+.world-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Anchored at their top-left by transform; centred with negative margins. */
+.enemy-hp {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 7px;
+  margin: -3px 0 0 -22px;
+  border: 2px solid #1a1414;
+  border-radius: 4px;
+  background: rgb(26 20 20 / 65%);
+  overflow: hidden;
+  will-change: transform;
+}
+
+.enemy-hp-fill {
+  height: 100%;
+  background: #e0584f;
+}
+
+.dmg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -12px 0 0 -30px;
+  width: 60px;
+  text-align: center;
+  font:
+    800 18px/1 system-ui,
+    sans-serif;
+  color: #fff4e0;
+  -webkit-text-stroke: 3px #1a1414;
+  paint-order: stroke fill;
+  will-change: transform, opacity;
+}
+
+.dmg-crit {
+  font-size: 24px;
+  color: #ffd35a;
+}
+
+.dmg-taken {
+  color: #ff6a5a;
+}
+
+.dmg-blocked {
+  font-size: 14px;
+  color: #b8b0c0;
+}

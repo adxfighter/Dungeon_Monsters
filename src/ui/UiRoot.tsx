@@ -1,4 +1,5 @@
 import type { InputController } from '@platform/input/InputController';
+import type { Settings } from '@platform/settings';
 import { Hud } from './hud/Hud';
 import type { HudStore } from './hudStore';
 import { Joystick } from './joystick/Joystick';
@@ -16,10 +17,13 @@ interface Props {
   onTapPress(clientX: number, clientY: number): void;
   onTapRelease(): void;
   onRestart(): void;
+  settings: Settings;
+  onSettingsChange(settings: Settings): void;
 }
 
 /** Root of the Preact overlay above the canvas: movement layer below, HUD and buttons above it. */
-export function UiRoot({ input, controls, hud, t, onTapPress, onTapRelease, onRestart }: Props) {
+export function UiRoot(props: Props) {
+  const { input, controls, hud, t, onTapPress, onTapRelease, onRestart, settings, onSettingsChange } = props;
   return (
     <div class="ui-root">
       {controls === 'joystick' ? (
@@ -27,7 +31,14 @@ export function UiRoot({ input, controls, hud, t, onTapPress, onTapRelease, onRe
       ) : (
         <TapToMove onPress={onTapPress} onRelease={onTapRelease} />
       )}
-      <Hud input={input} hud={hud} t={t} onRestart={onRestart} />
+      <Hud
+        input={input}
+        hud={hud}
+        t={t}
+        onRestart={onRestart}
+        settings={settings}
+        onSettingsChange={onSettingsChange}
+      />
     </div>
   );
 }

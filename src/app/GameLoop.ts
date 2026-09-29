@@ -22,6 +22,8 @@ export class GameLoop {
   private readonly hooks: GameLoopHooks;
   private lastMs: number | undefined;
   private paused = false;
+  /** Hit-stop: seconds of frozen simulation left (render keeps running). */
+  private freeze = 0;
 
   constructor(hooks: GameLoopHooks, clock = new FixedClock({ maxStepsPerAdvance: 8 })) {
     this.hooks = hooks;
@@ -43,6 +45,14 @@ export class GameLoop {
     this.lastMs = undefined;
   }
 
+  /**
+   * Hit-stop (M2): freezes the simulation for `seconds` while rendering continues, so a hit "lands".
+   * Overlapping requests keep the longest remaining freeze. Frozen time is not simulated later.
+   */
+  hitStop(seconds: number): void {
+    this.freeze = Math.max(this.freeze, seconds);
+  }
+
   /** Call once per animation frame with a monotonic timestamp in milliseconds. */
   frame(nowMs: number): void {
     if (this.paused) return;
@@ -50,7 +60,13 @@ export class GameLoop {
     this.lastMs = nowMs;
     const dt = Math.min(rawDt, MAX_FRAME_DT_S);
 
-    const steps = this.clock.advance(dt);
+    let simDt = dt;
+    if (this.freeze > 0) {
+      const frozen = Math.min(this.freeze, simDt);
+      this.freeze -= frozen;
+      simDt -= frozen;
+    }
+    const steps = this.clock.advance(simDt);
     for (let i = 0; i < steps; i++) this.hooks.step(this.clock.step);
     this.hooks.render(this.clock.alpha, dt, rawDt);
   }

@@ -1,5 +1,7 @@
 import {
   CanvasTexture,
+  DoubleSide,
+  RingGeometry,
   CapsuleGeometry,
   ConeGeometry,
   type BufferGeometry,
@@ -16,6 +18,7 @@ import type { Character } from '@content/schemas';
 import { createToonMaterial } from '../materials/toon';
 import { addOutline } from '../outline';
 import { createBlobShadow } from './blobShadow';
+import { easeOut, type Rig } from './pose';
 
 /**
  * Procedural chibi (GDD §6: head ≈ 1/3 of height), built from primitives, facing local +Z.
@@ -157,14 +160,30 @@ function faceTexture(eyeColor: string): CanvasTexture {
   return texture;
 }
 
-export interface ChibiRig {
-  /** Root to place/rotate in the world (feet at y = 0, facing local +Z). */
-  readonly root: Group;
-  /** Advances procedural animation. `speed01` = current speed / max speed. */
-  update(dtSeconds: number, speed01: number): void;
+/** Upper-body twist for the swing: wind back, whip through, settle (radians). */
+const SWING_BACK = 0.75;
+const SWING_THROUGH = 1.7;
+
+/** Crescent slash trail shown during the active phase of a swing. */
+function slashArc(): Mesh {
+  const arc = new Mesh(
+    new RingGeometry(0.55, 0.95, 24, 1, Math.PI * 0.2, Math.PI * 0.6).rotateX(-Math.PI / 2),
+    new MeshBasicMaterial({
+      color: 0xfff4e0,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      side: DoubleSide,
+    }),
+  );
+  arc.name = 'chibi-slash';
+  arc.position.y = 0.45;
+  arc.visible = false;
+  return arc;
 }
 
-export function createChibi(character: Character): ChibiRig {
+/** Root faces local +Z with feet at y = 0; `update` animates walk/idle and combat poses. */
+export function createChibi(character: Character): Rig {
   const { appearance } = character;
   const skin = createToonMaterial({ color: appearance.skin });
   const hair = createToonMaterial({ color: appearance.hair });
@@ -226,13 +245,16 @@ export function createChibi(character: Character): ChibiRig {
   head.add(face);
 
   upper.add(body, head);
-  root.add(createBlobShadow(0.36));
+  const arc = slashArc();
+  root.add(createBlobShadow(0.36), arc);
+  const arcMaterial = arc.material as MeshBasicMaterial;
 
   let walkPhase = 0;
   let idlePhase = 0;
   return {
     root,
-    update(dt, speed01) {
+    materials: [skin, hair, outfit, accent],
+    update(dt, speed01, pose) {
       const s = Math.min(Math.max(speed01, 0), 1);
       idlePhase += dt * IDLE_RATE;
       if (s > 0.01) walkPhase += dt * STEP_RATE * (0.5 + 0.5 * s);
@@ -245,6 +267,26 @@ export function createChibi(character: Character): ChibiRig {
       upper.position.y =
         DIM.hipY + Math.abs(Math.sin(walkPhase)) * STEP_BOUNCE * s + Math.sin(idlePhase) * IDLE_BOB * (1 - s);
       upper.rotation.x = MAX_LEAN * s;
+
+      // Combat poses.
+      let twist = 0;
+      arc.visible = false;
+      if (pose.phase === 'windup') twist = -SWING_BACK * easeOut(pose.t01);
+      else if (pose.phase === 'active') {
+        twist = -SWING_BACK + SWING_THROUGH * easeOut(pose.t01);
+        arc.visible = true;
+        // The trail sweeps with the swing and fades.
+        arc.rotation.y = (pose.t01 - 0.5) * 1.2;
+        arcMaterial.opacity = 0.85 * (1 - pose.t01 * 0.6);
+      } else if (pose.phase === 'recovery') twist = (SWING_THROUGH - SWING_BACK) * (1 - easeOut(pose.t01));
+      upper.rotation.y = twist;
+      if (pose.phase !== 'none') upper.rotation.x = 0.12;
+      if (pose.staggered) {
+        upper.rotation.x = -0.3;
+        head.rotation.z = Math.sin(idlePhase * 9) * 0.15;
+      } else {
+        head.rotation.z = 0;
+      }
     },
   };
 }

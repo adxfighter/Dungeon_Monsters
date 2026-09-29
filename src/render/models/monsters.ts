@@ -13,15 +13,13 @@ import type { MonsterDef } from '@content/schemas';
 import { createToonMaterial } from '../materials/toon';
 import { addOutline } from '../outline';
 import { createBlobShadow } from './blobShadow';
+import { easeOut, type Rig } from './pose';
 
 /**
  * Procedural Tier I monsters (original designs, docs/LEGAL.md), facing local +Z, ≤ 6 draw calls each.
- * `update(dt, speed01, state)` animates idle / move; combat readability effects live in render/fx (M2 feel).
+ * Every windup has a readable pose — it is the telegraph: inflate (bubbler), flare (sparkhog), crouch (rabbit).
  */
-export interface MonsterRig {
-  readonly root: Group;
-  update(dtSeconds: number, speed01: number): void;
-}
+export type MonsterRig = Rig;
 
 const m4 = new Matrix4();
 const euler = new Euler();
@@ -39,7 +37,7 @@ function merge(parts: BufferGeometry[]): BufferGeometry {
   return merged;
 }
 
-/** Two dark eye dots, merged. */
+/** Two dark eye dots, merged. Black: not part of the hit flash. */
 function eyes(r: number, spread: number, y: number, z: number): Mesh {
   const mesh = new Mesh(
     merge([
@@ -52,27 +50,26 @@ function eyes(r: number, spread: number, y: number, z: number): Mesh {
   return mesh;
 }
 
-/** Bubbler: round floating puffer with little fins; bobs in the air. */
+/** Bubbler: round floating puffer with little fins; bobs in the air, inflates before ramming. */
 function bubbler(def: MonsterDef): MonsterRig {
   const root = new Group();
   const body = new Group();
   body.position.y = 0.55;
   root.add(body);
 
-  const shell = new Mesh(
-    new SphereGeometry(0.34, 24, 16),
-    createToonMaterial({ color: def.appearance.body }),
-  );
+  const shellMat = createToonMaterial({ color: def.appearance.body });
+  const shell = new Mesh(new SphereGeometry(0.34, 24, 16), shellMat);
   shell.name = 'bubbler-body';
   shell.scale.set(1, 0.9, 1.05);
   addOutline(shell);
+  const finMat = createToonMaterial({ color: def.appearance.accent });
   const fins = new Mesh(
     merge([
       placed(new ConeGeometry(0.1, 0.24, 8), 0.34, 0, -0.02, 0, 0, -Math.PI / 2),
       placed(new ConeGeometry(0.1, 0.24, 8), -0.34, 0, -0.02, 0, 0, Math.PI / 2),
       placed(new ConeGeometry(0.12, 0.26, 8), 0, 0.02, -0.4, -Math.PI / 2, 0, 0),
     ]),
-    createToonMaterial({ color: def.appearance.accent }),
+    finMat,
   );
   fins.name = 'bubbler-fins';
   addOutline(fins, { thickness: 0.02 });
@@ -82,24 +79,35 @@ function bubbler(def: MonsterDef): MonsterRig {
   let t = 0;
   return {
     root,
-    update(dt, speed01) {
+    materials: [shellMat, finMat],
+    update(dt, speed01, pose) {
       t += dt;
       body.position.y = 0.55 + Math.sin(t * 2.2) * 0.05;
       body.rotation.z = Math.sin(t * 1.3) * 0.08;
       fins.rotation.y = Math.sin(t * (6 + 6 * speed01)) * 0.15;
+      // Telegraph: inflate and tremble; ram: stretched forward; then deflate.
+      let inflate = 1;
+      if (pose.phase === 'windup') inflate = 1 + 0.4 * easeOut(pose.t01);
+      else if (pose.phase === 'active') inflate = 1.4 - 0.25 * pose.t01;
+      else if (pose.phase === 'recovery') inflate = 1.15 - 0.15 * pose.t01;
+      const tremble = pose.phase === 'windup' ? Math.sin(t * 60) * 0.03 * pose.t01 : 0;
+      const stretch = pose.phase === 'active' ? 1.15 : 1;
+      body.scale.set(inflate + tremble, inflate - tremble, inflate * stretch);
+      if (pose.staggered) body.rotation.z = Math.sin(t * 20) * 0.3;
     },
   };
 }
 
-/** Sparkhog: squat hedgehog with a crown of glowing quills. */
+/** Sparkhog: squat hedgehog with a crown of glowing quills; curls into a ball, quills flare before firing. */
 function sparkhog(def: MonsterDef): MonsterRig {
   const root = new Group();
   const body = new Group();
   root.add(body);
 
+  const hogMat = createToonMaterial({ color: def.appearance.body });
   const torso = new Mesh(
     placed(new SphereGeometry(0.32, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.62), 0, 0.12, 0),
-    createToonMaterial({ color: def.appearance.body }),
+    hogMat,
   );
   torso.name = 'sparkhog-body';
   torso.scale.set(1, 0.85, 1.15);
@@ -130,41 +138,56 @@ function sparkhog(def: MonsterDef): MonsterRig {
     createToonMaterial({ color: 0x3a2a24, rimStrength: 0 }),
   );
   snout.name = 'sparkhog-snout';
-  body.add(torso, quills, snout, eyes(0.035, 0.11, 0.24, 0.27));
+  const face = eyes(0.035, 0.11, 0.24, 0.27);
+  body.add(torso, quills, snout, face);
   root.add(createBlobShadow(0.36));
 
   let t = 0;
+  let curl = 0;
   return {
     root,
-    update(dt, speed01) {
+    materials: [hogMat, quillMat],
+    update(dt, speed01, pose) {
       t += dt;
       body.position.y = Math.abs(Math.sin(t * 14)) * 0.03 * speed01;
-      quillMat.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2;
+      // Guard: curl into a spiky ball (smoothly), face tucked away.
+      curl += ((pose.guarding ? 1 : 0) - curl) * Math.min(1, dt * 12);
+      body.scale.set(1 + 0.1 * curl, 1 - 0.3 * curl, 1 + 0.1 * curl);
+      quills.scale.setScalar(1 + 0.35 * curl);
+      snout.visible = curl < 0.5;
+      face.visible = curl < 0.5;
+      // Telegraph: quills glow brighter and brighter until they fire.
+      const charge = pose.phase === 'windup' ? pose.t01 : 0;
+      quillMat.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 + charge * 1.6 + curl * 0.4;
+      quills.rotation.y = charge * Math.sin(t * 40) * 0.05;
+      body.rotation.z = pose.staggered ? Math.sin(t * 20) * 0.2 : 0;
     },
   };
 }
 
-/** Stonenibbler: lean rock-grey rabbit with long ears and big front teeth; hops when it runs. */
+/** Stonenibbler: lean rock-grey rabbit with long ears; crouches before a pounce, dizzy after a miss. */
 function stonenibbler(def: MonsterDef): MonsterRig {
   const root = new Group();
   const body = new Group();
   root.add(body);
 
+  const furMat = createToonMaterial({ color: def.appearance.body });
   const torso = new Mesh(
     merge([
       placed(new CapsuleGeometry(0.17, 0.2, 6, 12), 0, 0.3, -0.03, Math.PI / 2 - 0.4, 0, 0),
       placed(new SphereGeometry(0.16, 16, 10), 0, 0.5, 0.18),
     ]),
-    createToonMaterial({ color: def.appearance.body }),
+    furMat,
   );
   torso.name = 'stonenibbler-body';
   addOutline(torso);
+  const earMat = createToonMaterial({ color: def.appearance.accent });
   const ears = new Mesh(
     merge([
       placed(new CapsuleGeometry(0.04, 0.22, 4, 8), 0.07, 0.75, 0.1, -0.35, 0, -0.25),
       placed(new CapsuleGeometry(0.04, 0.22, 4, 8), -0.07, 0.75, 0.1, -0.35, 0, 0.25),
     ]),
-    createToonMaterial({ color: def.appearance.accent }),
+    earMat,
   );
   ears.name = 'stonenibbler-ears';
   addOutline(ears, { thickness: 0.02 });
@@ -175,12 +198,32 @@ function stonenibbler(def: MonsterDef): MonsterRig {
   let hop = 0;
   return {
     root,
-    update(dt, speed01) {
+    materials: [furMat, earMat],
+    update(dt, speed01, pose) {
       t += dt;
       hop += dt * 12 * speed01;
       body.position.y = Math.abs(Math.sin(hop)) * 0.12 * speed01;
       body.rotation.x = -Math.sin(hop) * 0.15 * speed01;
+      body.rotation.z = 0;
+      body.scale.set(1, 1, 1);
       ears.rotation.x = Math.sin(t * 2) * 0.05;
+      if (pose.phase === 'windup') {
+        // Telegraph: crouch low, ears pinned back, wiggle before the pounce.
+        const k = easeOut(pose.t01);
+        body.position.y = -0.1 * k;
+        body.rotation.x = 0.35 * k;
+        body.scale.set(1 + 0.1 * k, 1 - 0.2 * k, 1);
+        ears.rotation.x = -0.9 * k;
+        body.rotation.z = Math.sin(t * 30) * 0.05 * k;
+      } else if (pose.phase === 'active') {
+        body.scale.set(0.9, 0.9, 1.35); // stretched mid-leap
+        body.position.y = Math.sin(pose.t01 * Math.PI) * 0.25;
+        ears.rotation.x = -1.1;
+      } else if (pose.phase === 'recovery' && pose.whiffed) {
+        body.rotation.z = Math.sin(t * 8) * 0.25; // dizzy after a miss: the punish window
+        ears.rotation.x = 0.6;
+      }
+      if (pose.staggered) body.rotation.z = Math.sin(t * 20) * 0.3;
     },
   };
 }

@@ -12,6 +12,10 @@ export const ru: Locale = {
   'hud.defeated': 'Вас вынесли',
   'hud.cleared': 'Арена зачищена!',
   'hud.restart': 'Ещё раз',
+  'hud.blocked': 'Блок!',
+  'hud.settings': 'Настройки',
+  'settings.shake': 'Тряска камеры',
+  'settings.haptics': 'Вибрация',
   'error.webgl.title': 'Не удалось запустить 3D',
   'error.webgl.body':
     'Браузер не поддерживает WebGL2 или он отключён. Обновите браузер или включите аппаратное ускорение.',

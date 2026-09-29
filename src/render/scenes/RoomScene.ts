@@ -1,14 +1,29 @@
 import { Color, DirectionalLight, HemisphereLight, Plane, Raycaster, Scene, Vector2, Vector3 } from 'three';
-import { MoveTarget, Velocity } from '@core/components';
+import { Attacker, Brain, MoveTarget, Transform, Velocity } from '@core/components';
 import type { Game } from '@core/Game';
+import type { Entity } from '@core/ecs/World';
 import type { GameEvent } from '@core/state/events';
 import { CameraRig } from '../CameraRig';
 import { disposeObject } from '../dispose';
 import { EntityViews } from '../EntityViews';
 import { RoomView } from '../RoomView';
 import { TargetMarker } from '../TargetMarker';
+import { Particles } from '../fx/Particles';
+import { Telegraphs } from '../fx/Telegraphs';
+import type { Element } from '@content/schemas';
 
 const BACKGROUND = 0x1f1a2b;
+
+/** Spark colour per damage element; blocked hits spark grey. */
+const ELEMENT_SPARK: Readonly<Record<Element, number>> = {
+  slash: 0xfff4e0,
+  blunt: 0xffc07a,
+  fire: 0xff7a2e,
+  cold: 0x9ee7ff,
+};
+const BLOCK_SPARK = 0xb8b0c0;
+/** Height (world units) where hit sparks appear. */
+const HIT_HEIGHT = 0.45;
 
 /** M1 play scene: one tile room, the hero and a follow camera. Reads core state, never writes it. */
 export class RoomScene {
@@ -23,6 +38,9 @@ export class RoomScene {
   private readonly ndc = new Vector2();
   private readonly ground = new Plane(new Vector3(0, 1, 0), 0);
   private readonly hit = new Vector3();
+  private readonly telegraphs = new Telegraphs();
+  private readonly particles = new Particles();
+  private readonly scratch = { x: 0, y: 0 };
 
   constructor(game: Game) {
     this.game = game;
@@ -34,7 +52,13 @@ export class RoomScene {
     this.scene.add(hemi, sun);
 
     this.room = new RoomView(game.map);
-    this.scene.add(this.room.group, this.entities.group, this.marker.mesh);
+    this.scene.add(
+      this.room.group,
+      this.entities.group,
+      this.marker.mesh,
+      this.telegraphs.group,
+      this.particles.mesh,
+    );
     this.rig = new CameraRig({ minX: 0, minY: 0, maxX: game.map.width, maxY: game.map.height });
   }
 
@@ -48,6 +72,37 @@ export class RoomScene {
 
   handleEvents(events: readonly GameEvent[]): void {
     this.entities.handle(events);
+    for (const e of events) {
+      if (e.type === 'DamageDealt') {
+        if (!e.blocked) this.entities.flash(e.target);
+        const color = e.blocked ? BLOCK_SPARK : ELEMENT_SPARK[e.element];
+        this.particles.burst(e.x, HIT_HEIGHT, e.y, color, e.crit || e.staggered ? 12 : 7, e.crit ? 4 : 3);
+      } else if (e.type === 'MonsterKilled') {
+        this.particles.burst(e.x, HIT_HEIGHT, e.y, 0xfff4e0, 18, 4.5);
+      }
+    }
+  }
+
+  /** Interpolated ground position of an entity's view (for world-anchored UI). */
+  positionOf(entity: Entity, out: { x: number; y: number }): boolean {
+    return this.entities.positionOf(entity, out);
+  }
+
+  /** Camera shake (see CameraRig.shake); respects the player's setting. */
+  shake(amplitude: number, duration: number): void {
+    this.rig.shake(amplitude, duration);
+  }
+
+  set shakeEnabled(enabled: boolean) {
+    this.rig.shakeEnabled = enabled;
+  }
+
+  /** World point (x, height, y) → normalized device coordinates; z > 1 means behind the camera. */
+  worldToScreen(x: number, height: number, y: number, out: { x: number; y: number }): boolean {
+    this.hit.set(x, height, y).project(this.camera);
+    out.x = this.hit.x;
+    out.y = this.hit.y;
+    return this.hit.z < 1;
   }
 
   update(alpha: number, dtSeconds: number): void {
@@ -59,6 +114,19 @@ export class RoomScene {
     }
     const target = this.game.world.get(this.game.player, MoveTarget);
     this.marker.update(dtSeconds, target?.active ?? false, target?.x ?? 0, target?.y ?? 0);
+
+    // Enemy telegraphs: every monster in its windup shows the attack's footprint on the floor.
+    const { world } = this.game;
+    this.telegraphs.begin();
+    for (const e of world.query(Brain, Attacker, Transform)) {
+      const cur = world.require(e, Attacker).current;
+      if (!cur || cur.phase !== 'windup') continue;
+      if (!this.entities.positionOf(e, this.scratch)) continue;
+      const t01 = cur.def.windup > 0 ? cur.t / cur.def.windup : 1;
+      this.telegraphs.show(e, cur.def, this.scratch.x, this.scratch.y, cur.dirX, cur.dirY, t01);
+    }
+    this.telegraphs.end((e) => world.isAlive(e));
+    this.particles.update(dtSeconds);
   }
 
   /**
@@ -83,6 +151,8 @@ export class RoomScene {
 
   dispose(): void {
     this.entities.dispose();
+    this.telegraphs.dispose();
+    this.particles.dispose();
     disposeObject(this.scene);
     this.scene.clear();
   }
