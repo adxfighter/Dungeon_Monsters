@@ -173,7 +173,7 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
       case 'attack': {
         // The action system runs the swing; wait until it is over (it may also be cancelled by stagger).
         if (attacker.current || attacker.request >= 0) break;
-        brain.attackCooldown = ai.attackCooldown * brain.cooldownMult;
+        brain.attackCooldown = brain.cooldownBase;
         brain.state = def.ambush ? 'exposed' : 'chase';
         brain.t = 0;
         break;
@@ -183,7 +183,7 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
         if (brain.t >= (def.ambush?.exposedTime ?? 0)) {
           brain.hidden = true;
           // The next strike is timed from the dive, so it swims a while before surfacing again.
-          brain.attackCooldown = ai.attackCooldown * brain.cooldownMult;
+          brain.attackCooldown = brain.cooldownBase;
           brain.state = 'chase';
           brain.t = 0;
         }

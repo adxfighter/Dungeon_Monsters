@@ -256,8 +256,8 @@ export class Game {
       idleFor: this.ctx.rng.range(def.ai.idleMin, def.ai.idleMax),
       aggro: false,
       attackCooldown: baseCooldown * mod.attackCooldown,
-      // Later attacks: def.ai.attackCooldown × cooldownMult — fold the override in so both paths agree.
-      cooldownMult: (baseCooldown / def.ai.attackCooldown) * mod.attackCooldown,
+      // Every later attack waits the same level-adjusted pause (no division: safe for a 0 s base).
+      cooldownBase: baseCooldown * mod.attackCooldown,
       hidden: def.ambush !== undefined,
       hopClock: 0,
       carrion: -1,

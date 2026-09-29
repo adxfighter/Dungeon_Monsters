@@ -80,7 +80,7 @@ describe('arena lobby and difficulty (Game.awaitStart / startArena)', () => {
     expect(game.world.require(e, Brain).attackCooldown).toBeCloseTo(o?.attackCooldown ?? -1);
   });
 
-  it('every later attack also waits the scaled cooldown (Brain.cooldownMult)', () => {
+  it('every later attack also waits the level-adjusted cooldown (Brain.cooldownBase)', () => {
     const game = new Game({
       room: arenaTest.room,
       player: tavi,
@@ -102,5 +102,17 @@ describe('arena lobby and difficulty (Game.awaitStart / startArena)', () => {
     }
     expect(sawAttack).toBe(true);
     expect(brain.attackCooldown).toBeCloseTo(0.5 * 2, 1); // override × modifier
+  });
+
+  it('a 0 s base cooldown with an override stays finite (no division by the base)', () => {
+    const game = new Game({
+      room: arenaTest.room,
+      player: tavi,
+      monsters,
+      overrides: { stonenibbler: { attackCooldown: 0.5 } },
+    });
+    const def = { ...stonenibbler, ai: { ...stonenibbler.ai, attackCooldown: 0 } };
+    const e = game.spawnMonster(def, 2.5, 2.5);
+    expect(game.world.require(e, Brain).cooldownBase).toBe(0.5);
   });
 });

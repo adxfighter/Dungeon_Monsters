@@ -142,8 +142,8 @@ export interface BrainData {
   /** Passive monsters fight only once aggravated. */
   aggro: boolean;
   attackCooldown: number;
-  /** Difficulty multiplier for `def.ai.attackCooldown`. */
-  cooldownMult: number;
+  /** Pause between attacks for this monster on this level (override × difficulty multiplier), seconds. */
+  cooldownBase: number;
   /** Ambusher under water: untargetable, can't be hit, doesn't push bodies. */
   hidden: boolean;
   /** Hopping gait clock, seconds. */
