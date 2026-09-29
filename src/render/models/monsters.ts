@@ -15,6 +15,7 @@ import type { MonsterDef } from '@content/schemas';
 import { createToonMaterial } from '../materials/toon';
 import { addOutline } from '../outline';
 import { createBlobShadow } from './blobShadow';
+import { BEAST_FACTORIES } from './beasts';
 import { NEWCOMER_FACTORIES } from './newcomers';
 import { easeOut, type Rig } from './pose';
 
@@ -210,6 +211,7 @@ const FACTORIES: Readonly<Record<string, (def: MonsterDef) => MonsterRig>> = {
   fugu,
   porcupine,
   ...NEWCOMER_FACTORIES,
+  ...BEAST_FACTORIES,
 };
 
 export function createMonster(def: MonsterDef): MonsterRig {

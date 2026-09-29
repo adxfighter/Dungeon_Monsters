@@ -14,6 +14,12 @@ export interface Pose {
   hidden: boolean;
   /** Scavenger eating a carcass. */
   eating: boolean;
+  /** Id of the current attack ('' when not attacking) — for monsters with several moves. */
+  attackId: string;
+  /** Holding the hero (grab): distance to her, tiles; 0 = not holding. */
+  holdDist: number;
+  /** Floor hazards: fraction of the lifetime left, 1 → 0. */
+  life01: number;
 }
 
 /** A procedurally animated model: characters and monsters share this shape. */

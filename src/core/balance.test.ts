@@ -3,7 +3,7 @@ import { tavi } from '@content/characters/tavi';
 import { arenas, monsters } from '@content/index';
 import type { Arena, DifficultyId } from '@content/schemas';
 import { Buttons, createInputState } from '@shared/input';
-import { Attacker, Brain, Health, Transform } from './components';
+import { Attacker, Brain, Health, Status, Transform } from './components';
 import { Game } from './Game';
 
 const DT = 1 / 30;
@@ -74,7 +74,10 @@ function runBot(arena: Arena, level: DifficultyId, seed: number, dodge: boolean)
       }
     }
 
-    if (threat) {
+    if (world.require(game.player, Status).heldBy >= 0) {
+      // Grabbed: mash Attack to break free, like a player (~10 presses/s).
+      if (step % 3 === 0) input.buttons = Buttons.Attack;
+    } else if (threat) {
       // Dash perpendicular to the line from the attacker.
       const ax = hero.x - threat.x;
       const ay = hero.y - threat.y;

@@ -2,7 +2,7 @@ import type { MonsterDef } from '../schemas';
 
 /**
  * "New monsters" arena roster (user decisions 2026-09-29, third playtest): reworked Fugu, Polar porcupine,
- * Toadhog and Dragochick; four brand-new monsters follow in the next PR. Tiers are assigned later.
+ * Toadhog and Dragochick, and four brand-new ones: Stink skunk, Maniac yak, Dino-ostrich, Decapus. Tiers later.
  * Original designs, checked against docs/LEGAL.md.
  */
 
@@ -160,6 +160,191 @@ export const dragochick: MonsterDef = {
       element: 'fire',
       poiseDamage: 10,
       range: 2.1,
+    },
+  ],
+  drops: [],
+};
+
+/**
+ * Stink skunk (user idea 2026-09-29): black-and-white stripes, a huge bushy tail. Turns its back (the telegraph)
+ * and sprays a cone behind it; the spray leaves a stinking cloud that hurts over time and slows.
+ */
+export const skunk: MonsterDef = {
+  id: 'skunk',
+  nameKey: 'monster.skunk.name',
+  bestiaryKey: 'bestiary.skunk',
+  radius: 0.33,
+  appearance: { body: '#26232b', accent: '#f2f0ea' },
+  stats: { hp: 45, atk: 10, def: 3, poise: 25 },
+  movement: { speed: 2, accel: 14, decel: 14, turnRate: 7 },
+  resist: { poison: 0, fire: 1.2 },
+  ai: {
+    temperament: 'aggressive',
+    noticeRange: 4,
+    loseRange: 7,
+    wanderRadius: 2,
+    idleMin: 0.6,
+    idleMax: 1.6,
+    wanderSpeed: 0.5,
+    attackCooldown: 1.8,
+    keepDistance: 1.2,
+  },
+  attacks: [
+    {
+      id: 'skunk.spray',
+      windup: 0.8,
+      active: 0.3,
+      recovery: 0.8,
+      shape: { kind: 'cone', range: 2, angleDeg: 60 },
+      power: 0.6,
+      element: 'poison',
+      poiseDamage: 10,
+      range: 2,
+      turnAway: true,
+      hazard: {
+        offset: 1.3,
+        radius: 0.9,
+        duration: 4,
+        tick: 0.5,
+        power: 0.25,
+        element: 'poison',
+        slow: 0.55,
+      },
+    },
+  ],
+  drops: [],
+};
+
+/** Maniac yak (user idea): a dark-brown shaggy predatory bull. Paws the ground, then charges and gores in a line. */
+export const yak: MonsterDef = {
+  id: 'yak',
+  nameKey: 'monster.yak.name',
+  bestiaryKey: 'bestiary.yak',
+  radius: 0.45,
+  appearance: { body: '#4a3326', accent: '#e8dcc0' },
+  stats: { hp: 90, atk: 16, def: 6, poise: 60 },
+  movement: { speed: 1.8, accel: 10, decel: 12, turnRate: 4 },
+  resist: { cold: 0.6, fire: 1.2, slash: 0.85 },
+  ai: {
+    temperament: 'aggressive',
+    noticeRange: 5,
+    loseRange: 8,
+    wanderRadius: 2,
+    idleMin: 0.6,
+    idleMax: 1.6,
+    wanderSpeed: 0.5,
+    attackCooldown: 1.6,
+    keepDistance: 0,
+  },
+  attacks: [
+    {
+      id: 'yak.charge',
+      windup: 0.9,
+      active: 0.6,
+      recovery: 0.6,
+      missRecovery: 1.3,
+      shape: { kind: 'circle', radius: 0.55, offset: 0.35 },
+      power: 1.4,
+      element: 'blunt',
+      poiseDamage: 40,
+      lungeSpeed: 7.5,
+      range: 3.5,
+    },
+  ],
+  drops: [],
+};
+
+/**
+ * Dino-ostrich (user idea): beige, half emu, half raptor. Fast; stomps around itself up close, lunges and bites
+ * from a little further.
+ */
+export const dinostrich: MonsterDef = {
+  id: 'dinostrich',
+  nameKey: 'monster.dinostrich.name',
+  bestiaryKey: 'bestiary.dinostrich',
+  radius: 0.35,
+  appearance: { body: '#d9c29a', accent: '#8a6a4a' },
+  stats: { hp: 55, atk: 12, def: 4, poise: 35 },
+  movement: { speed: 3, accel: 20, decel: 20, turnRate: 8 },
+  resist: { blunt: 1.1 },
+  ai: {
+    temperament: 'aggressive',
+    noticeRange: 4.5,
+    loseRange: 7,
+    wanderRadius: 2,
+    idleMin: 0.6,
+    idleMax: 1.6,
+    wanderSpeed: 0.5,
+    attackCooldown: 1,
+    keepDistance: 0,
+  },
+  attacks: [
+    {
+      id: 'dinostrich.bite',
+      windup: 0.6,
+      active: 0.2,
+      recovery: 0.4,
+      missRecovery: 0.6,
+      shape: { kind: 'circle', radius: 0.35, offset: 0.45 },
+      power: 1,
+      element: 'slash',
+      poiseDamage: 15,
+      lungeSpeed: 5,
+      range: 1.6,
+    },
+    {
+      id: 'dinostrich.stomp',
+      windup: 0.7,
+      active: 0.2,
+      recovery: 0.6,
+      shape: { kind: 'circle', radius: 0.85, offset: 0 },
+      power: 1.2,
+      element: 'blunt',
+      poiseDamage: 30,
+      range: 0.9,
+    },
+  ],
+  drops: [],
+};
+
+/**
+ * Decapus (user idea): a small purple ten-legged cave octopus (land-dwelling, not a giant sea monster —
+ * docs/LEGAL.md bans krakens). Never hurts by itself: it lashes out its tentacles and holds the hero in place for
+ * up to 3 s while the others hit; mashing Attack breaks free sooner.
+ */
+export const decapus: MonsterDef = {
+  id: 'decapus',
+  nameKey: 'monster.decapus.name',
+  bestiaryKey: 'bestiary.decapus',
+  radius: 0.4,
+  appearance: { body: '#8a4fc4', accent: '#e0b8ff' },
+  stats: { hp: 50, atk: 0, def: 3, poise: 30 },
+  movement: { speed: 1.4, accel: 8, decel: 10, turnRate: 5 },
+  resist: { slash: 1.2, cold: 1.2, blunt: 0.8 },
+  ai: {
+    temperament: 'aggressive',
+    noticeRange: 4,
+    loseRange: 7,
+    wanderRadius: 2,
+    idleMin: 0.6,
+    idleMax: 1.6,
+    wanderSpeed: 0.5,
+    attackCooldown: 2.5,
+    keepDistance: 0,
+  },
+  attacks: [
+    {
+      id: 'decapus.grab',
+      windup: 0.8,
+      active: 0.25,
+      recovery: 0.5,
+      missRecovery: 0.8,
+      shape: { kind: 'line', length: 2, width: 0.5 },
+      power: 0,
+      element: 'blunt',
+      poiseDamage: 0,
+      range: 1.9,
+      grab: { duration: 3, mashReduce: 0.35 },
     },
   ],
   drops: [],

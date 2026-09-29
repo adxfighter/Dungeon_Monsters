@@ -20,6 +20,7 @@ const ELEMENT_SPARK: Readonly<Record<Element, number>> = {
   blunt: 0xffc07a,
   fire: 0xff7a2e,
   cold: 0x9ee7ff,
+  poison: 0x9be05a,
 };
 const BLOCK_SPARK = 0xb8b0c0;
 /** Embers per second per breathing monster. */
@@ -79,6 +80,7 @@ export class RoomScene {
     this.entities.handle(events);
     for (const e of events) {
       if (e.type === 'DamageDealt') {
+        if (e.dot) continue; // a hazard tick: the cloud itself is the visual, no flash or sparks
         if (!e.blocked) this.entities.flash(e.target);
         const color = e.blocked ? BLOCK_SPARK : ELEMENT_SPARK[e.element];
         this.particles.burst(e.x, HIT_HEIGHT, e.y, color, e.crit || e.staggered ? 12 : 7, e.crit ? 4 : 3);

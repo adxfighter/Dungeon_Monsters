@@ -288,3 +288,32 @@
   background: #fff4e0;
   color: #1a1414;
 }
+
+/* Held by a grab: a pulsing hint above the buttons. */
+.grab-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 260px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  border: 2px solid #1a1414;
+  border-radius: 12px;
+  background: #e0b8ff;
+  color: #1a1414;
+  font:
+    800 16px/1.2 system-ui,
+    sans-serif;
+  text-align: center;
+  pointer-events: none;
+  animation: grab-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes grab-pulse {
+  from {
+    transform: translateX(-50%) scale(1);
+  }
+  to {
+    transform: translateX(-50%) scale(1.06);
+  }
+}

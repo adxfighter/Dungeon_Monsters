@@ -8,6 +8,7 @@ import {
   Collider,
   Dodge,
   ForcedVelocity,
+  Hazard,
   Health,
   Kind,
   MoveTarget,
@@ -15,6 +16,7 @@ import {
   PrevTransform,
   Projectile,
   Stats,
+  Status,
   Steering,
   Team,
   Transform,
@@ -42,10 +44,13 @@ export interface CombatContext {
   doomed: Set<Entity>;
 }
 
+/** Held by a grab (can't move, dodge or attack). */
+export const isHeld = (world: World, e: Entity): boolean => (world.get(e, Status)?.heldBy ?? -1) >= 0;
+
 const isBusy = (world: World, e: Entity): boolean => {
   const h = world.get(e, Health);
   const d = world.get(e, Dodge);
-  return (h !== undefined && h.stagger > 0) || (d !== undefined && d.t > 0);
+  return (h !== undefined && h.stagger > 0) || (d !== undefined && d.t > 0) || isHeld(world, e);
 };
 
 /** Ticks invulnerability, stagger, poise, cooldowns and the combo window. Run early each step. */
@@ -65,11 +70,32 @@ export function combatTimersSystem(world: World, dt: number): void {
   for (const e of world.query(Dodge)) {
     const d = world.require(e, Dodge);
     d.cooldown = Math.max(0, d.cooldown - dt);
+    d.invuln = Math.max(0, d.invuln - dt);
   }
   for (const e of world.query(Brain)) {
     const b = world.require(e, Brain);
     b.attackCooldown = Math.max(0, b.attackCooldown - dt);
     b.guardCooldown = Math.max(0, b.guardCooldown - dt);
+  }
+}
+
+/**
+ * Status effects: slow wears off; a hold ends when its time runs out (mashing shortens it) or the holder is dead,
+ * staggered or gone.
+ */
+export function statusSystem(ctx: CombatContext, dt: number): void {
+  const { world } = ctx;
+  for (const e of world.query(Status)) {
+    const s = world.require(e, Status);
+    s.slowT = Math.max(0, s.slowT - dt);
+    if (s.heldBy < 0) continue;
+    s.heldT -= dt;
+    const holder = world.isAlive(s.heldBy) ? world.get(s.heldBy, Health) : undefined;
+    if (s.heldT <= 0 || !holder || holder.hp <= 0 || holder.stagger > 0 || ctx.doomed.has(s.heldBy)) {
+      s.heldBy = -1;
+      s.heldT = 0;
+      ctx.events.push({ type: 'GrabReleased', target: e });
+    }
   }
 }
 
@@ -83,6 +109,12 @@ export function heroCombatInputSystem(world: World, input: Readonly<InputState>)
     const dodge = world.require(e, Dodge);
     const h = world.get(e, Health);
     if (h && (h.hp <= 0 || h.stagger > 0)) continue;
+    const status = world.get(e, Status);
+    if (status && status.heldBy >= 0) {
+      // Held: every Attack press is a struggle that shortens the hold; no dodge, no swing.
+      if (input.buttons & Buttons.Attack) status.heldT -= status.mashReduce;
+      continue;
+    }
 
     if (input.buttons & Buttons.Dodge && dodge.t <= 0 && dodge.cooldown <= 0) {
       // Direction: direct input, else current motion (tap-walking), else facing.
@@ -106,6 +138,7 @@ export function heroCombatInputSystem(world: World, input: Readonly<InputState>)
       attacker.current = null;
       attacker.buffered = false;
       if (h) h.iFrames = Math.max(h.iFrames, dodge.iFrames);
+      dodge.invuln = dodge.iFrames;
       const target = world.get(e, MoveTarget);
       if (target) target.active = false;
       continue;
@@ -189,7 +222,8 @@ function beginAttack(ctx: CombatContext, e: Entity, index: number): void {
       }
     }
   }
-  t.rot = Math.atan2(dirX, dirY);
+  // A spray from the rear: the body turns away, the aim (and the hit area) still points at the target.
+  t.rot = def.turnAway ? Math.atan2(-dirX, -dirY) : Math.atan2(dirX, dirY);
   attacker.current = { def, phase: 'windup', t: 0, dirX, dirY, hit: [], extraRecovery: 0 };
   attacker.comboIndex = index;
   attacker.buffered = false;
@@ -232,6 +266,29 @@ function fireProjectiles(ctx: CombatContext, owner: Entity, attack: ActiveAttack
   }
 }
 
+/** Lays the attack's floor zone (skunk cloud) ahead of the attacker. */
+function spawnHazard(ctx: CombatContext, owner: Entity, attack: ActiveAttack): void {
+  const { world } = ctx;
+  const hz = attack.def.hazard;
+  if (!hz) return;
+  const t = world.require(owner, Transform);
+  const x = t.x + attack.dirX * hz.offset;
+  const y = t.y + attack.dirY * hz.offset;
+  const e = world.create();
+  world.add(e, Transform, { x, y, rot: 0 });
+  world.add(e, PrevTransform, { x, y, rot: 0 });
+  world.add(e, Hazard, {
+    def: hz,
+    side: world.get(owner, Team)?.side ?? 'monster',
+    owner,
+    atk: world.get(owner, Stats)?.atk ?? 0,
+    ttl: hz.duration,
+    tickT: 0,
+  });
+  world.add(e, Kind, { kind: 'hazard', defId: attack.def.id });
+  ctx.events.push({ type: 'EntitySpawned', entity: e, kind: 'hazard', defId: attack.def.id });
+}
+
 /**
  * Runs attacks and dodges: starts requested attacks, advances windup → active → recovery, fires projectiles,
  * applies lunges/dodge dashes as forced velocity, chains buffered combo hits. Locks steering while busy.
@@ -258,8 +315,9 @@ export function actionSystem(ctx: CombatContext, dt: number): void {
   for (const e of world.query(Attacker, Transform)) {
     const attacker = world.require(e, Attacker);
     const h = world.get(e, Health);
-    if (h && h.stagger > 0) {
-      // Stagger: can't move or act (HealthData.stagger). Interrupt the swing, drop steering and any tap target.
+    const held = isHeld(world, e);
+    if ((h && h.stagger > 0) || held) {
+      // Stagger / held: can't move or act. Interrupt the swing, drop steering and any tap target.
       attacker.current = null;
       attacker.buffered = false;
       const s = world.get(e, Steering);
@@ -269,6 +327,11 @@ export function actionSystem(ctx: CombatContext, dt: number): void {
       }
       const target = world.get(e, MoveTarget);
       if (target) target.active = false;
+      const v = world.get(e, Velocity);
+      if (held && v) {
+        v.x = 0;
+        v.y = 0;
+      }
       continue;
     }
     if (!attacker.current && attacker.request >= 0 && !isBusy(world, e))
@@ -286,6 +349,7 @@ export function actionSystem(ctx: CombatContext, dt: number): void {
       cur.phase = 'active';
       cur.t -= cur.def.windup;
       if (cur.def.projectile) fireProjectiles(ctx, e, cur);
+      if (cur.def.hazard) spawnHazard(ctx, e, cur);
     }
     if (cur.phase === 'active') {
       const lunge = cur.def.lungeSpeed ?? 0;
@@ -328,9 +392,28 @@ function applyHit(
   const h = world.get(target, Health);
   const t = world.get(target, Transform);
   if (!h || !t || h.hp <= 0) return false;
-  if (h.iFrames > 0) return false;
   // Submerged ambushers are out of reach.
   if (world.get(target, Brain)?.hidden) return false;
+
+  if (def.grab) {
+    // A grab holds instead of hurting; only targets with a Status (the hero) can be held, one hold at a time.
+    // After-hit i-frames don't stop it (the grab is what lets the others hit); only a dodge does.
+    const status = world.get(target, Status);
+    if (!status || status.heldBy >= 0 || (world.get(target, Dodge)?.invuln ?? 0) > 0) return false;
+    status.heldBy = source;
+    status.heldT = def.grab.duration;
+    status.mashReduce = def.grab.mashReduce;
+    const v = world.get(target, Velocity);
+    if (v) {
+      v.x = 0;
+      v.y = 0;
+    }
+    const target2 = world.get(target, MoveTarget);
+    if (target2) target2.active = false;
+    ctx.events.push({ type: 'Grabbed', target, by: source, duration: def.grab.duration });
+    return true;
+  }
+  if (h.iFrames > 0) return false;
 
   const facing = facingCos(t.rot, t.x, t.y, sourceX, sourceY);
   const brain = world.get(target, Brain);
@@ -456,6 +539,67 @@ export function projectileSystem(ctx: CombatContext, dt: number): void {
         ctx.doomed.add(e);
         break;
       }
+    }
+  }
+}
+
+/**
+ * Floor zones: tick down, slow whoever of the other side stands inside and deal damage every `tick` seconds
+ * (no stagger, no hit reaction; dodge i-frames skip a tick).
+ */
+export function hazardSystem(ctx: CombatContext, dt: number): void {
+  const { world } = ctx;
+  const targets = world.query(Team, Health, Transform, Collider);
+  for (const e of world.query(Hazard, Transform)) {
+    const hz = world.require(e, Hazard);
+    const t = world.require(e, Transform);
+    hz.ttl -= dt;
+    if (hz.ttl <= 0) {
+      ctx.doomed.add(e);
+      continue;
+    }
+    hz.tickT += dt;
+    const tick = hz.tickT >= hz.def.tick;
+    if (tick) hz.tickT -= hz.def.tick;
+    for (const other of targets) {
+      if (world.require(other, Team).side === hz.side) continue;
+      const h = world.require(other, Health);
+      if (h.hp <= 0) continue;
+      const o = world.require(other, Transform);
+      const rr = hz.def.radius + world.require(other, Collider).radius;
+      if ((o.x - t.x) ** 2 + (o.y - t.y) ** 2 > rr * rr) continue;
+      const status = world.get(other, Status);
+      if (status) {
+        status.slowMult = hz.def.slow;
+        status.slowT = Math.max(status.slowT, BALANCE.hazardSlowLinger);
+      }
+      if (!tick || hz.def.power <= 0 || h.iFrames > 0) continue;
+      const { amount } = computeDamage(
+        {
+          atk: hz.atk,
+          power: hz.def.power,
+          def: world.get(other, Stats)?.def ?? 0,
+          elementMult: h.resist[hz.def.element] ?? 1,
+          bonusMult: 1,
+        },
+        ctx.rng,
+      );
+      h.hp -= amount;
+      h.lastHitElement = hz.def.element;
+      ctx.events.push({
+        type: 'DamageDealt',
+        source: hz.owner,
+        target: other,
+        amount,
+        element: hz.def.element,
+        crit: false,
+        blocked: false,
+        backstab: false,
+        staggered: false,
+        dot: true,
+        x: o.x,
+        y: o.y,
+      });
     }
   }
 }

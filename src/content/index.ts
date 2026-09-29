@@ -2,7 +2,7 @@
 import { tavi } from './characters/tavi';
 import { en } from './i18n/en';
 import { ru } from './i18n/ru';
-import { dragochick, fugu, porcupine, toadhog } from './monsters/newcomers';
+import { decapus, dinostrich, dragochick, fugu, porcupine, skunk, toadhog, yak } from './monsters/newcomers';
 import { bonegnaw, brooklash } from './monsters/tier1';
 import { arenaNew } from './rooms/arena_new';
 import { arenaTest } from './rooms/arena_test';
@@ -24,6 +24,10 @@ export const monsters: Readonly<Record<string, MonsterDef>> = {
   porcupine,
   toadhog,
   dragochick,
+  skunk,
+  yak,
+  dinostrich,
+  decapus,
 };
 export const arenas: Readonly<Record<string, Arena>> = { arena_test: arenaTest, arena_new: arenaNew };
 export const locales = { ru, en } as const satisfies Record<string, Locale>;

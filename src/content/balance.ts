@@ -26,6 +26,8 @@ export const BALANCE = {
   /** Seconds a carcass stays on the floor (scavengers eat it; M3 butchers it). */
   carrionTtl: 25,
   /** Monster AI tuning shared by all monsters (per-monster numbers live in MonsterDef.ai). */
+  /** A hazard's slow lingers this long after stepping out, seconds. */
+  hazardSlowLinger: 0.3,
   ai: {
     /** Chasers stop closing in at this fraction of their attack range. */
     closeIn: 0.7,

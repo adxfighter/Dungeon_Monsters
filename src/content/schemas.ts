@@ -35,7 +35,7 @@ const HexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'expected #rrggbb');
 // ---------------------------------------------------------------- combat
 
 /** Damage elements (GDD §4.3). The kill element decides ingredient quality in M3. */
-export const ELEMENTS = ['slash', 'blunt', 'fire', 'cold'] as const;
+export const ELEMENTS = ['slash', 'blunt', 'fire', 'cold', 'poison'] as const;
 export const ElementSchema = z.enum(ELEMENTS);
 export type Element = z.infer<typeof ElementSchema>;
 
@@ -67,6 +67,31 @@ export const ProjectileSchema = z.object({
   range: Tiles,
 });
 
+/** A lingering zone left on the floor by an attack (skunk cloud): damage over time + slow for the other side. */
+export const HazardSchema = z.object({
+  /** Distance from the attacker along the attack direction, tiles. */
+  offset: z.number().nonnegative(),
+  radius: Tiles,
+  /** Lifetime, seconds. */
+  duration: z.number().positive(),
+  /** Seconds between damage ticks. */
+  tick: z.number().positive(),
+  /** Damage multiplier on the attacker's ATK per tick (0 = slow only). */
+  power: z.number().nonnegative(),
+  element: ElementSchema,
+  /** Speed multiplier for targets standing inside (1 = no slow). */
+  slow: z.number().positive().max(1),
+});
+export type HazardDef = z.infer<typeof HazardSchema>;
+
+/** A grab (decapus tentacles): no damage, holds the target in place; mashing Attack breaks free sooner. */
+export const GrabSchema = z.object({
+  /** Longest hold, seconds. */
+  duration: z.number().positive(),
+  /** Seconds cut from the hold by every Attack press of the held hero. */
+  mashReduce: z.number().positive(),
+});
+
 export const AttackSchema = z
   .object({
     id: z.string().min(1),
@@ -80,8 +105,8 @@ export const AttackSchema = z
     /** Melee hit area; required unless the attack fires projectiles. */
     shape: HitShapeSchema.optional(),
     projectile: ProjectileSchema.optional(),
-    /** Damage multiplier on the attacker's ATK. */
-    power: z.number().positive(),
+    /** Damage multiplier on the attacker's ATK (0 for a pure grab). */
+    power: z.number().nonnegative(),
     element: ElementSchema,
     /** Stagger damage against poise. */
     poiseDamage: z.number().nonnegative(),
@@ -89,6 +114,12 @@ export const AttackSchema = z
     lungeSpeed: z.number().nonnegative().optional(),
     /** AI: start this attack when the target is closer than this, tiles. */
     range: Tiles,
+    /** The monster turns its back to the target (skunk spray); the aim and the hit area still point at it. */
+    turnAway: z.boolean().optional(),
+    /** Leaves a zone on the floor when the active phase starts. */
+    hazard: HazardSchema.optional(),
+    /** Grabs instead of damaging. */
+    grab: GrabSchema.optional(),
   })
   .refine((a) => a.shape !== undefined || a.projectile !== undefined, 'attack needs a shape or a projectile');
 export type AttackDef = z.infer<typeof AttackSchema>;

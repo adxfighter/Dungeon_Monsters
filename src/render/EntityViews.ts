@@ -2,27 +2,35 @@ import { Group, type Object3D } from 'three';
 import {
   Attacker,
   Brain,
+  type EntityKind,
+  Hazard,
   Health,
   MoveStats,
   PrevTransform,
+  Status,
   Transform,
   Velocity,
-  type EntityKind,
 } from '@core/components';
 import type { Entity, World } from '@core/ecs/World';
 import type { GameEvent } from '@core/state/events';
 import { characters, monsters } from '@content/index';
+import type { HazardDef } from '@content/schemas';
 import { disposeObject } from './dispose';
 import { createChibi } from './models/chibi';
 import { createMonster, createQuill } from './models/monsters';
+import { createStinkCloud } from './models/beasts';
 import { createCarcass } from './models/newcomers';
 import { HitFlash } from './fx/HitFlash';
 import type { Pose } from './models/pose';
 
-/** Projectile colour by attack id (projectile views are keyed by the attack that fired them). */
+/** Projectile colour and floor-hazard def by attack id (those views are keyed by the attack that made them). */
 const PROJECTILE_COLORS = new Map<string, string>();
+const HAZARDS = new Map<string, HazardDef>();
 for (const def of Object.values(monsters)) {
-  for (const a of def.attacks) if (a.projectile?.color) PROJECTILE_COLORS.set(a.id, a.projectile.color);
+  for (const a of def.attacks) {
+    if (a.projectile?.color) PROJECTILE_COLORS.set(a.id, a.projectile.color);
+    if (a.hazard) HAZARDS.set(a.id, a.hazard);
+  }
 }
 
 interface View {
@@ -81,6 +89,12 @@ export class EntityViews {
       return { object: rig.root, update: rig.update, flash: new HitFlash(rig.materials), disposable: true };
     }
     if (kind === 'carrion') return { object: createCarcass(), disposable: false };
+    if (kind === 'hazard') {
+      const hz = HAZARDS.get(defId);
+      if (!hz) throw new Error(`EntityViews: unknown hazard '${defId}'`);
+      const rig = createStinkCloud(hz);
+      return { object: rig.root, update: rig.update, disposable: true };
+    }
     return { object: createQuill(PROJECTILE_COLORS.get(defId)), disposable: false };
   }
 
@@ -116,6 +130,9 @@ export class EntityViews {
     staggered: false,
     hidden: false,
     eating: false,
+    attackId: '',
+    holdDist: 0,
+    life01: 1,
   };
 
   /** Reads what the entity is doing from core (read-only) into a reused pose object. */
@@ -139,7 +156,21 @@ export class EntityViews {
     pose.guarding = brain?.state === 'guard';
     pose.hidden = brain?.hidden ?? false;
     pose.eating = brain?.state === 'eat' && Math.abs(brain.t) > 0;
-    pose.staggered = (world.get(entity, Health)?.stagger ?? 0) > 0;
+    // A held hero wriggles like a staggered one.
+    pose.staggered =
+      (world.get(entity, Health)?.stagger ?? 0) > 0 || (world.get(entity, Status)?.heldBy ?? -1) >= 0;
+    pose.attackId = cur ? cur.def.id : '';
+    pose.holdDist = 0;
+    if (brain?.state === 'hold') {
+      const self = world.get(entity, Transform);
+      for (const held of world.query(Status, Transform)) {
+        if (world.require(held, Status).heldBy !== entity || !self) continue;
+        const o = world.require(held, Transform);
+        pose.holdDist = Math.hypot(o.x - self.x, o.y - self.y);
+      }
+    }
+    const hz = world.get(entity, Hazard);
+    pose.life01 = hz ? Math.max(0, hz.ttl / hz.def.duration) : 1;
     return pose;
   }
 

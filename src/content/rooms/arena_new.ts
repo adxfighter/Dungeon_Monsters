@@ -2,8 +2,8 @@ import type { Arena } from '../schemas';
 
 /**
  * "New monsters" test arena (user decisions 2026-09-29, third playtest): the reworked Fugu, Polar porcupine,
- * Toadhog and Dragochick; the four brand-new monsters join in the next PR. Same three difficulty levels as
- * arena_test, tuned with the bots in src/core/balance.test.ts.
+ * Toadhog and Dragochick plus the new Stink skunk, Maniac yak, Dino-ostrich and Decapus. Same three difficulty
+ * levels as arena_test, tuned with the bots in src/core/balance.test.ts.
  */
 export const arenaNew: Arena = {
   id: 'arena_new',
@@ -42,14 +42,15 @@ export const arenaNew: Arena = {
           spawns: [
             { monster: 'porcupine', x: 2.5, y: 2.5 },
             { monster: 'dragochick', x: 10.5, y: 2.5 },
+            { monster: 'skunk', x: 2.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'fugu', x: 2.5, y: 8.5 },
-            { monster: 'toadhog', x: 10.5, y: 8.5 },
-            { monster: 'dragochick', x: 6.5, y: 1.5 },
+            { monster: 'yak', x: 6.5, y: 1.5 },
+            { monster: 'dinostrich', x: 10.5, y: 8.5 },
+            { monster: 'decapus', x: 2.5, y: 8.5 },
           ],
         },
       ],
@@ -64,6 +65,7 @@ export const arenaNew: Arena = {
           spawns: [
             { monster: 'toadhog', x: 6.5, y: 1.5 },
             { monster: 'dragochick', x: 10.5, y: 8.5 },
+            { monster: 'skunk', x: 2.5, y: 8.5 },
           ],
         },
         {
@@ -71,24 +73,25 @@ export const arenaNew: Arena = {
           spawns: [
             { monster: 'porcupine', x: 2.5, y: 2.5 },
             { monster: 'fugu', x: 10.5, y: 2.5 },
-            { monster: 'toadhog', x: 2.5, y: 8.5 },
+            { monster: 'yak', x: 6.5, y: 9.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'dragochick', x: 2.5, y: 8.5 },
-            { monster: 'fugu', x: 10.5, y: 8.5 },
-            { monster: 'porcupine', x: 6.5, y: 1.5 },
+            { monster: 'dinostrich', x: 2.5, y: 8.5 },
+            { monster: 'decapus', x: 10.5, y: 8.5 },
+            { monster: 'toadhog', x: 6.5, y: 1.5 },
           ],
         },
         {
           delay: 2.5,
           spawns: [
-            { monster: 'toadhog', x: 2.5, y: 2.5 },
+            { monster: 'yak', x: 2.5, y: 2.5 },
             { monster: 'dragochick', x: 10.5, y: 2.5 },
-            { monster: 'fugu', x: 2.5, y: 8.5 },
-            { monster: 'porcupine', x: 10.5, y: 8.5 },
+            { monster: 'skunk', x: 2.5, y: 8.5 },
+            { monster: 'decapus', x: 10.5, y: 8.5 },
+            { monster: 'fugu', x: 6.5, y: 9.5 },
           ],
         },
       ],
@@ -103,7 +106,7 @@ export const arenaNew: Arena = {
           spawns: [
             { monster: 'toadhog', x: 6.5, y: 1.5 },
             { monster: 'dragochick', x: 10.5, y: 8.5 },
-            { monster: 'fugu', x: 2.5, y: 8.5 },
+            { monster: 'skunk', x: 2.5, y: 8.5 },
           ],
         },
         {
@@ -111,26 +114,28 @@ export const arenaNew: Arena = {
           spawns: [
             { monster: 'porcupine', x: 2.5, y: 2.5 },
             { monster: 'fugu', x: 10.5, y: 2.5 },
-            { monster: 'toadhog', x: 2.5, y: 8.5 },
+            { monster: 'yak', x: 6.5, y: 9.5 },
+            { monster: 'dinostrich', x: 10.5, y: 8.5 },
           ],
         },
         {
           delay: 2,
           spawns: [
-            { monster: 'dragochick', x: 2.5, y: 8.5 },
-            { monster: 'dragochick', x: 10.5, y: 8.5 },
-            { monster: 'porcupine', x: 6.5, y: 1.5 },
-            { monster: 'toadhog', x: 10.5, y: 2.5 },
+            { monster: 'dinostrich', x: 2.5, y: 8.5 },
+            { monster: 'decapus', x: 10.5, y: 8.5 },
+            { monster: 'toadhog', x: 6.5, y: 1.5 },
+            { monster: 'dragochick', x: 10.5, y: 2.5 },
           ],
         },
         {
           delay: 2.5,
           spawns: [
-            { monster: 'toadhog', x: 2.5, y: 2.5 },
+            { monster: 'yak', x: 2.5, y: 2.5 },
             { monster: 'dragochick', x: 10.5, y: 2.5 },
-            { monster: 'fugu', x: 2.5, y: 8.5 },
-            { monster: 'porcupine', x: 10.5, y: 8.5 },
+            { monster: 'skunk', x: 2.5, y: 8.5 },
+            { monster: 'decapus', x: 10.5, y: 8.5 },
             { monster: 'fugu', x: 6.5, y: 9.5 },
+            { monster: 'dinostrich', x: 6.5, y: 1.5 },
           ],
         },
       ],

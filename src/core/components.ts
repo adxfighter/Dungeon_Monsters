@@ -5,7 +5,7 @@
  * the camera (screen down), 1 unit = 1 tile. `rot` is the facing angle in radians; facing direction is
  * (sin rot, cos rot), so rot = 0 faces +y (toward the camera). Render maps (x, y) → world (x, 0, y).
  */
-import type { AttackDef, Element, MonsterDef } from '@content/schemas';
+import type { AttackDef, Element, HazardDef, MonsterDef } from '@content/schemas';
 import { defineComponent, type Entity } from './ecs/World';
 
 export interface Transform2D {
@@ -44,8 +44,8 @@ export interface MoveStatsData {
 export const MoveStats = defineComponent<MoveStatsData>('MoveStats');
 
 /** What the entity is, for render/ui to pick a view. */
-export type EntityKind = 'player' | 'monster' | 'projectile' | 'carrion';
-/** `defId`: character id (player), monster id (monster) or attack id (projectile). */
+export type EntityKind = 'player' | 'monster' | 'projectile' | 'carrion' | 'hazard';
+/** `defId`: character id (player), monster id (monster/carrion) or attack id (projectile/hazard). */
 export const Kind = defineComponent<{ kind: EntityKind; defId: string }>('Kind');
 
 // ---------------------------------------------------------------- combat
@@ -119,13 +119,15 @@ export interface DodgeData {
   cooldown: number;
   dirX: number;
   dirY: number;
+  /** Seconds of dodge invulnerability left (unlike after-hit i-frames, this also dodges grabs). */
+  invuln: number;
 }
 export const Dodge = defineComponent<DodgeData>('Dodge');
 
 /** Velocity imposed by an action (dodge, lunge); steering is ignored while active. */
 export const ForcedVelocity = defineComponent<{ active: boolean; x: number; y: number }>('ForcedVelocity');
 
-export type BrainState = 'idle' | 'wander' | 'chase' | 'attack' | 'guard' | 'exposed' | 'eat';
+export type BrainState = 'idle' | 'wander' | 'chase' | 'attack' | 'guard' | 'exposed' | 'eat' | 'hold';
 
 export interface BrainData {
   def: MonsterDef;
@@ -166,6 +168,33 @@ export interface ProjectileData {
   speed: number;
 }
 export const Projectile = defineComponent<ProjectileData>('Projectile');
+
+/** Lingering zone on the floor (skunk cloud). Hurts and slows the side opposite to `side`. */
+export interface HazardData {
+  def: HazardDef;
+  side: Side;
+  owner: Entity;
+  /** Attacker's ATK when it was laid. */
+  atk: number;
+  /** Seconds left. */
+  ttl: number;
+  /** Seconds since the last damage tick. */
+  tickT: number;
+}
+export const Hazard = defineComponent<HazardData>('Hazard');
+
+/** Status effects on the hero: slow (from hazards) and being held (grab). */
+export interface StatusData {
+  /** Speed multiplier while `slowT` > 0. */
+  slowMult: number;
+  slowT: number;
+  /** Who is holding this entity (-1 = free) and for how much longer, seconds. */
+  heldBy: Entity;
+  heldT: number;
+  /** Seconds cut from the hold per Attack press. */
+  mashReduce: number;
+}
+export const Status = defineComponent<StatusData>('Status');
 
 /** A monster carcass left on the floor (M3 butchery reads it too); scavengers eat it. `ttl` in seconds. */
 export const Carrion = defineComponent<{ monsterId: string; ttl: number }>('Carrion');

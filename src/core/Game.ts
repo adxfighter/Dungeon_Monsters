@@ -20,6 +20,7 @@ import {
   PlayerControlled,
   PrevTransform,
   Stats,
+  Status,
   Steering,
   Team,
   Transform,
@@ -37,9 +38,11 @@ import {
   carrionSystem,
   combatTimersSystem,
   deathSystem,
+  hazardSystem,
   heroCombatInputSystem,
   meleeHitSystem,
   projectileSystem,
+  statusSystem,
   type CombatContext,
 } from './systems/combat';
 import {
@@ -168,6 +171,7 @@ export class Game {
     ctx.events = this.pending;
 
     combatTimersSystem(world, dt);
+    statusSystem(ctx, dt);
     playerInputSystem(world, map, input);
     heroCombatInputSystem(world, input);
     aiSystem(ctx, dt);
@@ -178,6 +182,7 @@ export class Game {
     separationSystem(world, map);
     projectileSystem(ctx, dt);
     meleeHitSystem(ctx);
+    hazardSystem(ctx, dt);
     carrionSystem(ctx, dt);
     if (deathSystem(ctx)) this.statusValue = 'defeated';
     this.flushDoomed();
@@ -293,6 +298,7 @@ export class Game {
     world.add(e, Collider, { radius: character.radius });
     world.add(e, MoveStats, { ...character.movement });
     world.add(e, PlayerControlled, {});
+    world.add(e, Status, { slowMult: 1, slowT: 0, heldBy: -1, heldT: 0, mashReduce: 0 });
     world.add(e, Team, { side: 'hero' });
     world.add(e, Stats, { atk: combat.stats.atk, def: combat.stats.def });
     world.add(
@@ -318,6 +324,7 @@ export class Game {
       cooldown: 0,
       dirX: 0,
       dirY: 1,
+      invuln: 0,
     });
     world.add(e, Kind, { kind: 'player', defId: character.id });
     this.pending.push({ type: 'EntitySpawned', entity: e, kind: 'player', defId: character.id });
