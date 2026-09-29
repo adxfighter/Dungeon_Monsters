@@ -1,5 +1,6 @@
 import { Group, type Object3D } from 'three';
 import {
+  Arsenal,
   Attacker,
   Brain,
   type EntityKind,
@@ -133,6 +134,8 @@ export class EntityViews {
     attackId: '',
     holdDist: 0,
     life01: 1,
+    element: '',
+    weapon: '',
   };
 
   /** Reads what the entity is doing from core (read-only) into a reused pose object. */
@@ -160,6 +163,9 @@ export class EntityViews {
     pose.staggered =
       (world.get(entity, Health)?.stagger ?? 0) > 0 || (world.get(entity, Status)?.heldBy ?? -1) >= 0;
     pose.attackId = cur ? cur.def.id : '';
+    pose.element = cur ? cur.def.element : '';
+    const arsenal = world.get(entity, Arsenal);
+    pose.weapon = arsenal ? (arsenal.weapons[arsenal.index]?.id ?? '') : '';
     pose.holdDist = 0;
     if (brain) {
       const self = world.get(entity, Transform);

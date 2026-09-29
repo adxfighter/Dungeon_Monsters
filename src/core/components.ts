@@ -5,7 +5,8 @@
  * the camera (screen down), 1 unit = 1 tile. `rot` is the facing angle in radians; facing direction is
  * (sin rot, cos rot), so rot = 0 faces +y (toward the camera). Render maps (x, y) → world (x, 0, y).
  */
-import type { AttackDef, Element, HazardDef, MonsterDef } from '@content/schemas';
+import type { AttackDef, Element, HazardDef, MonsterDef, WeaponDef } from '@content/schemas';
+import type { BackpackData } from './loot/backpack';
 import { defineComponent, type Entity } from './ecs/World';
 
 export interface Transform2D {
@@ -196,8 +197,30 @@ export interface StatusData {
 }
 export const Status = defineComponent<StatusData>('Status');
 
-/** A monster carcass left on the floor (M3 butchery reads it too); scavengers eat it. `ttl` in seconds. */
-export const Carrion = defineComponent<{ monsterId: string; ttl: number }>('Carrion');
+/**
+ * A monster carcass left on the floor: butchered by the hero (M3), eaten by scavengers, rots after `ttl` seconds.
+ * How it died decides ingredient quality.
+ */
+export const Carrion = defineComponent<{
+  monsterId: string;
+  ttl: number;
+  killElement: Element;
+  /** Overkill as a fraction of max HP. */
+  overkillRatio: number;
+  /** Parts still on it after a butchering that didn't fit the backpack (null = untouched: all of the monster's drops). */
+  left: { partId: string; ingredientId: string; count: number }[] | null;
+}>('Carrion');
+
+/** The hero's weapons (blade, torch, …) and which one is in hand; its combo is `Attacker.attacks`. */
+export const Arsenal = defineComponent<{
+  weapons: readonly WeaponDef[];
+  index: number;
+  /** Swap pressed during a swing: switch as soon as it ends. */
+  swapQueued: boolean;
+}>('Arsenal');
+
+/** The hero's backpack (M3): ingredient stacks with weight/slot limits. */
+export const Backpack = defineComponent<BackpackData>('Backpack');
 
 /** Desired move direction for this step, |v| ≤ 1 (from input or navigation). Consumed by the movement system. */
 export const Steering = defineComponent<Velocity2D>('Steering');

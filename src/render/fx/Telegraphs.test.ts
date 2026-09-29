@@ -33,7 +33,7 @@ describe('telegraph footprints (floor plane, pointing along +Z)', () => {
   });
 
   it('a cone is centred on +Z and reaches its range', () => {
-    const slash = first(tavi.combat.combo);
+    const slash = first(tavi.combat.weapons[0]?.combo ?? []);
     const shape = slash.shape;
     if (shape?.kind !== 'cone') throw new Error('expected a cone');
     const b = box({ ...slash, lungeSpeed: 0 });

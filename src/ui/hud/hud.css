@@ -317,3 +317,94 @@
     transform: translateX(-50%) scale(1.06);
   }
 }
+
+/* Second, inner column: Butcher above the weapon swap (M3). */
+.hud-extra {
+  position: absolute;
+  bottom: 24px;
+  width: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.hud-extra.side-right {
+  right: 138px;
+}
+
+.hud-extra.side-left {
+  left: 138px;
+}
+
+.action.swap {
+  width: 64px;
+  height: 64px;
+  font-size: 13px;
+  background: rgb(214 220 230 / 85%);
+}
+
+.action.swap.weapon-torch {
+  background: rgb(255 138 61 / 85%);
+}
+
+.action.butcher {
+  width: 78px;
+  height: 78px;
+  font-size: 13px;
+  background: rgb(232 150 150 / 90%);
+}
+
+.loot-toasts {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 120px);
+  left: 16px;
+  right: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.loot-toasts li {
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgb(26 20 20 / 72%);
+  color: #fff4e0;
+  font:
+    700 15px/1.2 system-ui,
+    sans-serif;
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* Arena beaten, carcasses left: a calm hint under the HP bar. */
+.carcass-hint {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: calc(env(safe-area-inset-top, 0px) + 72px);
+  width: fit-content;
+  margin: 0 auto;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgb(26 20 20 / 72%);
+  color: #fff4e0;
+  font:
+    700 15px/1.2 system-ui,
+    sans-serif;
+  text-align: center;
+  pointer-events: none;
+}

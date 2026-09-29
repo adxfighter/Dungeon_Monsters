@@ -1,17 +1,17 @@
 import {
-  CanvasTexture,
-  DoubleSide,
-  RingGeometry,
   BoxGeometry,
-  CapsuleGeometry,
-  CylinderGeometry,
-  ConeGeometry,
   type BufferGeometry,
+  CanvasTexture,
+  CapsuleGeometry,
+  ConeGeometry,
+  CylinderGeometry,
+  DoubleSide,
   Euler,
   Group,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
+  RingGeometry,
   SphereGeometry,
   SRGBColorSpace,
 } from 'three';
@@ -235,6 +235,26 @@ const DEFAULT_ORNAMENT = '#ff8fb3';
 const SWING_BACK = 0.75;
 const SWING_THROUGH = 1.7;
 
+/** Slash trail colour per attack element (the torch leaves an orange trail). */
+const TRAIL_COLOR: Readonly<Record<string, number>> = { fire: 0xff8a3d };
+const TRAIL_DEFAULT = 0xfff4e0;
+
+/** A torch held in the right hand (M3 weapon swap): a wooden stick with an unlit-bright flame. 2 draw calls. */
+function torch(): { group: Group; flame: Mesh; stickMaterial: ReturnType<typeof createToonMaterial> } {
+  const group = new Group();
+  group.name = 'chibi-torch';
+  const stickMaterial = createToonMaterial({ color: '#7a4a2a', rimStrength: 0 });
+  const stick = new Mesh(new CylinderGeometry(0.026, 0.032, 0.34, 8), stickMaterial);
+  stick.position.y = 0.05;
+  const flame = new Mesh(new ConeGeometry(0.09, 0.22, 10), new MeshBasicMaterial({ color: 0xffa43a }));
+  flame.position.y = 0.3;
+  group.add(stick, flame);
+  group.position.set(0.25, 0.02, 0.1);
+  group.rotation.x = 0.35;
+  group.visible = false;
+  return { group, flame, stickMaterial };
+}
+
 /** Crescent slash trail shown during the active phase of a swing. */
 function slashArc(): Mesh {
   const arc = new Mesh(
@@ -344,6 +364,8 @@ export function createChibi(character: Character): Rig {
   head.add(face);
 
   upper.add(body, head);
+  const held = torch();
+  upper.add(held.group);
   const arc = slashArc();
   root.add(createBlobShadow(0.36), arc);
   const arcMaterial = arc.material as MeshBasicMaterial;
@@ -352,9 +374,20 @@ export function createChibi(character: Character): Rig {
   let idlePhase = 0;
   return {
     root,
-    materials: [skin, hair, outfit, accent, ...(legsMat === accent ? [] : [legsMat]), ...extraMaterials],
+    materials: [
+      skin,
+      hair,
+      outfit,
+      accent,
+      held.stickMaterial,
+      ...(legsMat === accent ? [] : [legsMat]),
+      ...extraMaterials,
+    ],
     update(dt, speed01, pose) {
       const s = Math.min(Math.max(speed01, 0), 1);
+      held.group.visible = pose.weapon === 'torch';
+      if (held.group.visible) held.flame.scale.set(1, 1 + Math.sin(idlePhase * 9) * 0.15, 1);
+      arcMaterial.color.setHex(TRAIL_COLOR[pose.element] ?? TRAIL_DEFAULT);
       idlePhase += dt * IDLE_RATE;
       if (s > 0.01) walkPhase += dt * STEP_RATE * (0.5 + 0.5 * s);
       const swing = Math.sin(walkPhase) * LEG_SWING * s;

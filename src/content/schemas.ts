@@ -124,6 +124,60 @@ export const AttackSchema = z
   .refine((a) => a.shape !== undefined || a.projectile !== undefined, 'attack needs a shape or a projectile');
 export type AttackDef = z.infer<typeof AttackSchema>;
 
+/** A hero weapon: a name and a combo chain (the element of its attacks is the kill element). */
+export const WeaponSchema = z.object({
+  id: z.string().min(1),
+  nameKey: z.string().min(1),
+  combo: z.array(AttackSchema).min(1),
+});
+export type WeaponDef = z.infer<typeof WeaponSchema>;
+
+export const INGREDIENT_TAGS = [
+  'meat',
+  'fat',
+  'egg',
+  'bone',
+  'veg',
+  'herb',
+  'fungus',
+  'liquid',
+  'spice',
+  'jelly',
+] as const;
+export const IngredientTagSchema = z.enum(INGREDIENT_TAGS);
+const FlavorLevel = z.number().int().min(0).max(5);
+
+/** A cooking ingredient (GDD §4.5). Its star rating (1–3) comes from the butchery cut and the way the monster died. */
+export const IngredientSchema = z.object({
+  id: z.string().min(1),
+  nameKey: z.string().min(1),
+  tags: z.array(IngredientTagSchema).min(1),
+  /** Backpack weight per piece. */
+  weight: z.number().positive(),
+  /** Spoils over time (used from M4 on). */
+  perishable: z.boolean().optional(),
+  flavor: z.object({
+    savory: FlavorLevel,
+    sweet: FlavorLevel,
+    sour: FlavorLevel,
+    bitter: FlavorLevel,
+    spicy: FlavorLevel,
+  }),
+  /** Star shift by kill element (GDD §4.3): e.g. meat +1 for a clean blade kill, −1 when roasted by fire. */
+  kill: z.partialRecord(ElementSchema, z.union([z.literal(-1), z.literal(0), z.literal(1)])).optional(),
+  /** Icon id for the UI (backpack, toasts). */
+  iconKey: z.string().min(1),
+});
+export type IngredientDef = z.infer<typeof IngredientSchema>;
+
+/** One part of a monster carcass: what it becomes and how many pieces. */
+export const DropSchema = z.object({
+  partId: z.string().min(1),
+  ingredientId: z.string().min(1),
+  count: z.number().int().min(1).max(5),
+});
+export type DropDef = z.infer<typeof DropSchema>;
+
 export const CombatStatsSchema = z.object({
   hp: z.number().int().positive(),
   atk: z.number().nonnegative(),
@@ -197,8 +251,8 @@ export const MonsterSchema = z.object({
     .object({ seekRange: Tiles, eatTime: z.number().positive(), heal: z.number().nonnegative().max(1) })
     .optional(),
   attacks: z.array(AttackSchema).min(1),
-  /** Ingredient drops — placeholder until M3. */
-  drops: z.array(z.string()),
+  /** Parts left in the carcass (M3): butchering turns them into ingredients. */
+  drops: z.array(DropSchema),
 });
 export type MonsterDef = z.infer<typeof MonsterSchema>;
 
@@ -236,8 +290,11 @@ export const CharacterSchema = z.object({
   radius: z.number().positive().max(0.45),
   combat: z.object({
     stats: CombatStatsSchema,
-    /** Combo chain: attack N+1 starts if pressed within `comboWindow` after attack N (GDD §4.3: ×3). */
-    combo: z.array(AttackSchema).min(1),
+    /**
+     * Weapons, switched with the Swap button (M3: the kill element decides ingredient quality). Each has its combo
+     * chain: attack N+1 starts if pressed within `comboWindow` after attack N (GDD §4.3).
+     */
+    weapons: z.array(WeaponSchema).min(1),
     comboWindow: Seconds,
     dodge: z.object({
       /** tiles/s */

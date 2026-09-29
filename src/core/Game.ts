@@ -1,5 +1,7 @@
+import { BALANCE } from '@content/balance';
 import type {
   Character,
+  IngredientDef,
   MonsterDef,
   MonsterModifiers,
   MonsterOverride,
@@ -8,7 +10,9 @@ import type {
 } from '@content/schemas';
 import type { InputState } from '@shared/input';
 import {
+  Arsenal,
   Attacker,
+  Backpack,
   Brain,
   Collider,
   Dodge,
@@ -33,6 +37,7 @@ import { World, type Entity } from './ecs/World';
 import { Rng } from './rng';
 import type { GameEvent } from './state/events';
 import { aiSystem } from './systems/ai';
+import { lootSystem, worthButchering, type LootCatalog } from './systems/loot';
 import {
   actionSystem,
   carrionSystem,
@@ -72,6 +77,8 @@ export interface GameOptions {
    * difficulty's waves and modifiers.
    */
   awaitStart?: boolean;
+  /** Ingredient definitions by id (loot, backpack weights); without them carcasses give nothing. */
+  ingredients?: Readonly<Record<string, IngredientDef>>;
 }
 
 export type GameStatus = 'ready' | 'playing' | 'defeated' | 'cleared';
@@ -106,6 +113,7 @@ export class Game {
   private pending: GameEvent[] = [];
   private readonly ctx: CombatContext;
   private readonly monsters: Readonly<Record<string, MonsterDef>>;
+  private readonly catalog: LootCatalog;
   private waves: Waves | readonly never[];
   private modifiers: MonsterModifiers = { hp: 1, atk: 1, attackCooldown: 1 };
   private overrides: Readonly<Record<string, MonsterOverride>> = {};
@@ -116,6 +124,7 @@ export class Game {
   constructor(options: GameOptions) {
     this.map = TileMap.fromTemplate(options.room);
     this.monsters = options.monsters ?? {};
+    this.catalog = { monsters: this.monsters, ingredients: options.ingredients ?? {} };
     this.waves = options.waves ?? [];
     if (options.modifiers) this.modifiers = options.modifiers;
     if (options.overrides) this.overrides = options.overrides;
@@ -173,7 +182,8 @@ export class Game {
     combatTimersSystem(world, dt);
     statusSystem(ctx, dt);
     playerInputSystem(world, map, input);
-    heroCombatInputSystem(world, input);
+    heroCombatInputSystem(world, input, ctx);
+    lootSystem(ctx, input, this.catalog);
     aiSystem(ctx, dt);
     navigationSystem(world, dt);
     actionSystem(ctx, dt);
@@ -201,6 +211,20 @@ export class Game {
   /** Read-only view of an entity transform (for render, debug and tests). */
   transformOf(entity: Entity): Readonly<Transform2D> | undefined {
     return this.world.get(entity, Transform);
+  }
+
+  /**
+   * Last wave beaten, only carcasses left that the hero can still carry something from: the win waits for them
+   * (UI shows a hint).
+   */
+  get awaitingCarcasses(): boolean {
+    return (
+      this.statusValue === 'playing' &&
+      this.waves.length > 0 &&
+      this.waveIndex >= this.waves.length - 1 &&
+      this.monstersAlive === 0 &&
+      worthButchering(this.world, this.catalog) > 0
+    );
   }
 
   /** Number of living monsters. */
@@ -298,6 +322,12 @@ export class Game {
     world.add(e, Collider, { radius: character.radius });
     world.add(e, MoveStats, { ...character.movement });
     world.add(e, PlayerControlled, {});
+    world.add(e, Arsenal, { weapons: combat.weapons, index: 0, swapQueued: false });
+    world.add(e, Backpack, {
+      stacks: [],
+      maxWeight: BALANCE.backpack.maxWeight,
+      maxSlots: BALANCE.backpack.maxSlots,
+    });
     world.add(e, Status, { slowMult: 1, slowT: 0, heldBy: -1, heldT: 0, mashReduce: 0 });
     world.add(e, Team, { side: 'hero' });
     world.add(e, Stats, { atk: combat.stats.atk, def: combat.stats.def });
@@ -307,7 +337,7 @@ export class Game {
       healthFrom(combat.stats, { hitIFrames: combat.hitIFrames, resist: {}, backVulnerability: null }),
     );
     world.add(e, Attacker, {
-      attacks: combat.combo,
+      attacks: combat.weapons[0]?.combo ?? [],
       current: null,
       request: -1,
       comboIndex: 0,
@@ -344,6 +374,9 @@ export class Game {
     if (this.waves.length === 0 || this.statusValue !== 'playing') return;
     if (this.waveIndex >= 0 && this.monstersAlive > 0) return;
     if (this.waveIndex >= this.waves.length - 1) {
+      // Leave time to butcher the last kills: the win screen waits while a carcass still has something that fits
+      // the backpack (butchered, eaten or rotten — at most BALANCE.carrionTtl).
+      if (worthButchering(this.world, this.catalog) > 0) return;
       this.statusValue = 'cleared';
       this.pending.push({ type: 'ArenaCleared' });
       return;

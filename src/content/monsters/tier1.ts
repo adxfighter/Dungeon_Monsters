@@ -42,7 +42,10 @@ export const brooklash: MonsterDef = {
       range: 1.7,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'fillet', ingredientId: 'brooklash_fillet', count: 2 },
+    { partId: 'roe', ingredientId: 'brooklash_roe', count: 1 },
+  ],
 };
 
 /** Bonegnaw: a scavenger beetle; runs to fresh carcasses and eats them (spoiling the loot), bites if cornered. */
@@ -80,5 +83,8 @@ export const bonegnaw: MonsterDef = {
       range: 0.9,
     },
   ],
-  drops: [],
+  drops: [
+    { partId: 'fat', ingredientId: 'bonegnaw_fat', count: 1 },
+    { partId: 'shell', ingredientId: 'bonegnaw_shell', count: 2 },
+  ],
 };

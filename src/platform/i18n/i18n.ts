@@ -9,6 +9,11 @@ export interface I18n {
   t(key: string): string;
 }
 
+/** Fills `{name}` placeholders of a translated template (missing values are left as is). */
+export function format(template: string, values: Readonly<Record<string, string | number>>): string {
+  return template.replace(/\{(\w+)\}/g, (m, key: string) => (key in values ? String(values[key]) : m));
+}
+
 /** Picks the first supported locale from the browser preference list (e.g. 'ru-RU' → 'ru'). */
 export function pickLocale(
   preferred: readonly string[],

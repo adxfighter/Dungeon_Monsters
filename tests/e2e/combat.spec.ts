@@ -103,6 +103,33 @@ test('a decapus grab shows the break-free hint, and mashing Attack frees the her
   await expect(hint).toBeHidden({ timeout: 4000 });
 });
 
+test('a killed monster leaves a carcass: Butcher puts its parts in the backpack (loot line)', async ({
+  page,
+}) => {
+  const cdp = await page.context().newCDPSession(page);
+  await expect(page.getByTestId('btn-butcher')).toHaveCount(0);
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.spawnMonster('yak', 6.5, 6.1);
+    window.__debug?.killMonsters();
+  });
+  const butcher = page.getByTestId('btn-butcher');
+  await expect(butcher).toBeVisible({ timeout: 5000 });
+  await tapElement(cdp, page, 'btn-butcher');
+  await expect(page.getByTestId('loot-toasts')).toContainText('Стейк яка', { timeout: 5000 });
+  await expect(butcher).toHaveCount(0);
+});
+
+test('the swap button switches blade ↔ torch', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  const swap = page.getByTestId('btn-swap');
+  await expect(swap).toHaveText('Клинок');
+  await tapElement(cdp, page, 'btn-swap');
+  await expect(swap).toHaveText('Факел');
+  await tapElement(cdp, page, 'btn-swap');
+  await expect(swap).toHaveText('Клинок');
+});
+
 test('enemies show HP bars and hits pop damage numbers', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
   await page.evaluate(() => window.__debug?.spawnMonster('fugu', 6.5, 6.2));

@@ -124,7 +124,7 @@ describe('hero combo', () => {
 
   it('a press within the window after a swing ends continues the chain', () => {
     const a = new Arena();
-    const s1 = tavi.combat.combo[0];
+    const s1 = tavi.combat.weapons[0]?.combo[0];
     if (!s1) throw new Error('combo');
     a.press(Buttons.Attack).seconds(s1.windup + s1.active + s1.recovery + DT * 2);
     a.press(Buttons.Attack).run(2);
