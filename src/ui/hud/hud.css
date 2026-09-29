@@ -159,7 +159,8 @@
   pointer-events: auto;
 }
 
-.hud-top {
+/* Only while paused: the ⏸/▶ button stays above the dimmed backdrop (other screens still cover the bar). */
+.hud-top.paused {
   z-index: 2;
 }
 

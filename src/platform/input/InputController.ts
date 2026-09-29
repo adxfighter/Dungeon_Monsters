@@ -55,6 +55,11 @@ export class InputController {
     this.touchY = 0;
   }
 
+  /** Drops button presses queued while the game was paused (they would fire all at once on resume). */
+  clearPending(): void {
+    this.pendingButtons = 0;
+  }
+
   /** Listens to keyboard events on `target`; returns an unsubscribe function. */
   attachKeyboard(target: EventTarget): () => void {
     const onDown = (event: Event): void => {

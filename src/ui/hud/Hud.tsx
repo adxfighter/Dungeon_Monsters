@@ -57,14 +57,16 @@ export function Hud(props: Props) {
   };
   const hpPct = Math.max(0, Math.min(1, state.hp / state.maxHp)) * 100;
   const setPaused = (paused: boolean) => {
-    // A finger held on the floor would keep steering the hero after the pause.
+    // A thumb held on the joystick would keep steering the hero after the pause.
     if (paused) input.releaseTouch();
+    // Keys pressed while paused (e.g. Space on the focused ⏸) must not fire on resume.
+    else input.clearPending();
     hud.setPaused(paused);
   };
 
   return (
     <>
-      <div class="hud-top">
+      <div class={state.paused ? 'hud-top paused' : 'hud-top'}>
         <div
           class="hp-bar"
           role="meter"
@@ -95,7 +97,11 @@ export function Hud(props: Props) {
           aria-pressed={state.paused}
           data-testid="btn-pause"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setPaused(!state.paused)}
+          onClick={(e) => {
+            // Keep keyboard focus off the button: Space is also the Attack key.
+            e.currentTarget.blur();
+            setPaused(!state.paused);
+          }}
         >
           {state.paused ? '▶' : '⏸'}
         </button>
