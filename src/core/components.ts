@@ -62,5 +62,8 @@ export interface MoveTargetData {
   goalTy: number;
   /** Last `InputState.target.seq` consumed. */
   lastSeq: number;
+  /** Closest distance so far to the current waypoint, and steps without getting closer (stuck detection). */
+  bestDist: number;
+  stallSteps: number;
 }
 export const MoveTarget = defineComponent<MoveTargetData>('MoveTarget');

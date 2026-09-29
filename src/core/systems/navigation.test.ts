@@ -140,3 +140,42 @@ describe('tap-to-move', () => {
     expect(run()).toEqual(run());
   });
 });
+
+describe('tap-to-move near walls', () => {
+  it.each([
+    ['next to the west wall', 1.05, 3.5],
+    ['next to the south wall', 5.5, 3.95],
+    ['into a corner', 1.02, 3.98],
+  ])('a tap %s arrives (target pulled a radius out of the wall)', (_, x, y) => {
+    const d = new Driver();
+    d.tap(x, y);
+    d.run(150);
+    expect(d.target.active).toBe(false);
+    expect(d.speed).toBe(0);
+    expect(Math.hypot(d.pos.x - d.target.x, d.pos.y - d.target.y)).toBeLessThan(0.06);
+  });
+
+  it('dragging the end point against a wall inside the same tile still arrives', () => {
+    const d = new Driver();
+    d.tap(7.5, 3.5);
+    d.run(3);
+    d.tap(7.9, 3.9); // same tile, inside the wall clearance
+    d.run(120);
+    expect(d.target.active).toBe(false);
+    expect(Math.abs(d.pos.x - (8 - tavi.radius))).toBeLessThan(0.06); // within the arrival tolerance
+  });
+
+  it('drops a target it cannot make progress toward', () => {
+    const d = new Driver();
+    d.tap(7.5, 3.5);
+    d.run(2);
+    // Simulate an obstacle the plan didn't know about: pin the hero in place every step.
+    const t = d.game.world.require(d.game.player, Transform);
+    for (let i = 0; i < 40; i++) {
+      t.x = 4.5;
+      t.y = 3.5;
+      d.run(1);
+    }
+    expect(d.target.active).toBe(false);
+  });
+});

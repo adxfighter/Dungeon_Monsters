@@ -1,3 +1,4 @@
+import { resolveCircleVsTiles } from '../systems/collision';
 import type { TileMap } from './TileMap';
 
 export interface Point {
@@ -86,6 +87,35 @@ export function segmentClear(map: TileMap, a: Point, b: Point, radius: number): 
   return true;
 }
 
+interface SearchBuffers {
+  g: Float64Array;
+  f: Float64Array;
+  h: Float64Array;
+  parent: Int32Array;
+  closed: Uint8Array;
+}
+
+let buffers: SearchBuffers | undefined;
+
+/** Reused per-map-size search arrays (replanning happens often while a finger drags), reset per call. */
+function searchBuffers(n: number): SearchBuffers {
+  if (!buffers || buffers.g.length !== n) {
+    buffers = {
+      g: new Float64Array(n),
+      f: new Float64Array(n),
+      h: new Float64Array(n),
+      parent: new Int32Array(n),
+      closed: new Uint8Array(n),
+    };
+  }
+  buffers.g.fill(Infinity);
+  buffers.f.fill(Infinity);
+  buffers.h.fill(0);
+  buffers.parent.fill(-1);
+  buffers.closed.fill(0);
+  return buffers;
+}
+
 /** Binary min-heap of node indices keyed by (f, h, index) — full ordering keeps A* deterministic. */
 class NodeHeap {
   private readonly items: number[] = [];
@@ -167,19 +197,20 @@ export function findPath(map: TileMap, start: Point, goal: Point, radius: number
   const goalTile = nearestFloorTile(map, goal.x, goal.y, 3, start);
   if (!startTile || !goalTile) return null;
   const goalInWall = map.isSolid(Math.floor(goal.x), Math.floor(goal.y));
-  const end: Point = goalInWall ? { x: goalTile.x + 0.5, y: goalTile.y + 0.5 } : { x: goal.x, y: goal.y };
+  const endCircle = goalInWall
+    ? { x: goalTile.x + 0.5, y: goalTile.y + 0.5, radius }
+    : { x: goal.x, y: goal.y, radius };
+  // A point closer than `radius` to a wall can never be reached by the circle's centre: pull it out,
+  // otherwise the walker would push into the wall forever without arriving.
+  resolveCircleVsTiles(map, endCircle);
+  const end: Point = { x: endCircle.x, y: endCircle.y };
 
   if (segmentClear(map, start, end, radius)) {
     return Math.hypot(end.x - start.x, end.y - start.y) < 1e-6 ? [] : [end];
   }
 
   const w = map.width;
-  const n = w * map.height;
-  const g = new Float64Array(n).fill(Infinity);
-  const f = new Float64Array(n).fill(Infinity);
-  const h = new Float64Array(n);
-  const parent = new Int32Array(n).fill(-1);
-  const closed = new Uint8Array(n);
+  const { g, f, h, parent, closed } = searchBuffers(w * map.height);
   const heap = new NodeHeap(f, h);
   const inside = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < w && y < map.height;
 

@@ -8,15 +8,20 @@ export type ControlScheme = 'tap' | 'joystick';
 interface Props {
   input: InputController;
   controls: ControlScheme;
-  /** Tap-to-move: screen point → the app converts it to a ground target. */
-  onTapTarget(clientX: number, clientY: number): void;
+  /** Tap-to-move: finger down/moved at a screen point; the app turns it into a ground target. */
+  onTapPress(clientX: number, clientY: number): void;
+  onTapRelease(): void;
 }
 
 /** Root of the Preact overlay above the canvas. HUD and buttons join here from M2. */
-export function UiRoot({ input, controls, onTapTarget }: Props) {
+export function UiRoot({ input, controls, onTapPress, onTapRelease }: Props) {
   return (
     <div class="ui-root">
-      {controls === 'joystick' ? <Joystick input={input} /> : <TapToMove onTarget={onTapTarget} />}
+      {controls === 'joystick' ? (
+        <Joystick input={input} />
+      ) : (
+        <TapToMove onPress={onTapPress} onRelease={onTapRelease} />
+      )}
     </div>
   );
 }

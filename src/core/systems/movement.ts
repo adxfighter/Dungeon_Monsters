@@ -12,7 +12,7 @@ import {
 import { findPath } from '../dungeon/pathfinding';
 import type { TileMap } from '../dungeon/TileMap';
 import type { World } from '../ecs/World';
-import { moveCircle, type Circle } from './collision';
+import { moveCircle, resolveCircleVsTiles, type Circle } from './collision';
 
 /** Steering magnitude below which the character keeps its current facing. */
 const TURN_INPUT_THRESHOLD = 0.05;
@@ -24,6 +24,10 @@ const WAYPOINT_REACHED = 0.2;
 const ARRIVED = 0.05;
 /** Fraction of the acceleration budget used for braking on arrival (headroom for discrete steps). */
 const ARRIVE_SAFETY = 0.8;
+/** Steps without getting closer to the current waypoint before the target is dropped (~0.7 s at 30 Hz). */
+const STALL_STEPS = 20;
+/** Minimum improvement (tiles) per step that counts as progress. */
+const PROGRESS_EPS = 0.01;
 const TWO_PI = Math.PI * 2;
 
 /** Wraps an angle to (-π, π]. */
@@ -85,11 +89,15 @@ export function playerInputSystem(world: World, map: TileMap, input: Readonly<In
     const ty = Math.floor(input.target.y);
     const last = target.waypoints[target.waypoints.length - 1];
     if (target.active && last && tx === target.goalTx && ty === target.goalTy && !map.isSolid(tx, ty)) {
-      // Dragging inside the same tile: just move the end point.
-      last.x = input.target.x;
-      last.y = input.target.y;
-      target.x = input.target.x;
-      target.y = input.target.y;
+      // Dragging inside the same tile: just move the end point (kept a radius away from walls).
+      const end = { x: input.target.x, y: input.target.y, radius: world.require(e, Collider).radius };
+      resolveCircleVsTiles(map, end);
+      last.x = end.x;
+      last.y = end.y;
+      target.x = end.x;
+      target.y = end.y;
+      target.bestDist = Infinity;
+      target.stallSteps = 0;
       continue;
     }
 
@@ -107,6 +115,8 @@ export function playerInputSystem(world: World, map: TileMap, input: Readonly<In
     target.next = 0;
     target.goalTx = tx;
     target.goalTy = ty;
+    target.bestDist = Infinity;
+    target.stallSteps = 0;
   }
 }
 
@@ -130,6 +140,8 @@ export function navigationSystem(world: World, dt: number): void {
     ) {
       target.next++;
       wp = target.waypoints[target.next];
+      target.bestDist = Infinity;
+      target.stallSteps = 0;
     }
     if (!wp) {
       target.active = false;
@@ -139,6 +151,14 @@ export function navigationSystem(world: World, dt: number): void {
     const dy = wp.y - t.y;
     const dist = Math.hypot(dx, dy);
     const isFinal = target.next === target.waypoints.length - 1;
+    // Stuck on something the plan didn't know about: give up instead of pushing forever.
+    if (dist < target.bestDist - PROGRESS_EPS) {
+      target.bestDist = dist;
+      target.stallSteps = 0;
+    } else if (++target.stallSteps > STALL_STEPS) {
+      target.active = false;
+      continue;
+    }
     if (isFinal && dist < ARRIVED) {
       target.active = false;
       // Residual speed here is < ARRIVED/dt; stopping dead is invisible and avoids a final creep.

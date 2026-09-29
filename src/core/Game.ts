@@ -87,6 +87,8 @@ export class Game {
       goalTx: -1,
       goalTy: -1,
       lastSeq: 0,
+      bestDist: Infinity,
+      stallSteps: 0,
     });
     world.add(e, Collider, { radius: character.radius });
     world.add(e, MoveStats, { ...character.movement });

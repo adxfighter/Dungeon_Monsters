@@ -40,7 +40,8 @@ async function drag(page: Page, cdp: CDPSession, from: Pos, to: Pos, holdMs: num
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/?joystick=1');
+  // Low render resolution: SwiftShader frames are slow, and slow frames delay pointer events.
+  await page.goto('/?joystick=1&pr=0.5');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
 });
 

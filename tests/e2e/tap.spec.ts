@@ -55,7 +55,8 @@ async function expectArrive(page: Page, x: number, y: number, tolerance: number,
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  // Low render resolution: SwiftShader frames are slow, and slow frames delay pointer events.
+  await page.goto('/?pr=0.5');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 20_000 });
 });
 
@@ -79,16 +80,31 @@ test('the hero walks around walls through a corridor', async ({ page }) => {
   await expectArrive(page, 4.5, 8.5, 0.2, 8000);
 });
 
-test('holding and dragging moves the target with the finger', async ({ page }) => {
+test('dragging moves the target with the finger', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
-  const a = await onScreen(page, 6.5, 4.5);
-  const b = await onScreen(page, 7.8, 4.5);
-  await touch(cdp, 'touchStart', [a]);
+  const from = { x: 6.5, y: 4.8 };
+  const to = { x: 7.5, y: 5.0 };
+  await touch(cdp, 'touchStart', [await onScreen(page, from.x, from.y)]);
   for (let i = 1; i <= 5; i++) {
-    await touch(cdp, 'touchMove', [{ x: a.x + ((b.x - a.x) * i) / 5, y: a.y + ((b.y - a.y) * i) / 5 }]);
+    const t = i / 5;
+    // Re-project every step: the camera follows the hero while the finger drags.
+    await touch(cdp, 'touchMove', [
+      await onScreen(page, from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t),
+    ]);
   }
   await touch(cdp, 'touchEnd', []);
-  await expectArrive(page, 7.8, 4.5, 0.2, 6000);
+  await expectArrive(page, to.x, to.y, 0.25, 6000);
+});
+
+test('holding a still finger keeps walking toward it as the camera follows', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  const start = await playerPos(page);
+  await touch(cdp, 'touchStart', [await onScreen(page, start.x + 1.5, start.y)]);
+  await page.waitForTimeout(2500);
+  const held = await playerPos(page);
+  await touch(cdp, 'touchEnd', []);
+  // A single tap would stop 1.5 tiles away; holding carries the hero on to the east wall area.
+  expect(held.x - start.x).toBeGreaterThan(2.5);
 });
 
 test('the hero stays put after arriving', async ({ page }) => {

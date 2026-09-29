@@ -1,5 +1,6 @@
 import './style.css';
 import { render as renderUi } from 'preact';
+import { MoveTarget } from '@core/components';
 import { Game } from '@core/Game';
 import { characters, locales, rooms } from '@content/index';
 import { InputController } from '@platform/input/InputController';
@@ -12,6 +13,7 @@ import { UiRoot } from '@ui/index';
 import { DebugOverlay } from './DebugOverlay';
 import { FpsMeter } from './FpsMeter';
 import { GameLoop } from './GameLoop';
+import { TapTargeting } from './TapTargeting';
 import { parseLaunchParams } from './params';
 
 /** Frames rendered before the page reports itself ready (e2e / screenshots). */
@@ -31,6 +33,7 @@ declare global {
     __debug?: {
       getPlayerPos(): { x: number; y: number } | null;
       getTick(): number;
+      getMoveTarget(): { active: boolean; x: number; y: number } | null;
       /** Simulation point → client (CSS px) coordinates, to aim taps in e2e. */
       groundToClient(x: number, y: number): { x: number; y: number };
     };
@@ -83,6 +86,7 @@ function start(): void {
   let game: Game | undefined;
   let roomScene: RoomScene | undefined;
   let demo: DemoScene | undefined;
+  let tapTargeting: TapTargeting | undefined;
   if (params.demo) {
     demo = new DemoScene();
     stage = demo;
@@ -94,15 +98,20 @@ function start(): void {
     roomScene = new RoomScene(game);
     stage = roomScene;
     const scene = roomScene;
-    const ground = { x: 0, y: 0 };
-    const onTapTarget = (clientX: number, clientY: number): void => {
+    const tapping = new TapTargeting((clientX, clientY, out) => {
       const rect = canvas.getBoundingClientRect();
       const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
       const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
-      if (scene.screenToGround(ndcX, ndcY, ground)) input.setMoveTarget(ground.x, ground.y);
-    };
+      return scene.screenToGround(ndcX, ndcY, out);
+    }, input);
+    tapTargeting = tapping;
     renderUi(
-      <UiRoot input={input} controls={params.joystick ? 'joystick' : 'tap'} onTapTarget={onTapTarget} />,
+      <UiRoot
+        input={input}
+        controls={params.joystick ? 'joystick' : 'tap'}
+        onTapPress={(x, y) => tapping.press(x, y, performance.now())}
+        onTapRelease={() => tapping.release()}
+      />,
       uiRoot,
     );
   }
@@ -122,6 +131,7 @@ function start(): void {
       if (game && roomScene) {
         roomScene.handleEvents(game.drainEvents());
         roomScene.update(alpha, dt);
+        tapTargeting?.frame(performance.now());
       }
       demo?.update(dt);
       renderer.render(stage.scene, stage.camera);
@@ -168,6 +178,10 @@ function start(): void {
         return t ? { x: t.x, y: t.y } : null;
       },
       getTick: () => g.tick,
+      getMoveTarget: () => {
+        const t = g.world.get(g.player, MoveTarget);
+        return t ? { active: t.active, x: t.x, y: t.y } : null;
+      },
       groundToClient: (x, y) => {
         const ndc = { x: 0, y: 0 };
         roomScene?.groundToScreen(x, y, ndc);
