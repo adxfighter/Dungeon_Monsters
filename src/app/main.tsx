@@ -10,7 +10,7 @@ import { Renderer } from '@render/Renderer';
 import { DemoScene } from '@render/scenes/DemoScene';
 import { RoomScene } from '@render/scenes/RoomScene';
 import { createInputState } from '@shared/input';
-import { HudStore, UiRoot, WorldOverlay } from '@ui/index';
+import { HudStore, UiRoot, WorldOverlay, ingredientIcon, type BackpackView } from '@ui/index';
 import { createHaptics } from '@platform/haptics';
 import { loadSettings, saveSettings, type Settings } from '@platform/settings';
 import { DebugOverlay } from './DebugOverlay';
@@ -46,6 +46,8 @@ declare global {
       setHeroHp(hp: number): void;
       /** Living monsters: hp per entity. */
       getMonsters(): { id: string; hp: number; x: number; y: number; state: string }[];
+      /** Teleports the hero (tests). */
+      setPlayerPos(x: number, y: number): void;
       /** Drops every monster to 0 HP (they die next step and leave carcasses). */
       killMonsters(): void;
       /** Who holds the hero (-1 = free). */
@@ -196,16 +198,60 @@ function start(): void {
           url.searchParams.set('arena', id);
           window.location.assign(url.toString());
         }}
-        onButcher={openButchery}
+        onInteract={interact}
+        onBackpack={(open) => (open ? openBackpack() : hud.setBackpack(null))}
+        onDiscard={(id, stars) => {
+          game?.discard(id, stars, 1);
+          pendingBagRefresh = true;
+        }}
       />,
       uiRoot,
     );
   }
-  /** Butcher button: open the mini-game for the carcass in reach; its result goes to core as a command. */
-  function openButchery(): void {
+  /** Context button: gather the plant in reach, or open the butchery mini-game for the carcass (both → core commands). */
+  function interact(): void {
     const g = game;
-    if (!g || hud.get().butchery) return;
-    const carcass = g.butcherable;
+    const i = g?.interaction;
+    if (!g || !i || hud.get().butchery || hud.get().backpack) return;
+    if (i.kind === 'gather') g.gather(i.entity);
+    else if (i.kind === 'butcher') openButchery(g, i.entity);
+  }
+
+  /** Snapshot of the backpack for the screen (translated). */
+  function backpackView(g: Game): BackpackView | null {
+    const bag = g.backpack;
+    if (!bag) return null;
+    const rows = bag.stacks.map((s) => {
+      const ing = ingredients[s.ingredientId];
+      return {
+        ingredientId: s.ingredientId,
+        name: ing ? i18n.t(ing.nameKey) : s.ingredientId,
+        icon: ingredientIcon(ing?.iconKey),
+        stars: s.stars,
+        count: s.count,
+        weight: (ing?.weight ?? 0) * s.count,
+      };
+    });
+    return {
+      rows,
+      weight: rows.reduce((w, r) => w + r.weight, 0),
+      maxWeight: bag.maxWeight,
+      slots: bag.stacks.length,
+      maxSlots: bag.maxSlots,
+    };
+  }
+
+  function openBackpack(): void {
+    if (!game || hud.get().butchery) return;
+    hud.setBackpack(backpackView(game));
+  }
+
+  /** A discard was queued while the (paused) backpack screen is open: apply it now and refresh the list. */
+  let pendingBagRefresh = false;
+
+  /** Butcher: open the mini-game for the carcass; its result goes to core as a command. */
+  function openButchery(g: Game, carcass: number): void {
+    if (hud.get().butchery) return;
     const carrion = carcass >= 0 ? g.world.get(carcass, Carrion) : undefined;
     const def = carrion ? monsters[carrion.monsterId] : undefined;
     if (!carrion || !def) return;
@@ -251,8 +297,17 @@ function start(): void {
   const loop = new GameLoop({
     step(dt) {
       if (!game) return;
-      // The butchery mini-game pauses the fight (the board is modal; GDD §4.4 — 2–4 s).
+      // The butchery board and the backpack screen pause the fight (both are modal).
       if (hud.get().butchery) return;
+      if (hud.get().backpack) {
+        // Paused, but a discard from the screen still has to reach core: one step with no input applies it.
+        if (pendingBagRefresh) {
+          pendingBagRefresh = false;
+          game.applyCommands();
+          hud.setBackpack(backpackView(game));
+        }
+        return;
+      }
       // Input is sampled per step: at most one simulation step of latency.
       game.step(input.sample(inputState), dt);
     },
@@ -262,6 +317,18 @@ function start(): void {
         roomScene.handleEvents(events);
         feedback?.handle(events);
         for (const e of events) {
+          if (e.type === 'Gathered') {
+            const ing = ingredients[e.ingredientId];
+            const values = {
+              count: e.stored,
+              name: ing ? i18n.t(ing.nameKey) : e.ingredientId,
+              stars: i18n.t(`hud.stars${e.stars}`),
+            };
+            const key =
+              e.stored === 0 ? 'hud.loot.none' : e.stored < e.count ? 'hud.loot.partial' : 'hud.loot.line';
+            hud.toast(format(i18n.t(key), values));
+            continue;
+          }
           if (e.type !== 'LootTaken') continue;
           for (const item of e.items) {
             const ing = ingredients[item.ingredientId];
@@ -296,7 +363,7 @@ function start(): void {
         const arsenal = game.world.get(game.player, Arsenal);
         const weaponKey =
           arsenal && arsenal.weapons.length > 1 ? (arsenal.weapons[arsenal.index]?.nameKey ?? '') : '';
-        const canLoot = game.butcherable >= 0;
+        const interaction = game.interaction?.kind ?? null;
         const carcassHint = game.awaitingCarcasses;
         hud.update(
           h?.hp ?? 0,
@@ -306,7 +373,7 @@ function start(): void {
           game.waveCount,
           grabbed,
           weaponKey,
-          canLoot,
+          interaction,
           carcassHint,
         );
       }
@@ -386,6 +453,13 @@ function start(): void {
           const b = g.world.require(e, Brain);
           return { id: b.def.id, hp: g.world.require(e, Health).hp, x: t.x, y: t.y, state: b.state };
         }),
+      setPlayerPos: (x, y) => {
+        const t = g.world.get(g.player, Transform);
+        if (t) {
+          t.x = x;
+          t.y = y;
+        }
+      },
       killMonsters: () => {
         for (const e of g.world.query(Brain, Health)) g.world.require(e, Health).hp = 0;
       },

@@ -1,8 +1,8 @@
 import { BALANCE } from '@content/balance';
 import type { IngredientDef, MonsterDef } from '@content/schemas';
-import { Backpack, Carrion, Health, PlayerControlled, Transform } from '../components';
+import { Backpack, Carrion, Gatherable, Health, PlayerControlled, Transform } from '../components';
 import type { Entity, World } from '../ecs/World';
-import { addToBackpack, canFitOne } from '../loot/backpack';
+import { addToBackpack, canFitOne, removeFromBackpack } from '../loot/backpack';
 import { ingredientStars, type Stars } from '../loot/quality';
 import type { CombatContext } from './combat';
 import { isHeld } from './combat';
@@ -58,15 +58,101 @@ function somethingFits(world: World, hero: Entity, c: Entity, catalog: LootCatal
   });
 }
 
-/**
- * The carcass the hero can butcher right now (-1 if none) — the UI's "show the Butcher button" selector: in reach,
- * the hero is free to act (alive, not staggered, not held) and at least one part would fit the backpack.
- */
-export function butcherableCarcass(world: World, hero: Entity, catalog: LootCatalog): Entity {
+/** What the context button does next to the hero (M3). 'full' = something in reach, but the backpack has no room. */
+export type Interaction =
+  | { kind: 'butcher'; entity: Entity }
+  | { kind: 'gather'; entity: Entity }
+  | { kind: 'full'; entity: Entity }
+  | null;
+
+const canAct = (world: World, hero: Entity): boolean => {
   const h = world.get(hero, Health);
-  if ((h && (h.hp <= 0 || h.stagger > 0)) || isHeld(world, hero)) return -1;
-  const c = lootableCarcass(world, hero);
-  return c >= 0 && somethingFits(world, hero, c, catalog) ? c : -1;
+  return !((h && (h.hp <= 0 || h.stagger > 0)) || isHeld(world, hero));
+};
+
+/** Entities of `component`'s kind within reach of the hero, nearest first. */
+function inReach(world: World, hero: Entity, kind: typeof Carrion | typeof Gatherable): Entity[] {
+  const t = world.get(hero, Transform);
+  if (!t) return [];
+  const found: { e: Entity; d: number }[] = [];
+  for (const e of world.query(kind, Transform)) {
+    const o = world.require(e, Transform);
+    const d = Math.hypot(o.x - t.x, o.y - t.y);
+    if (d <= BALANCE.loot.reach) found.push({ e, d });
+  }
+  return found.sort((x, y) => x.d - y.d).map((f) => f.e);
+}
+
+/**
+ * The context button's action (selector for the UI; the same checks as the commands): butcher the nearest carcass
+ * that would give something, else gather the nearest plant that fits, else 'full' if anything is in reach.
+ * Nothing while the hero can't act (staggered, held, down).
+ */
+export function interaction(world: World, hero: Entity, catalog: LootCatalog): Interaction {
+  if (!canAct(world, hero)) return null;
+  const carcasses = inReach(world, hero, Carrion);
+  const c = carcasses.find((e) => somethingFits(world, hero, e, catalog));
+  if (c !== undefined) return { kind: 'butcher', entity: c };
+  const bag = world.get(hero, Backpack);
+  const plants = inReach(world, hero, Gatherable);
+  const p = plants.find((e) => {
+    const g = world.require(e, Gatherable);
+    return (
+      bag !== undefined &&
+      canFitOne(bag, catalog.ingredients, g.ingredientId, BALANCE.loot.plantStars as Stars)
+    );
+  });
+  if (p !== undefined) return { kind: 'gather', entity: p };
+  const any = carcasses[0] ?? plants[0];
+  return any !== undefined ? { kind: 'full', entity: any } : null;
+}
+
+/** Gather and discard commands from the UI (applied on the next step, deterministic). */
+export type BagCommand =
+  { kind: 'gather'; plant: Entity } | { kind: 'discard'; ingredientId: string; stars: Stars; count: number };
+
+/** Picks plants in reach (★ fixed, the rest stays on the plant) and throws pieces out of the backpack. */
+export function bagSystem(ctx: CombatContext, commands: readonly BagCommand[], catalog: LootCatalog): void {
+  const { world } = ctx;
+  for (const cmd of commands) {
+    for (const hero of world.query(PlayerControlled, Backpack, Transform)) {
+      const bag = world.require(hero, Backpack);
+      if (cmd.kind === 'discard') {
+        const n = removeFromBackpack(bag, cmd.ingredientId, cmd.stars, cmd.count);
+        if (n > 0)
+          ctx.events.push({
+            type: 'Discarded',
+            by: hero,
+            ingredientId: cmd.ingredientId,
+            stars: cmd.stars,
+            count: n,
+          });
+        continue;
+      }
+      const p = cmd.plant;
+      if (
+        !canAct(world, hero) ||
+        !world.isAlive(p) ||
+        ctx.doomed.has(p) ||
+        !inReach(world, hero, Gatherable).includes(p)
+      )
+        continue;
+      const g = world.require(p, Gatherable);
+      const stars = BALANCE.loot.plantStars as Stars;
+      const stored = addToBackpack(bag, catalog.ingredients, g.ingredientId, stars, g.count);
+      ctx.events.push({
+        type: 'Gathered',
+        by: hero,
+        plant: p,
+        ingredientId: g.ingredientId,
+        stars,
+        count: g.count,
+        stored,
+      });
+      g.count -= stored;
+      if (g.count <= 0) ctx.doomed.add(p);
+    }
+  }
 }
 
 export interface LootCatalog {

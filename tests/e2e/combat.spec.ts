@@ -58,6 +58,8 @@ test('HUD shows hero HP, wave counter and Russian action buttons', async ({ page
   const gear = await page.getByTestId('btn-settings').boundingBox();
   expect(gear?.width).toBeGreaterThanOrEqual(48); // ≥ 48 dp
   expect(gear?.height).toBeGreaterThanOrEqual(48);
+  const bag = await page.getByTestId('btn-backpack').boundingBox();
+  expect(bag?.width).toBeGreaterThanOrEqual(48);
 });
 
 test('the attack button damages a monster in front of the hero', async ({ page }) => {
@@ -177,6 +179,28 @@ test('simplified butchery: tap the dots; a miss costs a star but does not skip a
   await expect(toasts).toContainText('Стейк яка ★★', { timeout: 5000 });
   await expect(toasts).not.toContainText('Стейк яка ★★★');
   await expect(toasts).toContainText('Жир с горба яка ★★★');
+});
+
+test('gathering a plant and throwing it away in the backpack screen', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.setPlayerPos(2.5, 2.4); // next to the glowcap (2.5, 1.6)
+  });
+  await expect(page.getByTestId('btn-gather')).toBeVisible({ timeout: 5000 });
+  await tapElement(cdp, page, 'btn-gather');
+  await expect(page.getByTestId('loot-toasts')).toContainText('Светогриб ★★', { timeout: 5000 });
+  await page.getByTestId('btn-backpack').click();
+  await expect(page.getByTestId('backpack')).toBeVisible();
+  await expect(page.getByTestId('stack-glowcap-2')).toContainText('×2');
+  const discardBox = await page.getByTestId('discard-glowcap-2').boundingBox();
+  expect(discardBox?.height).toBeGreaterThanOrEqual(48); // ≥ 48 dp
+  await page.getByTestId('discard-glowcap-2').click();
+  await expect(page.getByTestId('stack-glowcap-2')).toContainText('×1');
+  await page.getByTestId('discard-glowcap-2').click();
+  await expect(page.getByTestId('stack-glowcap-2')).toHaveCount(0);
+  await page.getByTestId('backpack-close').click();
+  await expect(page.getByTestId('backpack')).toHaveCount(0);
 });
 
 test('skipping the butchery gives ★1 for everything', async ({ page }) => {

@@ -7,10 +7,21 @@ import { DIFFICULTY_IDS } from './difficulty';
  */
 export const ROOM_CHARS = ['#', '.', ' ', 'P', 'm'] as const;
 
+/** A plant or fungus growing in a room (M3): gathered with the context button. */
+export const PlantSpotSchema = z.object({
+  ingredientId: z.string().min(1),
+  x: z.number(),
+  y: z.number(),
+  count: z.number().int().min(1).max(5),
+});
+export type PlantSpot = z.infer<typeof PlantSpotSchema>;
+
 export const RoomTemplateSchema = z
   .object({
     id: z.string().min(1),
     rows: z.array(z.string().min(1)).min(3),
+    /** Gatherable plants (M3). */
+    plants: z.array(PlantSpotSchema).optional(),
   })
   .superRefine((room, ctx) => {
     const width = room.rows[0]?.length ?? 0;

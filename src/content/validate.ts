@@ -13,7 +13,16 @@ import { arenas, characters, ingredients, locales, monsters, rooms } from './ind
  * Called by content.test.ts and on dev start-up; imported dynamically so Zod stays out of the prod bundle.
  */
 export function validateContent(): void {
-  for (const room of Object.values(rooms)) RoomTemplateSchema.parse(room);
+  const plantRooms = [...Object.values(rooms), ...Object.values(arenas).map((a) => a.room)];
+  for (const room of plantRooms) {
+    RoomTemplateSchema.parse(room);
+    for (const p of room.plants ?? []) {
+      if (!ingredients[p.ingredientId]) throw new Error(`room ${room.id}: unknown plant '${p.ingredientId}'`);
+      const ch = room.rows[Math.floor(p.y)]?.[Math.floor(p.x)];
+      if (ch === undefined || ch === '#' || ch === ' ')
+        throw new Error(`room ${room.id}: plant '${p.ingredientId}' at ${p.x},${p.y} is not on the floor`);
+    }
+  }
   for (const character of Object.values(characters)) CharacterSchema.parse(character);
   for (const locale of Object.values(locales)) LocaleSchema.parse(locale);
   for (const [id, monster] of Object.entries(monsters)) {

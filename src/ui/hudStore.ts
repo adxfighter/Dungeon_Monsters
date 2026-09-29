@@ -12,14 +12,32 @@ export interface HudState {
   grabbed: boolean;
   /** i18n key of the weapon in hand ('' = no swap button). */
   weaponKey: string;
-  /** A carcass is within reach: show the Butcher button. */
-  canLoot: boolean;
+  /** The context button: butcher a carcass, gather a plant, 'full' (disabled: no room), or hidden. */
+  interaction: 'butcher' | 'gather' | 'full' | null;
+  /** The backpack screen (the fight is paused), or null when closed. */
+  backpack: BackpackView | null;
   /** Arena beaten but carcasses left: "butcher them" hint. */
   carcassHint: boolean;
   /** Short-lived loot lines (newest last). */
   toasts: readonly Toast[];
   /** The butchery mini-game in progress (the fight is paused), or null. */
   butchery: ButcherySession | null;
+}
+
+/** What the backpack screen shows (already translated). */
+export interface BackpackView {
+  rows: readonly {
+    ingredientId: string;
+    name: string;
+    icon: string;
+    stars: 1 | 2 | 3;
+    count: number;
+    weight: number;
+  }[];
+  weight: number;
+  maxWeight: number;
+  slots: number;
+  maxSlots: number;
 }
 
 export interface Toast {
@@ -42,7 +60,8 @@ export class HudStore {
     waveTotal: 0,
     grabbed: false,
     weaponKey: '',
-    canLoot: false,
+    interaction: null,
+    backpack: null,
     carcassHint: false,
     toasts: [],
     butchery: null,
@@ -65,7 +84,7 @@ export class HudStore {
     waveTotal: number,
     grabbed = false,
     weaponKey = '',
-    canLoot = false,
+    interaction: HudState['interaction'] = null,
     carcassHint = false,
   ): void {
     const s = this.state;
@@ -77,12 +96,18 @@ export class HudStore {
       s.waveTotal === waveTotal &&
       s.grabbed === grabbed &&
       s.weaponKey === weaponKey &&
-      s.canLoot === canLoot &&
+      s.interaction === interaction &&
       s.carcassHint === carcassHint
     ) {
       return;
     }
-    this.state = { ...s, hp, maxHp, status, wave, waveTotal, grabbed, weaponKey, canLoot, carcassHint };
+    this.state = { ...s, hp, maxHp, status, wave, waveTotal, grabbed, weaponKey, interaction, carcassHint };
+    this.emit();
+  }
+
+  /** Opens / refreshes (view) or closes (null) the backpack screen. */
+  setBackpack(view: BackpackView | null): void {
+    this.state = { ...this.state, backpack: view };
     this.emit();
   }
 

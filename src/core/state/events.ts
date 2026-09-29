@@ -52,6 +52,18 @@ export type GameEvent =
       items: { ingredientId: string; stars: 1 | 2 | 3; count: number; stored: number }[];
     }
   | { type: 'WeaponSwapped'; entity: Entity; weaponId: string }
+  /** The hero gathered a plant (`stored` ≤ `count`; the rest stays on the plant). */
+  | {
+      type: 'Gathered';
+      by: Entity;
+      plant: Entity;
+      ingredientId: string;
+      stars: 1 | 2 | 3;
+      count: number;
+      stored: number;
+    }
+  /** The hero threw pieces out of the backpack. */
+  | { type: 'Discarded'; by: Entity; ingredientId: string; stars: 1 | 2 | 3; count: number }
   /** A scavenger ate a carcass (its loot is gone). */
   | { type: 'CarrionEaten'; carrion: Entity; by: Entity }
   | { type: 'WaveStarted'; index: number; total: number }
