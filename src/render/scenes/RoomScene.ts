@@ -22,6 +22,8 @@ const ELEMENT_SPARK: Readonly<Record<Element, number>> = {
   cold: 0x9ee7ff,
 };
 const BLOCK_SPARK = 0xb8b0c0;
+const FIRE_A = 0xff7a2e;
+const FIRE_B = 0xffd23f;
 /** Height (world units) where hit sparks appear. */
 const HIT_HEIGHT = 0.45;
 
@@ -126,6 +128,30 @@ export class RoomScene {
       this.telegraphs.show(e, cur.def, this.scratch.x, this.scratch.y, cur.dirX, cur.dirY, t01);
     }
     this.telegraphs.end((e) => world.isAlive(e));
+
+    // Fire breath: a stream of embers along the attack direction during the active phase.
+    for (const e of world.query(Brain, Attacker, Transform)) {
+      const cur = world.require(e, Attacker).current;
+      if (!cur || cur.phase !== 'active' || cur.def.element !== 'fire' || !cur.def.shape) continue;
+      if (!this.entities.positionOf(e, this.scratch)) continue;
+      const range = cur.def.shape.kind === 'cone' ? cur.def.shape.range : 1.5;
+      for (let i = 0; i < 3; i++) {
+        const spread = (Math.random() - 0.5) * 0.5;
+        const dx = cur.dirX + -cur.dirY * spread;
+        const dy = cur.dirY + cur.dirX * spread;
+        const speed = range * (2.2 + Math.random());
+        this.particles.emit(
+          this.scratch.x + cur.dirX * 0.3,
+          0.4,
+          this.scratch.y + cur.dirY * 0.3,
+          dx * speed,
+          1.2,
+          dy * speed,
+          Math.random() < 0.5 ? FIRE_A : FIRE_B,
+          0.35,
+        );
+      }
+    }
     this.particles.update(dtSeconds);
   }
 

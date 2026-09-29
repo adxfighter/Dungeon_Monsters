@@ -214,6 +214,8 @@ function start(): void {
           worldOverlay.beginBars();
           for (const e of game.world.query(Brain, Health)) {
             const mh = game.world.require(e, Health);
+            // No bar over a submerged ambusher: only its ripple gives it away.
+            if (game.world.require(e, Brain).hidden) continue;
             if (mh.hp > 0 && roomScene.positionOf(e, barPos)) {
               worldOverlay.bar(barPos.x, ENEMY_BAR_HEIGHT, barPos.y, mh.hp / mh.maxHp, project);
             }

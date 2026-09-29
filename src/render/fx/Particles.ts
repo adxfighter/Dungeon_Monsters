@@ -70,6 +70,32 @@ export class Particles {
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 
+  /** Emits one particle with an explicit velocity (directional effects such as fire breath). */
+  emit(
+    x: number,
+    y: number,
+    z: number,
+    vx: number,
+    vy: number,
+    vz: number,
+    color: number,
+    life: number,
+  ): void {
+    const i = this.next;
+    this.next = (this.next + 1) % CAPACITY;
+    this.px[i] = x;
+    this.py[i] = y;
+    this.pz[i] = z;
+    this.vx[i] = vx;
+    this.vy[i] = vy;
+    this.vz[i] = vz;
+    this.life[i] = life;
+    this.maxLife[i] = life;
+    this.mesh.setColorAt(i, this.color.set(color));
+    this.alive = Math.min(CAPACITY, this.alive + 1);
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+
   update(dtSeconds: number): void {
     if (this.alive === 0) return;
     let any = false;

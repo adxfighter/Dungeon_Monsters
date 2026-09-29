@@ -182,6 +182,8 @@ export function aiSystem(ctx: CombatContext, dt: number): void {
         // After a strike the ambusher lies still on the surface — the punish window — then dives again.
         if (brain.t >= (def.ambush?.exposedTime ?? 0)) {
           brain.hidden = true;
+          // The next strike is timed from the dive, so it swims a while before surfacing again.
+          brain.attackCooldown = ai.attackCooldown * brain.cooldownMult;
           brain.state = 'chase';
           brain.t = 0;
         }
