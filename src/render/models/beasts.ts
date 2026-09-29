@@ -278,7 +278,7 @@ function yak(def: MonsterDef): Rig {
       body.rotation.x = 0;
       body.rotation.z = 0;
       head.rotation.x = Math.sin(t * 1.5) * 0.05;
-      // Pawing the ground in the windup: the front legs scrape even when standing still.
+      // Pawing the ground in the windup: the legs keep stamping (a trot on the spot) even when standing still.
       const paw = pose.phase === 'windup' ? 0.6 : 0;
       legs.update(dt, Math.max(speed01, paw), 0, pose.phase === 'active' ? 11 : 6);
       if (pose.phase === 'windup') {
@@ -396,7 +396,7 @@ function dinostrich(def: MonsterDef): Rig {
       if (pose.phase === 'windup') {
         const k = easeOut(pose.t01);
         if (stomp) {
-          body.position.y = 0.16 * k; // rears up on its toes, one foot raised
+          body.position.y = 0.16 * k; // rears up on its toes, legs tucked forward
           body.rotation.x = -0.3 * k;
           bend = 0.3 * k;
         } else {

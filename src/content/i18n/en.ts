@@ -36,7 +36,7 @@ export const en: Locale = {
   'difficulty.medium': 'Medium',
   'difficulty.medium.hint': 'Four waves. Dodge the attacks marked on the floor.',
   'difficulty.hard': 'Hard',
-  'difficulty.hard.hint': 'Four dense waves; monsters hit hard and often.',
+  'difficulty.hard.hint': 'Four dense waves: more monsters, no room for mistakes.',
   'error.webgl.title': 'Could not start 3D',
   'error.webgl.body':
     'This browser does not support WebGL2 or it is disabled. Update the browser or enable hardware acceleration.',

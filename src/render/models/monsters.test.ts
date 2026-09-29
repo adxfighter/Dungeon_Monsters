@@ -8,7 +8,7 @@ vi.mock('./blobShadow', () => ({
   createBlobShadow: () => new Mesh(new PlaneGeometry(1, 1), new MeshBasicMaterial()),
 }));
 
-/** Every mesh is one draw call (outlines are separate meshes; nothing here is instanced). */
+/** Every mesh is one draw call (outlines are separate meshes; an InstancedMesh — legs — is one call too). */
 function drawCalls(root: Object3D): number {
   let n = 0;
   root.traverse((o) => {
