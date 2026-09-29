@@ -13,14 +13,25 @@ const KEY_DIRECTIONS: Readonly<Record<string, readonly [number, number]>> = {
 };
 
 /**
- * Collects raw input from adapters (virtual joystick, keyboard) and produces an abstract `InputState`.
- * The touch joystick wins over the keyboard while a finger is down.
+ * Collects raw input from adapters (tap-to-move, virtual joystick, keyboard) and produces an abstract `InputState`.
+ * The touch joystick wins over the keyboard while a finger is down; tap targets are passed through with a
+ * sequence number so core can tell a new tap from a repeated sample.
  */
 export class InputController {
   private touchActive = false;
   private touchX = 0;
   private touchY = 0;
   private readonly pressed = new Set<string>();
+  private targetSeq = 0;
+  private targetX = 0;
+  private targetY = 0;
+
+  /** Tap-to-move target in simulation space (tiles). Each call is a new command. */
+  setMoveTarget(x: number, y: number): void {
+    this.targetSeq++;
+    this.targetX = x;
+    this.targetY = y;
+  }
 
   /** Joystick vector from the UI, |v| ≤ 1, already dead-zoned. */
   setTouchMove(x: number, y: number): void {
@@ -81,6 +92,9 @@ export class InputController {
     }
     out.move.x = x;
     out.move.y = y;
+    out.target.seq = this.targetSeq;
+    out.target.x = this.targetX;
+    out.target.y = this.targetY;
     return out;
   }
 }

@@ -45,3 +45,22 @@ export const MoveStats = defineComponent<MoveStatsData>('MoveStats');
 /** What the entity is, for render/ui to pick a view. */
 export type EntityKind = 'player';
 export const Kind = defineComponent<{ kind: EntityKind; characterId: string }>('Kind');
+
+/** Desired move direction for this step, |v| ≤ 1 (from input or navigation). Consumed by the movement system. */
+export const Steering = defineComponent<Velocity2D>('Steering');
+
+export interface MoveTargetData {
+  active: boolean;
+  /** Final target point (simulation space). */
+  x: number;
+  y: number;
+  /** Remaining waypoints; `next` indexes the one being walked to. The last one is the target. */
+  waypoints: { x: number; y: number }[];
+  next: number;
+  /** Goal tile of the current plan — a drag within the same tile only moves the end point, no replanning. */
+  goalTx: number;
+  goalTy: number;
+  /** Last `InputState.target.seq` consumed. */
+  lastSeq: number;
+}
+export const MoveTarget = defineComponent<MoveTargetData>('MoveTarget');

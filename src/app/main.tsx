@@ -28,7 +28,12 @@ interface Stage {
 /** Debug hooks for e2e tests; only present in dev builds. */
 declare global {
   interface Window {
-    __debug?: { getPlayerPos(): { x: number; y: number } | null; getTick(): number };
+    __debug?: {
+      getPlayerPos(): { x: number; y: number } | null;
+      getTick(): number;
+      /** Simulation point → client (CSS px) coordinates, to aim taps in e2e. */
+      groundToClient(x: number, y: number): { x: number; y: number };
+    };
   }
 }
 
@@ -88,7 +93,18 @@ function start(): void {
     game = new Game({ room, player: hero });
     roomScene = new RoomScene(game);
     stage = roomScene;
-    renderUi(<UiRoot input={input} />, uiRoot);
+    const scene = roomScene;
+    const ground = { x: 0, y: 0 };
+    const onTapTarget = (clientX: number, clientY: number): void => {
+      const rect = canvas.getBoundingClientRect();
+      const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+      if (scene.screenToGround(ndcX, ndcY, ground)) input.setMoveTarget(ground.x, ground.y);
+    };
+    renderUi(
+      <UiRoot input={input} controls={params.joystick ? 'joystick' : 'tap'} onTapTarget={onTapTarget} />,
+      uiRoot,
+    );
   }
   renderer.setResizeHandler((width, height) => stage.setAspect(width, height));
 
@@ -152,6 +168,15 @@ function start(): void {
         return t ? { x: t.x, y: t.y } : null;
       },
       getTick: () => g.tick,
+      groundToClient: (x, y) => {
+        const ndc = { x: 0, y: 0 };
+        roomScene?.groundToScreen(x, y, ndc);
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: rect.left + ((ndc.x + 1) / 2) * rect.width,
+          y: rect.top + ((1 - ndc.y) / 2) * rect.height,
+        };
+      },
     };
   }
 

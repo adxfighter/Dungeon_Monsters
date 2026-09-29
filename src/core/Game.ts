@@ -4,8 +4,10 @@ import {
   Collider,
   Kind,
   MoveStats,
+  MoveTarget,
   PlayerControlled,
   PrevTransform,
+  Steering,
   Transform,
   Velocity,
   type Transform2D,
@@ -13,7 +15,13 @@ import {
 import { TileMap } from './dungeon/TileMap';
 import { World, type Entity } from './ecs/World';
 import type { GameEvent } from './state/events';
-import { physicsSystem, playerMovementSystem, snapshotSystem } from './systems/movement';
+import {
+  navigationSystem,
+  physicsSystem,
+  playerInputSystem,
+  snapshotSystem,
+  steeringMovementSystem,
+} from './systems/movement';
 
 export interface GameOptions {
   room: RoomTemplate;
@@ -43,7 +51,9 @@ export class Game {
   /** Advances the simulation by one fixed step. */
   step(input: Readonly<InputState>, dt: number): void {
     snapshotSystem(this.world);
-    playerMovementSystem(this.world, input, dt);
+    playerInputSystem(this.world, this.map, input);
+    navigationSystem(this.world, dt);
+    steeringMovementSystem(this.world, dt);
     physicsSystem(this.world, this.map, dt);
     this.tickCount++;
   }
@@ -67,6 +77,17 @@ export class Game {
     world.add(e, Transform, { ...start });
     world.add(e, PrevTransform, { ...start });
     world.add(e, Velocity, { x: 0, y: 0 });
+    world.add(e, Steering, { x: 0, y: 0 });
+    world.add(e, MoveTarget, {
+      active: false,
+      x: 0,
+      y: 0,
+      waypoints: [],
+      next: 0,
+      goalTx: -1,
+      goalTy: -1,
+      lastSeq: 0,
+    });
     world.add(e, Collider, { radius: character.radius });
     world.add(e, MoveStats, { ...character.movement });
     world.add(e, PlayerControlled, {});
