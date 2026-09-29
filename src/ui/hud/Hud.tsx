@@ -98,7 +98,7 @@ export function Hud(props: Props) {
         </div>
       )}
 
-      {state.toasts.length > 0 && (
+      {state.toasts.length > 0 && !state.butchery && (
         <ul class="loot-toasts" data-testid="loot-toasts" aria-live="polite">
           {state.toasts.map((toast) => (
             <li key={toast.id}>{toast.text}</li>

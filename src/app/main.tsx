@@ -1,7 +1,6 @@
 import './style.css';
 import { render as renderUi } from 'preact';
 import { Arsenal, Brain, Carrion, Health, MoveTarget, Status, Transform } from '@core/components';
-import { lootableCarcass } from '@core/systems/loot';
 import { Game } from '@core/Game';
 import { arenas, characters, ingredients, locales, monsters, rooms } from '@content/index';
 import { DIFFICULTY_IDS } from '@content/difficulty';
@@ -206,7 +205,7 @@ function start(): void {
   function openButchery(): void {
     const g = game;
     if (!g || hud.get().butchery) return;
-    const carcass = lootableCarcass(g.world, g.player);
+    const carcass = g.butcherable;
     const carrion = carcass >= 0 ? g.world.get(carcass, Carrion) : undefined;
     const def = carrion ? monsters[carrion.monsterId] : undefined;
     if (!carrion || !def) return;
@@ -297,7 +296,7 @@ function start(): void {
         const arsenal = game.world.get(game.player, Arsenal);
         const weaponKey =
           arsenal && arsenal.weapons.length > 1 ? (arsenal.weapons[arsenal.index]?.nameKey ?? '') : '';
-        const canLoot = lootableCarcass(game.world, game.player) >= 0;
+        const canLoot = game.butcherable >= 0;
         const carcassHint = game.awaitingCarcasses;
         hud.update(
           h?.hp ?? 0,

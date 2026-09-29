@@ -38,7 +38,13 @@ import type { Stars } from './loot/quality';
 import { Rng } from './rng';
 import type { GameEvent } from './state/events';
 import { aiSystem } from './systems/ai';
-import { lootSystem, worthButchering, type ButcherCommand, type LootCatalog } from './systems/loot';
+import {
+  butcherableCarcass,
+  lootSystem,
+  worthButchering,
+  type ButcherCommand,
+  type LootCatalog,
+} from './systems/loot';
 import {
   actionSystem,
   carrionSystem,
@@ -214,6 +220,11 @@ export class Game {
   /** Read-only view of an entity transform (for render, debug and tests). */
   transformOf(entity: Entity): Readonly<Transform2D> | undefined {
     return this.world.get(entity, Transform);
+  }
+
+  /** Carcass the hero can butcher now (-1 = none): the Butcher button shows only then (selector for the UI). */
+  get butcherable(): Entity {
+    return butcherableCarcass(this.world, this.player, this.catalog);
   }
 
   /**

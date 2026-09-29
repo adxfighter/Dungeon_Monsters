@@ -291,6 +291,26 @@ describe('butchery results', () => {
   });
 });
 
+describe('butcherable selector (the Butcher button)', () => {
+  it('only when a part fits and the hero is free to act', () => {
+    const game = new Game({ room, player: tavi, monsters: { ...monsters, victim }, ingredients, seed: 2 });
+    const e = game.spawnMonster(victim, 4.5, 4.3);
+    game.world.require(e, Health).hp = 0;
+    game.step(createInputState(), DT);
+    const c = game.world.query(Carrion)[0] ?? -1;
+    expect(game.butcherable).toBe(c);
+    game.world.require(game.player, Health).stagger = 1;
+    expect(game.butcherable).toBe(-1);
+    game.world.require(game.player, Health).stagger = 0;
+    const status = game.world.require(game.player, Status);
+    status.heldBy = c; // any entity: "held"
+    expect(game.butcherable).toBe(-1);
+    status.heldBy = -1;
+    game.world.require(game.player, Backpack).maxWeight = 0;
+    expect(game.butcherable).toBe(-1); // nothing would fit
+  });
+});
+
 describe('arena end', () => {
   it('the win screen waits until the carcasses of the last wave are butchered', () => {
     const game = new Game({

@@ -32,27 +32,41 @@ export function lootableCarcass(world: World, hero: Entity, doomed?: ReadonlySet
 export function worthButchering(world: World, catalog: LootCatalog): number {
   let n = 0;
   for (const hero of world.query(PlayerControlled, Backpack)) {
-    const bag = world.require(hero, Backpack);
-    for (const c of world.query(Carrion)) {
-      const carrion = world.require(c, Carrion);
-      const drops = carrion.left ?? catalog.monsters[carrion.monsterId]?.drops ?? [];
-      const fits = drops.some((d) => {
-        const ing = catalog.ingredients[d.ingredientId];
-        if (!ing) return false;
-        // Any star rating may come out of the cut: fits if some rating would find room.
-        return ([1, 2, 3] as const).some((s) =>
-          canFitOne(
-            bag,
-            catalog.ingredients,
-            d.ingredientId,
-            ingredientStars(ing, s, { element: carrion.killElement, overkillRatio: carrion.overkillRatio }),
-          ),
-        );
-      });
-      if (fits) n++;
-    }
+    for (const c of world.query(Carrion)) if (somethingFits(world, hero, c, catalog)) n++;
   }
   return n;
+}
+
+/** Would any part of carcass `c` (with any possible cut) find room in the hero's backpack? */
+function somethingFits(world: World, hero: Entity, c: Entity, catalog: LootCatalog): boolean {
+  const bag = world.get(hero, Backpack);
+  const carrion = world.get(c, Carrion);
+  if (!bag || !carrion) return false;
+  const drops = carrion.left ?? catalog.monsters[carrion.monsterId]?.drops ?? [];
+  return drops.some((d) => {
+    const ing = catalog.ingredients[d.ingredientId];
+    if (!ing) return false;
+    // Any star rating may come out of the cut: fits if some rating would find room.
+    return ([1, 2, 3] as const).some((s) =>
+      canFitOne(
+        bag,
+        catalog.ingredients,
+        d.ingredientId,
+        ingredientStars(ing, s, { element: carrion.killElement, overkillRatio: carrion.overkillRatio }),
+      ),
+    );
+  });
+}
+
+/**
+ * The carcass the hero can butcher right now (-1 if none) — the UI's "show the Butcher button" selector: in reach,
+ * the hero is free to act (alive, not staggered, not held) and at least one part would fit the backpack.
+ */
+export function butcherableCarcass(world: World, hero: Entity, catalog: LootCatalog): Entity {
+  const h = world.get(hero, Health);
+  if ((h && (h.hp <= 0 || h.stagger > 0)) || isHeld(world, hero)) return -1;
+  const c = lootableCarcass(world, hero);
+  return c >= 0 && somethingFits(world, hero, c, catalog) ? c : -1;
 }
 
 export interface LootCatalog {
