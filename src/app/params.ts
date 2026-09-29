@@ -8,6 +8,10 @@ export interface LaunchParams {
   demo: boolean;
   /** `?joystick=1` — floating joystick instead of tap-to-move (for comparison). */
   joystick: boolean;
+  /** `?room=<id>` — a peaceful room (e.g. `test_room`) instead of the combat arena. */
+  room: string | undefined;
+  /** `?seed=<n>` — run seed (default 1). */
+  seed: string | undefined;
   /** `?pr=<n>` — force the render pixel ratio (`?pr=1` = GPU / fill-rate proxy for mid-range devices). */
   forcedPixelRatio: number | undefined;
 }
@@ -23,6 +27,8 @@ export function parseLaunchParams(search: string): LaunchParams {
     debug: params.get('debug') === '1',
     demo: params.get('demo') === '1',
     joystick: params.get('joystick') === '1',
+    room: params.get('room') ?? undefined,
+    seed: params.get('seed') ?? undefined,
     forcedPixelRatio:
       params.has('pr') && Number.isFinite(pr) && pr > 0 ? Math.min(PR_MAX, Math.max(PR_MIN, pr)) : undefined,
   };

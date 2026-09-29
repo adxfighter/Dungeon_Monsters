@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInputState } from '@shared/input';
+import { Buttons, createInputState } from '@shared/input';
 import { InputController } from './InputController';
 
 function key(type: 'keydown' | 'keyup', code: string): Event {
@@ -69,6 +69,27 @@ describe('InputController', () => {
     expect(input.sample(state).target.seq).toBe(1); // re-sampling is not a new command
     input.setMoveTarget(3.5, 4.25);
     expect(input.sample(state).target.seq).toBe(2); // same point tapped again is
+  });
+
+  it('delivers button presses exactly once (edge-triggered)', () => {
+    const input = new InputController();
+    const state = createInputState();
+    input.pressButton(Buttons.Attack);
+    input.pressButton(Buttons.Dodge);
+    expect(input.sample(state).buttons).toBe(Buttons.Attack | Buttons.Dodge);
+    expect(input.sample(state).buttons).toBe(0);
+  });
+
+  it('keyboard J / K press attack and dodge, ignoring auto-repeat', () => {
+    const input = new InputController();
+    const target = new EventTarget();
+    input.attachKeyboard(target);
+    target.dispatchEvent(key('keydown', 'KeyJ'));
+    expect(input.sample(createInputState()).buttons).toBe(Buttons.Attack);
+    target.dispatchEvent(Object.assign(new Event('keydown'), { code: 'KeyJ', repeat: true }));
+    expect(input.sample(createInputState()).buttons).toBe(0);
+    target.dispatchEvent(key('keydown', 'KeyK'));
+    expect(input.sample(createInputState()).buttons).toBe(Buttons.Dodge);
   });
 
   it('writes into the given state without allocating a new one', () => {

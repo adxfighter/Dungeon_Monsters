@@ -1,15 +1,15 @@
 import './style.css';
 import { render as renderUi } from 'preact';
-import { MoveTarget } from '@core/components';
+import { Brain, Health, MoveTarget, Transform } from '@core/components';
 import { Game } from '@core/Game';
-import { characters, locales, rooms } from '@content/index';
+import { arenas, characters, locales, monsters, rooms } from '@content/index';
 import { InputController } from '@platform/input/InputController';
 import { createI18n, pickLocale } from '@platform/i18n/i18n';
 import { Renderer } from '@render/Renderer';
 import { DemoScene } from '@render/scenes/DemoScene';
 import { RoomScene } from '@render/scenes/RoomScene';
 import { createInputState } from '@shared/input';
-import { UiRoot } from '@ui/index';
+import { HudStore, UiRoot } from '@ui/index';
 import { DebugOverlay } from './DebugOverlay';
 import { FpsMeter } from './FpsMeter';
 import { GameLoop } from './GameLoop';
@@ -34,6 +34,12 @@ declare global {
       getPlayerPos(): { x: number; y: number } | null;
       getTick(): number;
       getMoveTarget(): { active: boolean; x: number; y: number } | null;
+      /** Spawns a monster by id (perf tests, manual play-testing). */
+      spawnMonster(id: string, x: number, y: number): void;
+      getHeroHp(): number;
+      setHeroHp(hp: number): void;
+      /** Living monsters: hp per entity. */
+      getMonsters(): { id: string; hp: number; x: number; y: number }[];
       /** Simulation point → client (CSS px) coordinates, to aim taps in e2e. */
       groundToClient(x: number, y: number): { x: number; y: number };
     };
@@ -87,14 +93,28 @@ function start(): void {
   let roomScene: RoomScene | undefined;
   let demo: DemoScene | undefined;
   let tapTargeting: TapTargeting | undefined;
+  const hud = new HudStore();
   if (params.demo) {
     demo = new DemoScene();
     stage = demo;
   } else {
     const hero = characters['tavi'];
-    const room = rooms['test_room'];
-    if (!hero || !room) throw new Error('content: tavi / test_room missing');
-    game = new Game({ room, player: hero });
+    if (!hero) throw new Error('content: tavi missing');
+    // Default: the M2 combat arena. `?room=<id>` opens a peaceful room instead (e.g. the M1 test room).
+    const peaceful = params.room ? rooms[params.room] : undefined;
+    const arena = arenas['arena_test'];
+    if (peaceful) {
+      game = new Game({ room: peaceful, player: hero });
+    } else {
+      if (!arena) throw new Error('content: arena_test missing');
+      game = new Game({
+        room: arena.room,
+        player: hero,
+        monsters,
+        waves: arena.waves,
+        seed: params.seed ?? 1,
+      });
+    }
     roomScene = new RoomScene(game);
     stage = roomScene;
     const scene = roomScene;
@@ -109,8 +129,11 @@ function start(): void {
       <UiRoot
         input={input}
         controls={params.joystick ? 'joystick' : 'tap'}
+        hud={hud}
+        t={i18n.t}
         onTapPress={(x, y) => tapping.press(x, y, performance.now())}
         onTapRelease={() => tapping.release()}
+        onRestart={() => window.location.reload()}
       />,
       uiRoot,
     );
@@ -132,6 +155,8 @@ function start(): void {
         roomScene.handleEvents(game.drainEvents());
         roomScene.update(alpha, dt);
         tapTargeting?.frame(performance.now());
+        const h = game.world.get(game.player, Health);
+        hud.update(h?.hp ?? 0, h?.maxHp ?? 1, game.status, game.waveNumber, game.waveCount);
       }
       demo?.update(dt);
       renderer.render(stage.scene, stage.camera);
@@ -178,6 +203,21 @@ function start(): void {
         return t ? { x: t.x, y: t.y } : null;
       },
       getTick: () => g.tick,
+      spawnMonster: (id, x, y) => {
+        const def = monsters[id];
+        if (!def) throw new Error(`unknown monster ${id}`);
+        g.spawnMonster(def, x, y);
+      },
+      getHeroHp: () => g.world.get(g.player, Health)?.hp ?? 0,
+      setHeroHp: (hp) => {
+        const h = g.world.get(g.player, Health);
+        if (h) h.hp = hp;
+      },
+      getMonsters: () =>
+        g.world.query(Brain, Health, Transform).map((e) => {
+          const t = g.world.require(e, Transform);
+          return { id: g.world.require(e, Brain).def.id, hp: g.world.require(e, Health).hp, x: t.x, y: t.y };
+        }),
       getMoveTarget: () => {
         const t = g.world.get(g.player, MoveTarget);
         return t ? { active: t.active, x: t.x, y: t.y } : null;
