@@ -21,7 +21,7 @@ describe('settings', () => {
     expect(loadSettings(memoryStorage())).toEqual(DEFAULT_SETTINGS);
     expect(loadSettings(undefined)).toEqual(DEFAULT_SETTINGS);
     const bad = memoryStorage();
-    bad.setItem('dm.settings.v1', '{nope');
+    bad.setItem('dm.settings.v2', '{nope');
     expect(loadSettings(bad)).toEqual(DEFAULT_SETTINGS);
     const throwing = {
       getItem: () => {
@@ -35,12 +35,18 @@ describe('settings', () => {
     expect(() => saveSettings(throwing, DEFAULT_SETTINGS)).not.toThrow();
   });
 
+  it('migrates v1 settings but drops its buttonsSide (the default changed to right)', () => {
+    const s = memoryStorage();
+    s.setItem('dm.settings.v1', JSON.stringify({ shake: false, haptics: true, buttonsSide: 'left' }));
+    expect(loadSettings(s)).toMatchObject({ shake: false, haptics: true, buttonsSide: 'right' });
+  });
+
   it('round-trips and ignores wrongly typed fields', () => {
     const s = memoryStorage();
     saveSettings(s, { shake: false, haptics: true, buttonsSide: 'left', difficulty: 'hard' });
     expect(loadSettings(s)).toEqual({ shake: false, haptics: true, buttonsSide: 'left', difficulty: 'hard' });
     s.setItem(
-      'dm.settings.v1',
+      'dm.settings.v2',
       JSON.stringify({ shake: 'no', haptics: false, buttonsSide: 'up', difficulty: 'x' }),
     );
     expect(loadSettings(s)).toEqual({

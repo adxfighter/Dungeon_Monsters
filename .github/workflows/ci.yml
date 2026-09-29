@@ -34,7 +34,10 @@ jobs:
       - name: Zod stays out of the production bundle
         # Content schemas are for dev validation and tests only (DECISIONS_LOG 2026-09-29).
         run: |
-          if grep -l 'ZodError' dist/assets/*.js; then
+          shopt -s nullglob
+          files=(dist/assets/*.js)
+          if [ ${#files[@]} -eq 0 ]; then echo '::error::no JS assets in dist/assets'; exit 1; fi
+          if grep -l 'ZodError' "${files[@]}"; then
             echo '::error::Zod leaked into the production bundle (a runtime import of @content/schemas?)'
             exit 1
           fi

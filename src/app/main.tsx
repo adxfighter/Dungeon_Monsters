@@ -173,7 +173,7 @@ function start(): void {
         onPickDifficulty={(id) => {
           if (!arena) return;
           const level = arena.difficulties[id];
-          currentGame.startArena(level.waves, level.monsters);
+          currentGame.startArena(level.waves, level.monsters, level.overrides);
         }}
       />,
       uiRoot,

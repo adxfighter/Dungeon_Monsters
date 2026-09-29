@@ -29,8 +29,13 @@ export const arenaTest: Arena = {
     easy: {
       nameKey: 'difficulty.easy',
       hintKey: 'difficulty.easy.hint',
-      // ≈ the original M2 numbers: HP ×0.78, ATK ×0.72, 25 % longer pauses between attacks.
-      monsters: { hp: 0.78, atk: 0.72, attackCooldown: 1.25 },
+      // Exactly the original M2 numbers (before PR #8) — the user asked for "как было".
+      monsters: { hp: 1, atk: 1, attackCooldown: 1 },
+      overrides: {
+        bubbler: { hp: 30, atk: 8, attackCooldown: 1.2 },
+        sparkhog: { hp: 45, atk: 7, attackCooldown: 1.6 },
+        stonenibbler: { hp: 35, atk: 12, attackCooldown: 0.9 },
+      },
       waves: [
         { delay: 1, spawns: [{ monster: 'bubbler', x: 6.5, y: 2.5 }] },
         {

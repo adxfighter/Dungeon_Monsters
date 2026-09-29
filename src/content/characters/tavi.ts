@@ -16,6 +16,7 @@ export const tavi: Character = {
     accent: '#f2c14e',
     legs: '#f4efe6',
     ornament: '#ff8fb3',
+    ornamentMetal: '#f2c14e',
     lips: '#c8323c',
     outfitStyle: 'kimono',
     hairStyle: { bangs: true, ponytail: false, bun: true, kanzashi: true },

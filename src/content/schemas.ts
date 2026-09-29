@@ -175,6 +175,8 @@ export const CharacterSchema = z.object({
     legs: HexColor.optional(),
     /** Hair ornament colour (kanzashi flower). */
     ornament: HexColor.optional(),
+    /** Kanzashi pin metal colour. */
+    ornamentMetal: HexColor.optional(),
     /** Lip colour drawn on the face. */
     lips: HexColor.optional(),
   }),
@@ -226,12 +228,22 @@ export const MonsterModifiersSchema = z.object({
 });
 export type MonsterModifiers = z.infer<typeof MonsterModifiersSchema>;
 
+/** Absolute stat values for one monster on one level (replace the MonsterDef numbers before modifiers). */
+export const MonsterOverrideSchema = z.object({
+  hp: z.number().int().positive().optional(),
+  atk: z.number().nonnegative().optional(),
+  attackCooldown: Seconds.optional(),
+});
+export type MonsterOverride = z.infer<typeof MonsterOverrideSchema>;
+
 export const ArenaDifficultySchema = z.object({
   nameKey: z.string().min(1),
   /** One-line hint under the level name, i18n key. */
   hintKey: z.string().min(1),
   waves: WavesSchema,
   monsters: MonsterModifiersSchema,
+  /** Exact per-monster stats for this level, by monster id (e.g. "easy = the original numbers"). */
+  overrides: z.record(z.string().min(1), MonsterOverrideSchema).optional(),
 });
 
 export const ArenaSchema = z.object({

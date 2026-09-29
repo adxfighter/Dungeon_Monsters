@@ -32,6 +32,7 @@ function runBot(level: DifficultyId, seed: number, dodge: boolean): BotResult {
     monsters,
     waves: d.waves,
     modifiers: d.monsters,
+    ...(d.overrides ? { overrides: d.overrides } : {}),
     seed,
   });
   const input = createInputState();

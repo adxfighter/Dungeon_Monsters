@@ -227,6 +227,10 @@ function faceTexture(eyeColor: string, lips: string | undefined): CanvasTexture 
   return texture;
 }
 
+/** Fallback kanzashi colours when a character's data doesn't set them. */
+const DEFAULT_ORNAMENT_METAL = '#f2c14e';
+const DEFAULT_ORNAMENT = '#ff8fb3';
+
 /** Upper-body twist for the swing: wind back, whip through, settle (radians). */
 const SWING_BACK = 0.75;
 const SWING_THROUGH = 1.7;
@@ -308,10 +312,13 @@ export function createChibi(character: Character): Rig {
   const extraMaterials = [];
   if (appearance.hairStyle.kanzashi) {
     const r = DIM.headRadius * 1.08;
-    const metal = createToonMaterial({ color: '#f2c14e', rimStrength: 0.2 });
+    const metal = createToonMaterial({
+      color: appearance.ornamentMetal ?? DEFAULT_ORNAMENT_METAL,
+      rimStrength: 0.2,
+    });
     const pins = new Mesh(kanzashiGeometry(r), metal);
     pins.name = 'chibi-kanzashi';
-    const petal = createToonMaterial({ color: appearance.ornament ?? '#ff8fb3' });
+    const petal = createToonMaterial({ color: appearance.ornament ?? DEFAULT_ORNAMENT });
     const flower = new Mesh(flowerGeometry(r), petal);
     flower.name = 'chibi-flower';
     addOutline(flower, { thickness: 0.012 });
