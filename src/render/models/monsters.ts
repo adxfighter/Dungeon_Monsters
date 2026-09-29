@@ -154,8 +154,9 @@ function sparkhog(def: MonsterDef): MonsterRig {
       curl += ((pose.guarding ? 1 : 0) - curl) * Math.min(1, dt * 12);
       body.scale.set(1 + 0.1 * curl, 1 - 0.3 * curl, 1 + 0.1 * curl);
       quills.scale.setScalar(1 + 0.35 * curl);
-      snout.visible = curl < 0.5;
-      face.visible = curl < 0.5;
+      // The face stays visible while curled (players read a vanishing face as a bug), just lower it.
+      snout.position.y = -0.06 * curl;
+      face.position.y = -0.06 * curl;
       // Telegraph: quills glow brighter and brighter until they fire.
       const charge = pose.phase === 'windup' ? pose.t01 : 0;
       quillMat.emissiveIntensity = 0.5 + Math.sin(t * 3) * 0.2 + charge * 1.6 + curl * 0.4;
@@ -182,13 +183,15 @@ function stonenibbler(def: MonsterDef): MonsterRig {
   torso.name = 'stonenibbler-body';
   addOutline(torso);
   const earMat = createToonMaterial({ color: def.appearance.accent });
+  // Ears pivot at the top of the head (not at the feet), so flicking them keeps them attached.
   const ears = new Mesh(
     merge([
-      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), 0.07, 0.75, 0.1, -0.35, 0, -0.25),
-      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), -0.07, 0.75, 0.1, -0.35, 0, 0.25),
+      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), 0.07, 0.13, -0.02, -0.35, 0, -0.25),
+      placed(new CapsuleGeometry(0.04, 0.22, 4, 8), -0.07, 0.13, -0.02, -0.35, 0, 0.25),
     ]),
     earMat,
   );
+  ears.position.set(0, 0.62, 0.12);
   ears.name = 'stonenibbler-ears';
   addOutline(ears, { thickness: 0.02 });
   body.add(torso, ears, eyes(0.03, 0.08, 0.55, 0.31));

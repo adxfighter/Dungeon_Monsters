@@ -21,15 +21,18 @@ export const FEEL = {
   hitStop: 0.06,
   /** Longer freeze for crits, staggers and kills. */
   heavyHitStop: 0.09,
-  /** Camera shake: [amplitude tiles, duration s]. */
-  shakeDealt: [0.04, 0.12],
-  shakeHeavy: [0.08, 0.18],
-  shakeTaken: [0.14, 0.25],
-  shakeKill: [0.1, 0.2],
-  /** Vibration, ms. */
-  vibrateDealt: 12,
-  vibrateTaken: 45,
-  vibrateKill: 25,
+  /**
+   * Camera shake: [amplitude tiles, duration s]. The camera sits ~20 tiles away with a narrow lens, so
+   * sub-0.1 amplitudes were invisible on a phone (playtest 2026-09-29).
+   */
+  shakeDealt: [0.1, 0.14],
+  shakeHeavy: [0.18, 0.2],
+  shakeTaken: [0.35, 0.3],
+  shakeKill: [0.25, 0.22],
+  /** Vibration, ms. Pulses under ~20 ms are not felt on many phone motors (playtest). */
+  vibrateDealt: 25,
+  vibrateTaken: 80,
+  vibrateKill: 40,
   /** Damage numbers float up from this height, world units. */
   numberHeight: 1.1,
 } as const;

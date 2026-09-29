@@ -16,6 +16,10 @@ export const ru: Locale = {
   'hud.settings': 'Настройки',
   'settings.shake': 'Тряска камеры',
   'settings.haptics': 'Вибрация',
+  'settings.testVibration': 'Проверить вибрацию',
+  'settings.buttonsSide': 'Кнопки',
+  'settings.side.left': 'Слева',
+  'settings.side.right': 'Справа',
   'error.webgl.title': 'Не удалось запустить 3D',
   'error.webgl.body':
     'Браузер не поддерживает WebGL2 или он отключён. Обновите браузер или включите аппаратное ускорение.',

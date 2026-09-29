@@ -163,6 +163,7 @@ function start(): void {
           haptics.enabled = next.haptics;
           saveSettings(storage, next);
         }}
+        onTestVibration={() => haptics.test()}
       />,
       uiRoot,
     );

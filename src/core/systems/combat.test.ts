@@ -448,7 +448,7 @@ describe('death and waves', () => {
       a.seconds(2.5);
     }
     expect(a.game.status).toBe('cleared');
-    expect(a.of('WaveStarted').map((e) => e.index)).toEqual([1, 2, 3]);
+    expect(a.of('WaveStarted').map((e) => e.index)).toEqual(arenaTest.waves.map((_, i) => i + 1));
     expect(a.of('ArenaCleared')).toHaveLength(1);
   });
 });

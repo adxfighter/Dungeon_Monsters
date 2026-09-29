@@ -12,7 +12,7 @@ export const bubbler: MonsterDef = {
   bestiaryKey: 'bestiary.bubbler',
   radius: 0.35,
   appearance: { body: '#8fd3e8', accent: '#f2f7fa' },
-  stats: { hp: 30, atk: 8, def: 2, poise: 20 },
+  stats: { hp: 40, atk: 12, def: 2, poise: 20 },
   movement: { speed: 1.4, accel: 6, decel: 6, turnRate: 4 },
   resist: { fire: 2, cold: 0.75 },
   ai: {
@@ -23,7 +23,7 @@ export const bubbler: MonsterDef = {
     idleMin: 0.8,
     idleMax: 2.2,
     wanderSpeed: 0.5,
-    attackCooldown: 1.2,
+    attackCooldown: 1,
     keepDistance: 0,
   },
   attacks: [
@@ -50,7 +50,7 @@ export const sparkhog: MonsterDef = {
   bestiaryKey: 'bestiary.sparkhog',
   radius: 0.35,
   appearance: { body: '#6b4a3a', accent: '#ffd35a' },
-  stats: { hp: 45, atk: 7, def: 6, poise: 40 },
+  stats: { hp: 55, atk: 9, def: 6, poise: 40 },
   movement: { speed: 1.6, accel: 10, decel: 12, turnRate: 5 },
   resist: { blunt: 1.25, slash: 0.9 },
   backVulnerability: { arcDeg: 110, mult: 1.6 },
@@ -63,7 +63,7 @@ export const sparkhog: MonsterDef = {
     idleMin: 1,
     idleMax: 2,
     wanderSpeed: 0.4,
-    attackCooldown: 1.6,
+    attackCooldown: 1.3,
     keepDistance: 2.2,
   },
   attacks: [
@@ -89,7 +89,7 @@ export const stonenibbler: MonsterDef = {
   bestiaryKey: 'bestiary.stonenibbler',
   radius: 0.3,
   appearance: { body: '#b8a89a', accent: '#5a4a44' },
-  stats: { hp: 35, atk: 12, def: 3, poise: 25 },
+  stats: { hp: 45, atk: 16, def: 3, poise: 25 },
   movement: { speed: 3.2, accel: 20, decel: 20, turnRate: 9 },
   resist: { cold: 1.25 },
   ai: {
@@ -100,7 +100,7 @@ export const stonenibbler: MonsterDef = {
     idleMin: 0.5,
     idleMax: 1.5,
     wanderSpeed: 0.45,
-    attackCooldown: 0.9,
+    attackCooldown: 0.7,
     keepDistance: 0,
   },
   attacks: [

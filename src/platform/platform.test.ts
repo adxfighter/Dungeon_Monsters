@@ -12,6 +12,10 @@ function memoryStorage() {
 }
 
 describe('settings', () => {
+  it('buttons are on the left by default', () => {
+    expect(DEFAULT_SETTINGS.buttonsSide).toBe('left');
+  });
+
   it('defaults when nothing is stored, storage is missing, corrupt or throws', () => {
     expect(loadSettings(memoryStorage())).toEqual(DEFAULT_SETTINGS);
     expect(loadSettings(undefined)).toEqual(DEFAULT_SETTINGS);
@@ -32,10 +36,10 @@ describe('settings', () => {
 
   it('round-trips and ignores wrongly typed fields', () => {
     const s = memoryStorage();
-    saveSettings(s, { shake: false, haptics: true });
-    expect(loadSettings(s)).toEqual({ shake: false, haptics: true });
-    s.setItem('dm.settings.v1', JSON.stringify({ shake: 'no', haptics: false }));
-    expect(loadSettings(s)).toEqual({ shake: true, haptics: false });
+    saveSettings(s, { shake: false, haptics: true, buttonsSide: 'right' });
+    expect(loadSettings(s)).toEqual({ shake: false, haptics: true, buttonsSide: 'right' });
+    s.setItem('dm.settings.v1', JSON.stringify({ shake: 'no', haptics: false, buttonsSide: 'up' }));
+    expect(loadSettings(s)).toEqual({ shake: true, haptics: false, buttonsSide: 'left' });
   });
 });
 

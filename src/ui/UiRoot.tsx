@@ -19,11 +19,23 @@ interface Props {
   onRestart(): void;
   settings: Settings;
   onSettingsChange(settings: Settings): void;
+  onTestVibration(): void;
 }
 
 /** Root of the Preact overlay above the canvas: movement layer below, HUD and buttons above it. */
 export function UiRoot(props: Props) {
-  const { input, controls, hud, t, onTapPress, onTapRelease, onRestart, settings, onSettingsChange } = props;
+  const {
+    input,
+    controls,
+    hud,
+    t,
+    onTapPress,
+    onTapRelease,
+    onRestart,
+    settings,
+    onSettingsChange,
+    onTestVibration,
+  } = props;
   return (
     <div class="ui-root">
       {controls === 'joystick' ? (
@@ -38,6 +50,7 @@ export function UiRoot(props: Props) {
         onRestart={onRestart}
         settings={settings}
         onSettingsChange={onSettingsChange}
+        onTestVibration={onTestVibration}
       />
     </div>
   );
