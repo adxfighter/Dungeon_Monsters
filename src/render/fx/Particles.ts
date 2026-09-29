@@ -8,7 +8,7 @@ import {
   Vector3,
 } from 'three';
 
-const CAPACITY = 96;
+const CAPACITY = 160;
 const GRAVITY = 9;
 const SIZE = 0.07;
 

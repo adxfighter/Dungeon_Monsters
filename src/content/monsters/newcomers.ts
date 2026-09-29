@@ -3,18 +3,18 @@ import type { MonsterDef } from '../schemas';
 /**
  * Five new monsters for testing (user decision 2026-09-29; tiers are assigned later).
  * Toadhog and Dragochick are the user's ideas; their look is ORIGINAL — deliberately not the Angry Birds (Rovio)
- * characters: frog legs and a throat sac for the pig, stubby wings, horn-crest and fire breath for the chick.
+ * characters: a squat warty toad body with a boar snout and tusks, no ears, swamp-brown (not a green ball) for the pig, stubby wings, horn-crest and fire breath for the chick.
  * All five are checked against docs/LEGAL.md (no slimes, walking mushrooms, living armour, mandrakes, basilisks,
  * mimics, krakens or dragons-as-bosses).
  */
 
-/** Toadhog: a green pig with frog legs; travels in hops and body-slams with a long leap. */
+/** Toadhog: a squat swamp-brown warty toad with a boar snout and tusks; travels in hops, body-slams with a leap. */
 export const toadhog: MonsterDef = {
   id: 'toadhog',
   nameKey: 'monster.toadhog.name',
   bestiaryKey: 'bestiary.toadhog',
   radius: 0.38,
-  appearance: { body: '#7fbf4d', accent: '#f2e6a0' },
+  appearance: { body: '#7a7038', accent: '#d8c98a' },
   stats: { hp: 50, atk: 13, def: 4, poise: 35 },
   movement: { speed: 2.4, accel: 30, decel: 30, turnRate: 8 },
   resist: { blunt: 0.8, fire: 1.2 },

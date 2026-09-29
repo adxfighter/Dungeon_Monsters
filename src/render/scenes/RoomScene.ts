@@ -22,6 +22,8 @@ const ELEMENT_SPARK: Readonly<Record<Element, number>> = {
   cold: 0x9ee7ff,
 };
 const BLOCK_SPARK = 0xb8b0c0;
+/** Embers per second per breathing monster. */
+const FIRE_RATE = 70;
 const FIRE_A = 0xff7a2e;
 const FIRE_B = 0xffd23f;
 /** Height (world units) where hit sparks appear. */
@@ -42,6 +44,7 @@ export class RoomScene {
   private readonly hit = new Vector3();
   private readonly telegraphs = new Telegraphs();
   private readonly particles = new Particles();
+  private fireAcc = 0;
   private readonly scratch = { x: 0, y: 0 };
 
   constructor(game: Game) {
@@ -129,13 +132,17 @@ export class RoomScene {
     }
     this.telegraphs.end((e) => world.isAlive(e));
 
-    // Fire breath: a stream of embers along the attack direction during the active phase.
+    // Fire breath: a stream of embers along the attack direction during the active phase. Emission is timed
+    // (FIRE_RATE per second, not per frame), so the density does not depend on the display refresh rate.
+    this.fireAcc = Math.min(this.fireAcc + dtSeconds * FIRE_RATE, 4);
+    const fireCount = Math.floor(this.fireAcc);
+    this.fireAcc -= fireCount;
     for (const e of world.query(Brain, Attacker, Transform)) {
       const cur = world.require(e, Attacker).current;
       if (!cur || cur.phase !== 'active' || cur.def.element !== 'fire' || !cur.def.shape) continue;
       if (!this.entities.positionOf(e, this.scratch)) continue;
       const range = cur.def.shape.kind === 'cone' ? cur.def.shape.range : 1.5;
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < fireCount; i++) {
         const spread = (Math.random() - 0.5) * 0.5;
         const dx = cur.dirX + -cur.dirY * spread;
         const dy = cur.dirY + cur.dirX * spread;

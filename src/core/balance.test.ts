@@ -148,8 +148,8 @@ for (const arena of Object.values(arenas)) {
       expect(count(runs.easy.dodger, 'cleared'), report('easy')).toBe(SEEDS.length);
     });
 
-    it('medium: dodging wins nearly always, face-tanking loses at least a third of the time', () => {
-      expect(count(runs.medium.dodger, 'cleared'), report('medium')).toBeGreaterThanOrEqual(SEEDS.length - 1);
+    it('medium: dodging always wins, face-tanking loses at least a third of the time', () => {
+      expect(count(runs.medium.dodger, 'cleared'), report('medium')).toBe(SEEDS.length);
       expect(count(runs.medium.tank, 'defeated'), report('medium')).toBeGreaterThanOrEqual(
         Math.ceil(SEEDS.length / 3),
       );

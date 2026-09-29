@@ -20,9 +20,9 @@ import { createBlobShadow } from './blobShadow';
 import { easeOut, type Rig } from './pose';
 
 /**
- * Procedural models of the five new monsters (user decision 2026-09-29), facing local +Z, ≤ 6 draw calls each.
- * Toadhog / Dragochick are original designs (frog legs + throat sac; stubby wings + horn-crest + fire) — NOT the
- * Angry Birds characters (docs/LEGAL.md).
+ * Procedural models of the five new monsters (user decision 2026-09-29), facing local +Z, ≤ 6 draw calls each
+ * (outline and blob shadow included). Toadhog / Dragochick are original designs (squat warty swamp toad with a boar
+ * snout and tusks; stubby wings + horn-crest + fire) — NOT the Angry Birds characters (docs/LEGAL.md).
  */
 const m4 = new Matrix4();
 const euler = new Euler();
@@ -54,52 +54,76 @@ function toadhog(def: MonsterDef): Rig {
   root.add(body);
   const skin = createToonMaterial({ color: def.appearance.body });
   const pale = createToonMaterial({ color: def.appearance.accent });
-  const snoutMat = createToonMaterial({ color: '#f29aa0' });
 
-  // Round pig body with small pointed ears.
+  // A squat, wide toad (wider than tall — not a round ball), no ears; warthog-like flat snout and tusks.
+  // Legs, head and snout share the skin mesh: 6 draw calls in total (review PR #10, IP: not a green-ball pig).
+  const BODY = { y: 0.24, rx: 0.44, ry: 0.21, rz: 0.37 };
+  const onBack = (x: number, z: number) =>
+    BODY.y + BODY.ry * Math.sqrt(Math.max(0, 1 - (x / BODY.rx) ** 2 - (z / BODY.rz) ** 2));
+  const side = (x: number, y: number, z: number, ry: number, make: () => BufferGeometry, rz = 0) => [
+    placed(make(), x, y, z, 0, ry, rz),
+    placed(make(), -x, y, z, 0, -ry, -rz),
+  ];
   const torso = new Mesh(
     merge([
-      placed(new SphereGeometry(0.36, 22, 14), 0, 0.36, 0),
-      ...pair(() => new ConeGeometry(0.07, 0.14, 6), 0.17, 0.66, 0.02, -0.3, -0.4),
+      placed(
+        new SphereGeometry(0.34, 22, 12).scale(BODY.rx / 0.34, BODY.ry / 0.34, BODY.rz / 0.34),
+        0,
+        BODY.y,
+        0,
+      ),
+      placed(new SphereGeometry(0.2, 16, 10).scale(1.3, 0.8, 1), 0, 0.28, 0.24), // wide flat head
+      placed(new CylinderGeometry(0.085, 0.095, 0.06, 12), 0, 0.3, 0.43, Math.PI / 2), // flat snout
+      // Splayed hind legs with big webbed feet — visible from the top-down camera.
+      ...side(0.36, 0.1, -0.16, 0.6, () => new CapsuleGeometry(0.09, 0.2, 4, 8), Math.PI / 2),
+      ...side(0.52, 0.03, -0.3, 0.4, () => new SphereGeometry(0.12, 12, 6).scale(1.3, 0.3, 1)),
+      ...side(0.22, 0.03, 0.32, 0, () => new SphereGeometry(0.07, 10, 6).scale(1.2, 0.35, 1)),
     ]),
     skin,
   );
   torso.name = 'toadhog-body';
   addOutline(torso);
-  // Frog legs: big folded hind legs and small front feet.
-  const legs = new Mesh(
+  // Warts on the back, bulging eyes on top, little tusks at the corners of the mouth.
+  const warts: [number, number, number][] = [
+    [0.15, -0.05, 0.05],
+    [-0.18, -0.12, 0.045],
+    [0.05, -0.22, 0.04],
+    [-0.06, 0.02, 0.035],
+    [0.29, -0.14, 0.04],
+    [-0.3, 0.02, 0.04],
+    [0.2, -0.26, 0.035],
+  ];
+  const detail = new Mesh(
     merge([
-      ...pair(() => new CapsuleGeometry(0.09, 0.22, 4, 8), 0.26, 0.12, -0.15, 1.2, 0.3),
-      ...pair(() => new SphereGeometry(0.1, 10, 6), 0.3, 0.05, 0.05),
-      ...pair(() => new CapsuleGeometry(0.05, 0.1, 4, 6), 0.16, 0.08, 0.25),
+      ...warts.map(([x, z, r]) => placed(new SphereGeometry(r, 8, 5), x, onBack(x, z), z)),
+      ...pair(() => new SphereGeometry(0.085, 12, 8), 0.2, 0.44, 0.15),
+      ...pair(() => new ConeGeometry(0.02, 0.08, 6), 0.12, 0.23, 0.4, 0, -0.3),
     ]),
-    skin,
+    pale,
   );
-  legs.name = 'toadhog-legs';
-  addOutline(legs, { thickness: 0.02 });
-  const snout = new Mesh(
+  detail.name = 'toadhog-detail';
+  // Horizontal slit pupils, nostrils and a wide frog mouth.
+  const features = new Mesh(
     merge([
-      placed(new CylinderGeometry(0.11, 0.12, 0.08, 14), 0, 0.4, 0.37, Math.PI / 2),
-      ...pair(() => new SphereGeometry(0.022, 8, 6), 0.04, 0.4, 0.42),
+      ...pair(() => new SphereGeometry(0.05, 10, 6).scale(1.2, 0.6, 1), 0.21, 0.45, 0.22),
+      ...pair(() => new SphereGeometry(0.018, 6, 4), 0.035, 0.3, 0.46),
+      placed(new CapsuleGeometry(0.013, 0.26, 3, 6), 0, 0.2, 0.41, 0, 0, Math.PI / 2),
     ]),
-    snoutMat,
+    dark(),
   );
-  snout.name = 'toadhog-snout';
+  features.name = 'toadhog-features';
   // Throat sac under the chin: inflates as the telegraph.
-  const sac = new Mesh(new SphereGeometry(0.15, 16, 10), pale);
+  const sac = new Mesh(new SphereGeometry(0.13, 16, 10), pale);
   sac.name = 'toadhog-sac';
-  sac.position.set(0, 0.2, 0.26);
-  // Bulging frog eyes on top.
-  const eyeWhites = new Mesh(merge(pair(() => new SphereGeometry(0.08, 12, 8), 0.14, 0.66, 0.16)), pale);
-  const pupils = new Mesh(merge(pair(() => new SphereGeometry(0.04, 8, 6), 0.15, 0.68, 0.23)), dark());
-  body.add(torso, legs, snout, sac, eyeWhites, pupils);
-  root.add(createBlobShadow(0.38));
+  sac.position.set(0, 0.14, 0.36);
+  body.add(torso, detail, features, sac);
+  root.add(createBlobShadow(0.46));
 
   let t = 0;
   let hop = 0;
   return {
     root,
-    materials: [skin, pale, snoutMat],
+    materials: [skin, pale],
     update(dt, speed01, pose) {
       t += dt;
       // Hop arc while moving (the core gates steering into bursts).
@@ -130,8 +154,8 @@ function dragochick(def: MonsterDef): Rig {
   root.add(body);
   const down = createToonMaterial({ color: def.appearance.body });
   const flame = createToonMaterial({ color: def.appearance.accent });
-  const beakMat = createToonMaterial({ color: '#ff9f2e' });
 
+  // 6 draw calls: torso + outline, wings, flame (crest + beak), dark (eyes + claws), blob shadow.
   const torso = new Mesh(new SphereGeometry(0.3, 20, 14), down);
   torso.name = 'dragochick-body';
   torso.position.y = 0.36;
@@ -142,48 +166,49 @@ function dragochick(def: MonsterDef): Rig {
     down,
   );
   wings.name = 'dragochick-wings';
-  addOutline(wings, { thickness: 0.02 });
-  // Horn-crest: two little horns and a comb, flame-coloured.
+  // Horn-crest (two little horns and a comb) and the beak: flame-coloured, they glow in the windup.
   const crest = new Mesh(
     merge([
       ...pair(() => new ConeGeometry(0.035, 0.14, 6), 0.08, 0.68, -0.02, -0.3, -0.3),
       placed(new ConeGeometry(0.05, 0.12, 6), 0, 0.7, 0.05, 0.2),
+      placed(new ConeGeometry(0.07, 0.16, 8), 0, 0.36, 0.33, Math.PI / 2),
     ]),
     flame,
   );
   crest.name = 'dragochick-crest';
-  const beak = new Mesh(placed(new ConeGeometry(0.07, 0.16, 8), 0, 0.36, 0.33, Math.PI / 2), beakMat);
-  beak.name = 'dragochick-beak';
-  const eyes = new Mesh(merge(pair(() => new SphereGeometry(0.035, 8, 6), 0.1, 0.46, 0.25)), dark());
-  const feet = new Mesh(
-    merge(pair(() => new ConeGeometry(0.05, 0.1, 5), 0.09, 0.04, 0.05, Math.PI)),
-    beakMat,
+  // Eyes and dark dragon claws.
+  const features = new Mesh(
+    merge([
+      ...pair(() => new SphereGeometry(0.035, 8, 6), 0.1, 0.46, 0.25),
+      ...pair(() => new ConeGeometry(0.05, 0.1, 5), 0.09, 0.04, 0.05, Math.PI),
+    ]),
+    dark(),
   );
-  body.add(torso, wings, crest, beak, eyes, feet);
+  features.name = 'dragochick-features';
+  body.add(torso, wings, crest, features);
   root.add(createBlobShadow(0.3));
 
   let t = 0;
   return {
     root,
-    materials: [down, flame, beakMat],
+    materials: [down, flame],
     update(dt, speed01, pose) {
       t += dt;
       body.position.y = Math.abs(Math.sin(t * 10 * (0.3 + speed01))) * 0.05;
       wings.scale.set(1, 1, 1);
       wings.rotation.z = Math.sin(t * 18) * 0.15 * (0.3 + speed01);
-      beak.scale.set(1, 1, 1);
       if (pose.phase === 'windup') {
         // Telegraph: puff up, flap, beak glowing and opening.
         const k = easeOut(pose.t01);
-        torso.scale.setScalar(1 + 0.18 * k);
+        body.scale.setScalar(1 + 0.18 * k);
         wings.rotation.z = Math.sin(t * 40) * 0.35 * k;
         flame.emissive.set(def.appearance.accent);
         flame.emissiveIntensity = k * 1.2;
       } else if (pose.phase === 'active') {
-        torso.scale.setScalar(1.05);
-        beak.scale.set(1.3, 1.3, 1.2); // fire breath (particles come from the scene)
+        body.scale.setScalar(1.05); // fire breath (particles come from the scene)
+        flame.emissiveIntensity = 1.5;
       } else {
-        torso.scale.setScalar(1);
+        body.scale.setScalar(1);
         flame.emissiveIntensity = 0;
       }
       body.rotation.z = pose.staggered ? Math.sin(t * 20) * 0.3 : 0;
@@ -202,6 +227,7 @@ function mossback(def: MonsterDef): Rig {
   mossMat.emissive.set(def.appearance.accent);
   mossMat.emissiveIntensity = 0.5;
   const skinMat = createToonMaterial({ color: '#7f8f6a' });
+  // 6 draw calls: shell + outline, moss, limbs, eyes, blob shadow (limbs are small: no outline).
 
   const shell = new Mesh(
     new SphereGeometry(0.42, 22, 12, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.75, 1.1),
@@ -232,7 +258,6 @@ function mossback(def: MonsterDef): Rig {
     skinMat,
   );
   limbMesh.name = 'mossback-limbs';
-  addOutline(limbMesh, { thickness: 0.02 });
   const eyes = new Mesh(merge(pair(() => new SphereGeometry(0.025, 8, 6), 0.06, 0.26, 0.56)), dark());
   limbs.add(limbMesh, eyes);
   body.add(shell, moss, limbs);

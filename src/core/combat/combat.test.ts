@@ -104,4 +104,11 @@ describe('facing', () => {
     expect(fromBehind(facingCos(0, 0, 0, 1, 0), 90)).toBe(false); // side
     expect(fromFront(facingCos(0, 0, 0, 1, 0), 90)).toBe(false);
   });
+
+  it('a 360° guard covers straight behind despite rounding (cos slightly below -1)', () => {
+    expect(fromFront(-1.0000000000000002, 360)).toBe(true);
+    expect(fromFront(facingCos(Math.PI / 3, 0, 0, -Math.sin(Math.PI / 3), -Math.cos(Math.PI / 3)), 360)).toBe(
+      true,
+    );
+  });
 });

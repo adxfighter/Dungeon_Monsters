@@ -35,5 +35,9 @@ export const BALANCE = {
     wanderReached: 0.2,
     /** Random points tried per wander pick. */
     wanderTries: 4,
+    /** A scavenger this close (tiles) to its carcass starts eating. */
+    eatReach: 0.45,
+    /** A scavenger gives up eating and fights if the hero comes this close (tiles). */
+    eatDisturb: 1,
   },
 } as const;

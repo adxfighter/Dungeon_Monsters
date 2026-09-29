@@ -22,11 +22,9 @@ const {
   wanderTimeout: WANDER_TIMEOUT,
   wanderReached: WANDER_REACHED,
   wanderTries: WANDER_TRIES,
+  eatReach: EAT_REACH,
+  eatDisturb: EAT_DISTURB,
 } = BALANCE.ai;
-/** A scavenger this close to its carcass starts eating. */
-const EAT_REACH = 0.45;
-/** A scavenger gives up eating and fights if the hero comes this close. */
-const EAT_DISTURB = 1;
 
 function findHero(world: World): Entity | undefined {
   for (const e of world.query(PlayerControlled, Transform, Health)) {

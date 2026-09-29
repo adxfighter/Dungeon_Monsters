@@ -27,7 +27,7 @@ export const arenaNew: Arena = {
     easy: {
       nameKey: 'difficulty.easy',
       hintKey: 'difficulty.easy.hint',
-      monsters: { hp: 0.78, atk: 0.72, attackCooldown: 1.25 },
+      monsters: { hp: 0.7, atk: 0.55, attackCooldown: 1.4 },
       waves: [
         {
           delay: 1,
@@ -56,7 +56,7 @@ export const arenaNew: Arena = {
     medium: {
       nameKey: 'difficulty.medium',
       hintKey: 'difficulty.medium.hint',
-      monsters: { hp: 0.9, atk: 0.85, attackCooldown: 1.1 },
+      monsters: { hp: 0.85, atk: 0.72, attackCooldown: 1.2 },
       waves: [
         {
           delay: 1,
@@ -95,7 +95,7 @@ export const arenaNew: Arena = {
     hard: {
       nameKey: 'difficulty.hard',
       hintKey: 'difficulty.hard.hint',
-      monsters: { hp: 1, atk: 1, attackCooldown: 1 },
+      monsters: { hp: 0.95, atk: 0.9, attackCooldown: 1.05 },
       waves: [
         {
           delay: 1,
