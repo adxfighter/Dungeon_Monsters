@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ELEMENTS } from './elements';
 import { DIFFICULTY_IDS } from './difficulty';
 
 /**
@@ -46,7 +47,7 @@ const HexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'expected #rrggbb');
 // ---------------------------------------------------------------- combat
 
 /** Damage elements (GDD §4.3). The kill element decides ingredient quality in M3. */
-export const ELEMENTS = ['slash', 'blunt', 'fire', 'cold', 'poison'] as const;
+export { ELEMENTS };
 export const ElementSchema = z.enum(ELEMENTS);
 export type Element = z.infer<typeof ElementSchema>;
 

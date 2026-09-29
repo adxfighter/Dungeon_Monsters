@@ -72,6 +72,54 @@ export const en: Locale = {
   'backpack.empty': 'Empty. Butcher carcasses and gather plants.',
   'backpack.discard': 'Throw away',
   'backpack.close': 'Close the backpack',
+  'bestiary.brooklash.desc':
+    'A long eel of cave streams. Hides underwater, only a ring of ripples gives it away.',
+  'bestiary.brooklash.habits':
+    'Swims up submerged and surfaces next to its prey to bite in a line; after a bite it lies on the surface for a moment — the time to strike.',
+  'bestiary.bonegnaw.desc':
+    'A scavenger beetle with strong mandibles. Smells fresh carcasses across the hall.',
+  'bestiary.bonegnaw.habits':
+    'Runs to carcasses and eats them, healing fully — the loot is gone. Fights only when you come close.',
+  'bestiary.fugu.desc': 'A pink puffer-fish, spiky like a sea urchin. Floats in the cave air.',
+  'bestiary.fugu.habits':
+    'Keeps a short distance, puffs up and shoots a ring of spines all around. Dodge into a gap or dash.',
+  'bestiary.porcupine.desc': 'A big white porcupine with icy quills.',
+  'bestiary.porcupine.habits':
+    'Keeps its distance and fires a fan of quills. Up close it curls up: its front can’t be pierced — attack from behind.',
+  'bestiary.toadhog.desc': 'A smooth green frog with a big pig snout.',
+  'bestiary.toadhog.habits':
+    'Moves in hops; puffs its throat sac and belly-flops along a lane. Clumsy after a miss.',
+  'bestiary.dragochick.desc': 'A yellow chick with little wings and a horned crest. Fire doesn’t hurt it.',
+  'bestiary.dragochick.habits': 'Keeps away and breathes fire in a cone. Fears the cold.',
+  'bestiary.skunk.desc': 'A black-and-white striped critter with a huge bushy tail.',
+  'bestiary.skunk.habits':
+    'Turns its back, raises its tail and sprays; a stinking cloud stays on the floor — poison and a slow.',
+  'bestiary.yak.desc': 'A dark-brown shaggy predatory bull with red eyes.',
+  'bestiary.yak.habits':
+    'Lowers its head, paws the ground and charges in a line. After a miss it stands dazed.',
+  'bestiary.dinostrich.desc': 'A beige raptor in emu feathers: a long tail, a toothy snout, a sickle claw.',
+  'bestiary.dinostrich.habits':
+    'Fast. Up close it stomps around itself, a little further it lunges and bites.',
+  'bestiary.decapus.desc': 'A small purple ten-legged cave “octopus”.',
+  'bestiary.decapus.habits':
+    'Never hits by itself: lashes out a tentacle and holds you while others hit. Mash Attack to break free; a dash avoids the grab.',
+  'bestiary.title': 'Bestiary',
+  'bestiary.known': 'Known',
+  'bestiary.back': 'Back',
+  'bestiary.habits': 'Habits',
+  'bestiary.weak': 'Weak to',
+  'bestiary.noWeak': 'No particular weakness',
+  'bestiary.parts': 'Edible parts',
+  'bestiary.bestKill': 'Best way to kill',
+  'bestiary.butcherToLearn': 'Butcher one to find out.',
+  'bestiary.butchered': 'butchered',
+  'bestiary.anyKill': 'Any — it doesn’t change quality',
+  'bestiary.avoidKill': 'Anything but {elements} — they spoil the parts',
+  'element.slash': 'slash (blade)',
+  'element.blunt': 'blunt',
+  'element.fire': 'fire (torch)',
+  'element.cold': 'cold',
+  'element.poison': 'poison',
   'hud.butcher': 'Butcher',
   'hud.carcassHint': 'Waves beaten: butcher the carcasses before they rot',
   'hud.loot.line': '+{count} {name} {stars}',

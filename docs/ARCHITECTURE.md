@@ -102,7 +102,11 @@
   оценивает свайп чистыми функциями `core/loot/cut.ts` (`scoreSwipe`, `tapStep`), на время доски main не шагает sim.
   Растения — `RoomTemplate.plants` → сущности `Gatherable`; команды `Game.gather` / `Game.discard` (`bagSystem`),
   селектор контекстной кнопки `Game.interaction` (butcher / gather / full); экран рюкзака ставит бой на паузу,
-  выброс применяется `Game.applyCommands()` без шага симуляции. Оружие героини — `Arsenal`
+  выброс применяется `Game.applyCommands()` без шага симуляции.
+- Бестиарий (M3): `core/bestiary.ts` — данные `{seen, butchered}`, `recordBestiary(events)`, `bestKillElement`,
+  `weaknesses` (чистые функции); main записывает события шага и сохраняет через `platform/bestiaryStore`
+  (`dm.bestiary.v1`), UI `ui/bestiary/BestiaryBook` — вкладка окна рюкзака. `ELEMENTS` — в `content/elements.ts`
+  (без Zod, можно импортировать в рантайме). Оружие героини — `Arsenal`
   (`CharacterDef.combat.weapons`), смена — `Buttons.Swap`, событие `WeaponSwapped`.
   Весь рандом — `Rng(seed).fork('combat')` (урон, криты, ИИ), поэтому replay по seed + инпуту детерминирован (тест).
   Формула урона и глобальные константы — `content/balance.ts`; атаки, монстры, комбо — данные с Zod-схемами.

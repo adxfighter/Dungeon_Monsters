@@ -1,0 +1,122 @@
+/* Bestiary (M3): cream paper pages inside the backpack card. */
+.bestiary-count {
+  margin: 4px 0 8px;
+  font:
+    600 15px/1.3 system-ui,
+    sans-serif;
+}
+
+.bestiary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* ≥ 48 dp. */
+.bestiary-list button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 2px solid #1a1414;
+  border-radius: 10px;
+  background: #fbf3e2;
+  color: #1a1414;
+  text-align: left;
+  font:
+    700 14px/1.15 system-ui,
+    sans-serif;
+}
+
+.bestiary-list button:disabled {
+  color: #8c7c62;
+  border-style: dashed;
+}
+
+.bestiary-list .done {
+  margin-left: auto;
+}
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #1a1414;
+  border-radius: 50%;
+  vertical-align: -2px;
+}
+
+.bestiary-page {
+  padding: 4px 2px;
+  background: repeating-linear-gradient(#fbf3e2 0 26px, #efe2c8 26px 27px);
+  border-radius: 8px;
+  font:
+    500 15px/27px Georgia,
+    'Times New Roman',
+    serif;
+}
+
+.bestiary-page h3 {
+  margin: 6px 0;
+  font:
+    800 20px/1.2 system-ui,
+    sans-serif;
+}
+
+.bestiary-page h4 {
+  margin: 10px 0 2px;
+  font:
+    700 14px/1.2 system-ui,
+    sans-serif;
+  color: #7a4a2a;
+}
+
+.bestiary-page p {
+  margin: 0;
+}
+
+.bestiary-page .locked {
+  color: #8c7c62;
+  font-style: italic;
+}
+
+.bestiary-back {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 2px solid #1a1414;
+  border-radius: 10px;
+  background: #fff4e0;
+  color: #1a1414;
+  font:
+    700 14px/1 system-ui,
+    sans-serif;
+}
+
+/* Tabs of the backpack card: Backpack | Bestiary. */
+.bag-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.bag-tabs button {
+  flex: 1;
+  min-height: 48px;
+  border: 2px solid #1a1414;
+  border-radius: 10px;
+  background: #e9dcc2;
+  color: #1a1414;
+  font:
+    700 15px/1 system-ui,
+    sans-serif;
+}
+
+.bag-tabs button[aria-selected='true'] {
+  background: #fff4e0;
+}

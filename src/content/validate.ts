@@ -66,7 +66,11 @@ export function validateContent(): void {
   }
   // Every player-facing name key exists in every locale.
   const keys = [
-    ...Object.values(monsters).map((m) => m.nameKey),
+    ...Object.values(monsters).flatMap((m) => [
+      m.nameKey,
+      `${m.bestiaryKey}.desc`,
+      `${m.bestiaryKey}.habits`,
+    ]),
     ...Object.values(ingredients).map((i) => i.nameKey),
     ...Object.values(characters).flatMap((c) => c.combat.weapons.map((w) => w.nameKey)),
   ];
