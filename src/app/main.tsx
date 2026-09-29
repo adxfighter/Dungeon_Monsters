@@ -267,6 +267,7 @@ function start(): void {
         const weaponKey =
           arsenal && arsenal.weapons.length > 1 ? (arsenal.weapons[arsenal.index]?.nameKey ?? '') : '';
         const canLoot = lootableCarcass(game.world, game.player) >= 0;
+        const carcassHint = game.awaitingCarcasses;
         hud.update(
           h?.hp ?? 0,
           h?.maxHp ?? 1,
@@ -276,6 +277,7 @@ function start(): void {
           grabbed,
           weaponKey,
           canLoot,
+          carcassHint,
         );
       }
       demo?.update(dt);

@@ -87,6 +87,12 @@ export function Hud(props: Props) {
         </div>
       )}
 
+      {state.carcassHint && !state.grabbed && (
+        <div class="carcass-hint" role="status" data-testid="carcass-hint">
+          {t('hud.carcassHint')}
+        </div>
+      )}
+
       {state.toasts.length > 0 && (
         <ul class="loot-toasts" data-testid="loot-toasts" aria-live="polite">
           {state.toasts.map((toast) => (

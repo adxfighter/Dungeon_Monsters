@@ -120,6 +120,7 @@ export function heroCombatInputSystem(world: World, input: Readonly<InputState>,
     // Swap weapon (blade ↔ torch) between swings: the next attack uses the new weapon's combo. A press during a
     // swing or a dash is remembered and applied as soon as it ends (like the buffered combo hit).
     const arsenal = world.get(e, Arsenal);
+    // Toggle: two presses during one swing mean "there and back" — no swap.
     if (arsenal && input.buttons & Buttons.Swap) arsenal.swapQueued = !arsenal.swapQueued;
     if (arsenal && arsenal.swapQueued && arsenal.weapons.length > 1 && !attacker.current && dodge.t <= 0) {
       arsenal.swapQueued = false;
@@ -635,7 +636,7 @@ function spawnCarrion(
   const e = world.create();
   world.add(e, Transform, { x, y, rot: 0 });
   world.add(e, PrevTransform, { x, y, rot: 0 });
-  world.add(e, Carrion, { monsterId, ttl: BALANCE.carrionTtl, killElement, overkillRatio });
+  world.add(e, Carrion, { monsterId, ttl: BALANCE.carrionTtl, killElement, overkillRatio, left: null });
   world.add(e, Kind, { kind: 'carrion', defId: monsterId });
   ctx.events.push({ type: 'EntitySpawned', entity: e, kind: 'carrion', defId: monsterId });
 }

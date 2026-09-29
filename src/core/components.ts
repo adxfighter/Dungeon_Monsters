@@ -207,6 +207,8 @@ export const Carrion = defineComponent<{
   killElement: Element;
   /** Overkill as a fraction of max HP. */
   overkillRatio: number;
+  /** Parts still on it after a butchering that didn't fit the backpack (null = untouched: all of the monster's drops). */
+  left: { partId: string; ingredientId: string; count: number }[] | null;
 }>('Carrion');
 
 /** The hero's weapons (blade, torch, …) and which one is in hand; its combo is `Attacker.attacks`. */

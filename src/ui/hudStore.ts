@@ -13,6 +13,8 @@ export interface HudState {
   weaponKey: string;
   /** A carcass is within reach: show the Butcher button. */
   canLoot: boolean;
+  /** Arena beaten but carcasses left: "butcher them" hint. */
+  carcassHint: boolean;
   /** Short-lived loot lines (newest last). */
   toasts: readonly Toast[];
 }
@@ -38,6 +40,7 @@ export class HudStore {
     grabbed: false,
     weaponKey: '',
     canLoot: false,
+    carcassHint: false,
     toasts: [],
   };
   private readonly listeners = new Set<Listener>();
@@ -59,6 +62,7 @@ export class HudStore {
     grabbed = false,
     weaponKey = '',
     canLoot = false,
+    carcassHint = false,
   ): void {
     const s = this.state;
     if (
@@ -69,11 +73,12 @@ export class HudStore {
       s.waveTotal === waveTotal &&
       s.grabbed === grabbed &&
       s.weaponKey === weaponKey &&
-      s.canLoot === canLoot
+      s.canLoot === canLoot &&
+      s.carcassHint === carcassHint
     ) {
       return;
     }
-    this.state = { ...s, hp, maxHp, status, wave, waveTotal, grabbed, weaponKey, canLoot };
+    this.state = { ...s, hp, maxHp, status, wave, waveTotal, grabbed, weaponKey, canLoot, carcassHint };
     this.emit();
   }
 

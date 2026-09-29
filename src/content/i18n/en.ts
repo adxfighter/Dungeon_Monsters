@@ -58,6 +58,7 @@ export const en: Locale = {
   'weapon.torch': 'Torch',
   'hud.swap': 'Switch weapon',
   'hud.butcher': 'Butcher',
+  'hud.carcassHint': 'Waves beaten: butcher the carcasses before they rot',
   'hud.loot.line': '+{count} {name} {stars}',
   'hud.loot.partial': '+{count} {name} {stars} (backpack full)',
   'hud.loot.none': '{name} {stars}: backpack full',

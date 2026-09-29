@@ -215,6 +215,17 @@ export class Game {
   }
 
   /** Number of living monsters. */
+  /** Last wave beaten, only carcasses left on the floor: the win waits for them (UI shows a hint). */
+  get awaitingCarcasses(): boolean {
+    return (
+      this.statusValue === 'playing' &&
+      this.waves.length > 0 &&
+      this.waveIndex >= this.waves.length - 1 &&
+      this.monstersAlive === 0 &&
+      this.world.query(Carrion).length > 0
+    );
+  }
+
   get monstersAlive(): number {
     let n = 0;
     for (const e of this.world.query(Brain, Health)) if (this.world.require(e, Health).hp > 0) n++;

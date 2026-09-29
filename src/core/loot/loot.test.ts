@@ -139,7 +139,7 @@ describe('butchering a carcass', () => {
     ]);
   });
 
-  it('a full backpack keeps what does not fit on the floor (stored < count)', () => {
+  it('what does not fit stays on the carcass; after making room it can be butchered again', () => {
     const a = arena();
     const bag = a.w.require(a.game.player, Backpack);
     bag.maxWeight = 0;
@@ -150,6 +150,11 @@ describe('butchering a carcass', () => {
     const loot = a.events.find((e) => e.type === 'LootTaken');
     expect(loot?.type === 'LootTaken' && loot.items[0]?.stored).toBe(0);
     expect(bag.stacks).toEqual([]);
+    expect(a.w.query(Carrion).length).toBe(1); // the ham is still on it
+    bag.maxWeight = 30;
+    a.run(2, Buttons.Action);
+    expect(bag.stacks.map((s) => s.ingredientId)).toEqual(['toadhog_ham']);
+    expect(a.w.query(Carrion).length).toBe(0);
   });
 
   it('no butchering while grabbed', () => {
@@ -223,9 +228,11 @@ describe('arena end', () => {
     for (let i = 0; i < 10; i++) step();
     expect(game.world.query(Carrion).length).toBe(1);
     expect(game.status).toBe('playing'); // the carcass is still there to butcher
+    expect(game.awaitingCarcasses).toBe(true); // the UI shows the "butcher them" hint
     step(Buttons.Action);
     step();
     expect(game.status).toBe('cleared');
+    expect(game.awaitingCarcasses).toBe(false);
   });
 });
 
@@ -252,5 +259,14 @@ describe('weapon swap', () => {
     expect(a.w.require(a.game.player, Attacker).current).toBeNull();
     expect(a.w.require(a.game.player, Arsenal).index).toBe(1);
     expect(a.w.require(a.game.player, Attacker).attacks[0]?.element).toBe('fire');
+  });
+
+  it('two swap presses during one swing cancel out (swap there and back)', () => {
+    const a = arena();
+    a.run(1, Buttons.Attack);
+    a.run(1, Buttons.Swap);
+    a.run(1, Buttons.Swap);
+    a.run(20);
+    expect(a.w.require(a.game.player, Arsenal).index).toBe(0);
   });
 });

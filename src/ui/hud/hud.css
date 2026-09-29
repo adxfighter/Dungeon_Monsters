@@ -389,3 +389,21 @@
     transform: translateY(-6px);
   }
 }
+
+/* Arena beaten, carcasses left: a calm hint under the HP bar. */
+.carcass-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 72px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgb(26 20 20 / 72%);
+  color: #fff4e0;
+  font:
+    700 15px/1.2 system-ui,
+    sans-serif;
+  text-align: center;
+  pointer-events: none;
+}

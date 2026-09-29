@@ -59,6 +59,7 @@ export const ru: Locale = {
   'weapon.torch': 'Факел',
   'hud.swap': 'Сменить оружие',
   'hud.butcher': 'Разделать',
+  'hud.carcassHint': 'Волны позади — разделайте туши, пока не сгнили',
   'hud.loot.line': '+{count} {name} {stars}',
   'hud.loot.partial': '+{count} {name} {stars} (рюкзак полон)',
   'hud.loot.none': '{name} {stars} — рюкзак полон',
