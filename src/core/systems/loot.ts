@@ -1,6 +1,5 @@
 import { BALANCE } from '@content/balance';
 import type { IngredientDef, MonsterDef } from '@content/schemas';
-import { Buttons, type InputState } from '@shared/input';
 import { Backpack, Carrion, Health, PlayerControlled, Transform } from '../components';
 import type { Entity, World } from '../ecs/World';
 import { addToBackpack, canFitOne } from '../loot/backpack';
@@ -40,11 +39,15 @@ export function worthButchering(world: World, catalog: LootCatalog): number {
       const fits = drops.some((d) => {
         const ing = catalog.ingredients[d.ingredientId];
         if (!ing) return false;
-        const stars = ingredientStars(ing, BALANCE.loot.placeholderCutStars as Stars, {
-          element: carrion.killElement,
-          overkillRatio: carrion.overkillRatio,
-        });
-        return canFitOne(bag, catalog.ingredients, d.ingredientId, stars);
+        // Any star rating may come out of the cut: fits if some rating would find room.
+        return ([1, 2, 3] as const).some((s) =>
+          canFitOne(
+            bag,
+            catalog.ingredients,
+            d.ingredientId,
+            ingredientStars(ing, s, { element: carrion.killElement, overkillRatio: carrion.overkillRatio }),
+          ),
+        );
       });
       if (fits) n++;
     }
@@ -57,38 +60,56 @@ export interface LootCatalog {
   ingredients: Readonly<Record<string, IngredientDef>>;
 }
 
+/** Result of the butchery mini-game for one carcass (GDD §4.4): stars per part, or skipped (★1 for all). */
+export interface ButcherCommand {
+  carcass: Entity;
+  cuts: Readonly<Record<string, Stars>>;
+  skipped: boolean;
+}
+
 /**
- * Action next to a carcass butchers it: every drop becomes ingredients with a star rating (cut × kill element ×
+ * Applies butchery results: every remaining part becomes ingredients with a star rating (the cut × kill element ×
  * overkill) and goes into the backpack as far as it fits. What doesn't fit stays on the carcass (butcher it again
- * after making room); a fully butchered carcass is gone. Until the butchery mini-game exists
- * the cut is `BALANCE.loot.placeholderCutStars`.
+ * after making room); a fully butchered carcass is gone. A part without a cut result counts as ★1.
  */
-export function lootSystem(ctx: CombatContext, input: Readonly<InputState>, catalog: LootCatalog): void {
-  if (!(input.buttons & Buttons.Action)) return;
+export function lootSystem(
+  ctx: CombatContext,
+  commands: readonly ButcherCommand[],
+  catalog: LootCatalog,
+): void {
   const { world } = ctx;
-  for (const hero of world.query(PlayerControlled, Backpack, Transform)) {
-    const h = world.get(hero, Health);
-    if ((h && (h.hp <= 0 || h.stagger > 0)) || isHeld(world, hero)) continue;
-    const c = lootableCarcass(world, hero, ctx.doomed);
-    if (c < 0) continue;
-    const carrion = world.require(c, Carrion);
-    const def = catalog.monsters[carrion.monsterId];
-    const bag = world.require(hero, Backpack);
-    const items: { ingredientId: string; stars: Stars; count: number; stored: number }[] = [];
-    const left: { partId: string; ingredientId: string; count: number }[] = [];
-    for (const drop of carrion.left ?? def?.drops ?? []) {
-      const ing = catalog.ingredients[drop.ingredientId];
-      if (!ing) continue;
-      const stars = ingredientStars(ing, BALANCE.loot.placeholderCutStars as Stars, {
-        element: carrion.killElement,
-        overkillRatio: carrion.overkillRatio,
-      });
-      const stored = addToBackpack(bag, catalog.ingredients, drop.ingredientId, stars, drop.count);
-      items.push({ ingredientId: drop.ingredientId, stars, count: drop.count, stored });
-      if (stored < drop.count) left.push({ ...drop, count: drop.count - stored });
+  for (const cmd of commands) {
+    for (const hero of world.query(PlayerControlled, Backpack, Transform)) {
+      const h = world.get(hero, Health);
+      if ((h && (h.hp <= 0 || h.stagger > 0)) || isHeld(world, hero)) continue;
+      const c = cmd.carcass;
+      if (!world.isAlive(c) || ctx.doomed.has(c) || !world.has(c, Carrion)) continue;
+      const t = world.require(hero, Transform);
+      const ct = world.get(c, Transform);
+      // The mini-game pauses the fight, but check reach anyway: a stale command must not loot from afar.
+      if (!ct || Math.hypot(ct.x - t.x, ct.y - t.y) > BALANCE.loot.reach + 0.05) continue;
+      const carrion = world.require(c, Carrion);
+      const def = catalog.monsters[carrion.monsterId];
+      const bag = world.require(hero, Backpack);
+      const items: { ingredientId: string; stars: Stars; count: number; stored: number }[] = [];
+      const left: { partId: string; ingredientId: string; count: number }[] = [];
+      for (const drop of carrion.left ?? def?.drops ?? []) {
+        const ing = catalog.ingredients[drop.ingredientId];
+        if (!ing) continue;
+        const stars = ingredientStars(
+          ing,
+          cmd.cuts[drop.partId] ?? 1,
+          { element: carrion.killElement, overkillRatio: carrion.overkillRatio },
+          cmd.skipped,
+        );
+        const stored = addToBackpack(bag, catalog.ingredients, drop.ingredientId, stars, drop.count);
+        items.push({ ingredientId: drop.ingredientId, stars, count: drop.count, stored });
+        if (stored < drop.count)
+          left.push({ partId: drop.partId, ingredientId: drop.ingredientId, count: drop.count - stored });
+      }
+      if (left.length > 0) carrion.left = left;
+      else ctx.doomed.add(c);
+      ctx.events.push({ type: 'LootTaken', by: hero, carrion: c, monsterId: carrion.monsterId, items });
     }
-    if (left.length > 0) carrion.left = left;
-    else ctx.doomed.add(c);
-    ctx.events.push({ type: 'LootTaken', by: hero, carrion: c, monsterId: carrion.monsterId, items });
   }
 }

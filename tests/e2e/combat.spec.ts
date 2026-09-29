@@ -116,8 +116,47 @@ test('a killed monster leaves a carcass: Butcher puts its parts in the backpack 
   const butcher = page.getByTestId('btn-butcher');
   await expect(butcher).toBeVisible({ timeout: 5000 });
   await tapElement(cdp, page, 'btn-butcher');
-  await expect(page.getByTestId('loot-toasts')).toContainText('Стейк яка', { timeout: 5000 });
+  // The butchery board: swipe along each dashed line (the fight is paused meanwhile).
+  const board = page.getByTestId('butchery-board');
+  await expect(board).toBeVisible();
+  for (let part = 0; part < 2; part++) {
+    const line = JSON.parse((await board.getAttribute('data-line')) ?? '[]') as [number, number][];
+    const box = await board.boundingBox();
+    if (!box || line.length < 2) throw new Error('no board / line');
+    const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.height, id: 1 });
+    const pts: { x: number; y: number; id: number }[] = [];
+    for (let i = 0; i < line.length - 1; i++) {
+      const [ax, ay] = line[i] as [number, number];
+      const [bx, by] = line[i + 1] as [number, number];
+      for (let k = 0; k < 6; k++) pts.push(at(ax + ((bx - ax) * k) / 6, ay + ((by - ay) * k) / 6));
+    }
+    const [lx, ly] = line[line.length - 1] as [number, number];
+    pts.push(at(lx, ly));
+    const first = pts[0];
+    if (!first) throw new Error('empty stroke');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [first] });
+    for (const p of pts.slice(1))
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [p] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+  // Clean cuts on a debug (blunt) kill: the steak comes out ★3.
+  await expect(page.getByTestId('loot-toasts')).toContainText('Стейк яка ★★★', { timeout: 5000 });
+  await expect(page.getByTestId('butchery')).toHaveCount(0);
   await expect(butcher).toHaveCount(0);
+});
+
+test('skipping the butchery gives ★1 for everything', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await page.evaluate(() => {
+    window.__debug?.setHeroHp(100000);
+    window.__debug?.spawnMonster('yak', 6.5, 6.1);
+    window.__debug?.killMonsters();
+  });
+  await expect(page.getByTestId('btn-butcher')).toBeVisible({ timeout: 5000 });
+  await tapElement(cdp, page, 'btn-butcher');
+  await page.getByTestId('butchery-skip').click();
+  await expect(page.getByTestId('loot-toasts')).toContainText('Стейк яка ★', { timeout: 5000 });
+  await expect(page.getByTestId('loot-toasts')).not.toContainText('★★');
 });
 
 test('the swap button switches blade ↔ torch', async ({ page }) => {

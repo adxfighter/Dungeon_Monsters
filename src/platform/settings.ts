@@ -6,6 +6,8 @@ export interface Settings {
   haptics: boolean;
   /** Action buttons side: left- or right-handed play (user request 2026-09-29: default right). */
   buttonsSide: 'left' | 'right';
+  /** Simplified butchery (accessibility): tap the dots instead of swiping. */
+  butcherTaps: boolean;
   /** Last arena difficulty (pre-selected on the picker); default medium. */
   difficulty: 'easy' | 'medium' | 'hard';
 }
@@ -14,6 +16,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   shake: true,
   haptics: true,
   buttonsSide: 'right',
+  butcherTaps: false,
   difficulty: 'medium',
 };
 
@@ -44,6 +47,7 @@ export function loadSettings(storage: Storage | undefined): Settings {
       haptics: typeof p.haptics === 'boolean' ? p.haptics : DEFAULT_SETTINGS.haptics,
       buttonsSide:
         p.buttonsSide === 'right' || p.buttonsSide === 'left' ? p.buttonsSide : DEFAULT_SETTINGS.buttonsSide,
+      butcherTaps: typeof p.butcherTaps === 'boolean' ? p.butcherTaps : DEFAULT_SETTINGS.butcherTaps,
       difficulty: SETTINGS_DIFFICULTIES.includes(p.difficulty as Settings['difficulty'])
         ? (p.difficulty as Settings['difficulty'])
         : DEFAULT_SETTINGS.difficulty,

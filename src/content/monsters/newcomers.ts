@@ -44,8 +44,26 @@ export const fugu: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'fillet', ingredientId: 'fugu_fillet', count: 2 },
-    { partId: 'spines', ingredientId: 'fugu_spines', count: 2 },
+    {
+      partId: 'fillet',
+      ingredientId: 'fugu_fillet',
+      count: 2,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
+    {
+      partId: 'spines',
+      ingredientId: 'fugu_spines',
+      count: 2,
+      cutLine: [
+        [0.24, 0.24],
+        [0.5, 0.5],
+        [0.76, 0.74],
+      ],
+    },
   ],
 };
 
@@ -89,8 +107,26 @@ export const porcupine: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'meat', ingredientId: 'porcupine_meat', count: 2 },
-    { partId: 'quills', ingredientId: 'porcupine_quills', count: 2 },
+    {
+      partId: 'meat',
+      ingredientId: 'porcupine_meat',
+      count: 2,
+      cutLine: [
+        [0.5, 0.18],
+        [0.54, 0.5],
+        [0.5, 0.82],
+      ],
+    },
+    {
+      partId: 'quills',
+      ingredientId: 'porcupine_quills',
+      count: 2,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
   ],
 };
 
@@ -132,8 +168,26 @@ export const toadhog: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'ham', ingredientId: 'toadhog_ham', count: 1 },
-    { partId: 'legs', ingredientId: 'toadhog_legs', count: 2 },
+    {
+      partId: 'ham',
+      ingredientId: 'toadhog_ham',
+      count: 1,
+      cutLine: [
+        [0.24, 0.24],
+        [0.5, 0.5],
+        [0.76, 0.74],
+      ],
+    },
+    {
+      partId: 'legs',
+      ingredientId: 'toadhog_legs',
+      count: 2,
+      cutLine: [
+        [0.78, 0.24],
+        [0.5, 0.48],
+        [0.26, 0.74],
+      ],
+    },
   ],
 };
 
@@ -172,8 +226,25 @@ export const dragochick: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'drumstick', ingredientId: 'dragochick_drumstick', count: 2 },
-    { partId: 'crop', ingredientId: 'dragochick_crop', count: 1 },
+    {
+      partId: 'drumstick',
+      ingredientId: 'dragochick_drumstick',
+      count: 2,
+      cutLine: [
+        [0.3, 0.3],
+        [0.62, 0.34],
+        [0.7, 0.62],
+      ],
+    },
+    {
+      partId: 'crop',
+      ingredientId: 'dragochick_crop',
+      count: 1,
+      cutLine: [
+        [0.32, 0.56],
+        [0.68, 0.56],
+      ],
+    },
   ],
 };
 
@@ -225,8 +296,26 @@ export const skunk: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'meat', ingredientId: 'skunk_meat', count: 1 },
-    { partId: 'musk', ingredientId: 'skunk_musk', count: 1 },
+    {
+      partId: 'meat',
+      ingredientId: 'skunk_meat',
+      count: 1,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
+    {
+      partId: 'musk',
+      ingredientId: 'skunk_musk',
+      count: 1,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
   ],
 };
 
@@ -267,8 +356,26 @@ export const yak: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'steak', ingredientId: 'yak_steak', count: 2 },
-    { partId: 'fat', ingredientId: 'yak_fat', count: 1 },
+    {
+      partId: 'steak',
+      ingredientId: 'yak_steak',
+      count: 2,
+      cutLine: [
+        [0.5, 0.18],
+        [0.54, 0.5],
+        [0.5, 0.82],
+      ],
+    },
+    {
+      partId: 'fat',
+      ingredientId: 'yak_fat',
+      count: 1,
+      cutLine: [
+        [0.3, 0.3],
+        [0.62, 0.34],
+        [0.7, 0.62],
+      ],
+    },
   ],
 };
 
@@ -322,7 +429,28 @@ export const dinostrich: MonsterDef = {
       range: 0.9,
     },
   ],
-  drops: [{ partId: 'drumstick', ingredientId: 'dinostrich_drumstick', count: 2 }],
+  drops: [
+    {
+      partId: 'drumstick',
+      ingredientId: 'dinostrich_drumstick',
+      count: 2,
+      cutLine: [
+        [0.24, 0.24],
+        [0.5, 0.5],
+        [0.76, 0.74],
+      ],
+    },
+    {
+      partId: 'neck',
+      ingredientId: 'dinostrich_neck',
+      count: 1,
+      cutLine: [
+        [0.78, 0.24],
+        [0.5, 0.48],
+        [0.26, 0.74],
+      ],
+    },
+  ],
 };
 
 /**
@@ -366,7 +494,25 @@ export const decapus: MonsterDef = {
     },
   ],
   drops: [
-    { partId: 'tentacle', ingredientId: 'decapus_tentacle', count: 3 },
-    { partId: 'ink', ingredientId: 'decapus_ink', count: 1 },
+    {
+      partId: 'tentacle',
+      ingredientId: 'decapus_tentacle',
+      count: 3,
+      cutLine: [
+        [0.2, 0.64],
+        [0.5, 0.76],
+        [0.8, 0.64],
+      ],
+    },
+    {
+      partId: 'ink',
+      ingredientId: 'decapus_ink',
+      count: 1,
+      cutLine: [
+        [0.18, 0.46],
+        [0.5, 0.38],
+        [0.82, 0.46],
+      ],
+    },
   ],
 };

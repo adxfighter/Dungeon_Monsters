@@ -34,10 +34,11 @@ import {
 } from './components';
 import { TileMap } from './dungeon/TileMap';
 import { World, type Entity } from './ecs/World';
+import type { Stars } from './loot/quality';
 import { Rng } from './rng';
 import type { GameEvent } from './state/events';
 import { aiSystem } from './systems/ai';
-import { lootSystem, worthButchering, type LootCatalog } from './systems/loot';
+import { lootSystem, worthButchering, type ButcherCommand, type LootCatalog } from './systems/loot';
 import {
   actionSystem,
   carrionSystem,
@@ -114,6 +115,7 @@ export class Game {
   private readonly ctx: CombatContext;
   private readonly monsters: Readonly<Record<string, MonsterDef>>;
   private readonly catalog: LootCatalog;
+  private readonly butcherQueue: ButcherCommand[] = [];
   private waves: Waves | readonly never[];
   private modifiers: MonsterModifiers = { hp: 1, atk: 1, attackCooldown: 1 };
   private overrides: Readonly<Record<string, MonsterOverride>> = {};
@@ -183,7 +185,8 @@ export class Game {
     statusSystem(ctx, dt);
     playerInputSystem(world, map, input);
     heroCombatInputSystem(world, input, ctx);
-    lootSystem(ctx, input, this.catalog);
+    lootSystem(ctx, this.butcherQueue, this.catalog);
+    this.butcherQueue.length = 0;
     aiSystem(ctx, dt);
     navigationSystem(world, dt);
     actionSystem(ctx, dt);
@@ -211,6 +214,14 @@ export class Game {
   /** Read-only view of an entity transform (for render, debug and tests). */
   transformOf(entity: Entity): Readonly<Transform2D> | undefined {
     return this.world.get(entity, Transform);
+  }
+
+  /**
+   * UI command: the butchery mini-game for `carcass` finished (stars per part id, or skipped). Applied on the next
+   * step, so it stays deterministic.
+   */
+  butcher(carcass: Entity, cuts: Readonly<Record<string, Stars>>, skipped = false): void {
+    this.butcherQueue.push({ carcass, cuts, skipped });
   }
 
   /**

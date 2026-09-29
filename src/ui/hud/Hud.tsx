@@ -4,6 +4,7 @@ import type { Settings } from '@platform/settings';
 import { Buttons } from '@shared/input';
 import { useHud, type HudStore } from '../hudStore';
 import type { DifficultyId } from '@content/schemas';
+import { ButcherBoard } from '../butchery/ButcherBoard';
 import { DifficultyPicker, type ArenaOption, type DifficultyOption } from './DifficultyPicker';
 import './hud.css';
 
@@ -25,6 +26,8 @@ interface Props {
   arenas: readonly ArenaOption[];
   arena: string;
   onPickArena(id: string): void;
+  /** Opens the butchery mini-game for the carcass in reach. */
+  onButcher(): void;
 }
 
 /**
@@ -33,7 +36,7 @@ interface Props {
  */
 export function Hud(props: Props) {
   const { input, hud, t, onRestart, settings, onSettingsChange, onTestVibration } = props;
-  const { difficulties, onPickDifficulty, arenas, arena, onPickArena } = props;
+  const { difficulties, onPickDifficulty, arenas, arena, onPickArena, onButcher } = props;
   const state = useHud(hud);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(settings);
@@ -87,7 +90,9 @@ export function Hud(props: Props) {
         </div>
       )}
 
-      {state.carcassHint && !state.grabbed && (
+      {state.butchery && <ButcherBoard session={state.butchery} t={t} />}
+
+      {state.carcassHint && !state.grabbed && !state.butchery && (
         <div class="carcass-hint" role="status" data-testid="carcass-hint">
           {t('hud.carcassHint')}
         </div>
@@ -103,12 +108,16 @@ export function Hud(props: Props) {
 
       {/* Butcher (next to a carcass) above the weapon swap, inward of the main column. */}
       <div class={`hud-extra side-${current.buttonsSide}`}>
-        {state.canLoot && state.status === 'playing' && (
+        {state.canLoot && state.status === 'playing' && !state.butchery && (
           <button
             type="button"
             class="action butcher"
             data-testid="btn-butcher"
-            onPointerDown={press(Buttons.Action)}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onButcher();
+            }}
           >
             {t('hud.butcher')}
           </button>
@@ -155,6 +164,15 @@ export function Hud(props: Props) {
           <label>
             <input type="checkbox" checked={current.haptics} onChange={() => toggle('haptics')} />
             {t('settings.haptics')}
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={current.butcherTaps}
+              data-testid="toggle-butcher-taps"
+              onChange={() => change({ ...current, butcherTaps: !current.butcherTaps })}
+            />
+            {t('settings.butcherTaps')}
           </label>
           <button
             type="button"

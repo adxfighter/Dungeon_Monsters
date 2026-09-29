@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import type { ButcherySession } from './butchery/ButcherBoard';
 
 /** What the HUD shows. The app writes it every frame; subscribers re-render only when a value changes. */
 export interface HudState {
@@ -17,6 +18,8 @@ export interface HudState {
   carcassHint: boolean;
   /** Short-lived loot lines (newest last). */
   toasts: readonly Toast[];
+  /** The butchery mini-game in progress (the fight is paused), or null. */
+  butchery: ButcherySession | null;
 }
 
 export interface Toast {
@@ -42,6 +45,7 @@ export class HudStore {
     canLoot: false,
     carcassHint: false,
     toasts: [],
+    butchery: null,
   };
   private readonly listeners = new Set<Listener>();
 
@@ -79,6 +83,12 @@ export class HudStore {
       return;
     }
     this.state = { ...s, hp, maxHp, status, wave, waveTotal, grabbed, weaponKey, canLoot, carcassHint };
+    this.emit();
+  }
+
+  /** Opens (session) or closes (null) the butchery board. */
+  setButchery(session: ButcherySession | null): void {
+    this.state = { ...this.state, butchery: session };
     this.emit();
   }
 

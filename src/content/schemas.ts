@@ -170,11 +170,18 @@ export const IngredientSchema = z.object({
 });
 export type IngredientDef = z.infer<typeof IngredientSchema>;
 
-/** One part of a monster carcass: what it becomes and how many pieces. */
+const BoardCoord = z.number().min(0).max(1);
+
+/** One part of a monster carcass: what it becomes, how many pieces, and the dashed line to cut it out along. */
 export const DropSchema = z.object({
   partId: z.string().min(1),
   ingredientId: z.string().min(1),
   count: z.number().int().min(1).max(5),
+  /** Butchery mini-game (GDD §4.4): polyline on the board, normalised 0..1 (x right, y down), 2–6 points. */
+  cutLine: z
+    .array(z.tuple([BoardCoord, BoardCoord]))
+    .min(2)
+    .max(6),
 });
 export type DropDef = z.infer<typeof DropSchema>;
 

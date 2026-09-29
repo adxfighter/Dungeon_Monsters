@@ -1,6 +1,6 @@
 import './style.css';
 import { render as renderUi } from 'preact';
-import { Arsenal, Brain, Health, MoveTarget, Status, Transform } from '@core/components';
+import { Arsenal, Brain, Carrion, Health, MoveTarget, Status, Transform } from '@core/components';
 import { lootableCarcass } from '@core/systems/loot';
 import { Game } from '@core/Game';
 import { arenas, characters, ingredients, locales, monsters, rooms } from '@content/index';
@@ -197,10 +197,38 @@ function start(): void {
           url.searchParams.set('arena', id);
           window.location.assign(url.toString());
         }}
+        onButcher={openButchery}
       />,
       uiRoot,
     );
   }
+  /** Butcher button: open the mini-game for the carcass in reach; its result goes to core as a command. */
+  function openButchery(): void {
+    const g = game;
+    if (!g || hud.get().butchery) return;
+    const carcass = lootableCarcass(g.world, g.player);
+    const carrion = carcass >= 0 ? g.world.get(carcass, Carrion) : undefined;
+    const def = carrion ? monsters[carrion.monsterId] : undefined;
+    if (!carrion || !def) return;
+    const parts = (carrion.left ?? def.drops).flatMap((left) => {
+      const drop = def.drops.find((d) => d.partId === left.partId);
+      const ing = ingredients[left.ingredientId];
+      return drop
+        ? [{ partId: drop.partId, name: ing ? i18n.t(ing.nameKey) : drop.partId, line: drop.cutLine }]
+        : [];
+    });
+    hud.setButchery({
+      parts,
+      body: def.appearance.body,
+      accent: def.appearance.accent,
+      taps: settings.butcherTaps,
+      onDone(cuts, skipped) {
+        hud.setButchery(null);
+        g.butcher(carcass, cuts, skipped);
+      },
+    });
+  }
+
   renderer.setResizeHandler((width, height) => {
     view.width = width;
     view.height = height;
@@ -223,6 +251,8 @@ function start(): void {
   const loop = new GameLoop({
     step(dt) {
       if (!game) return;
+      // The butchery mini-game pauses the fight (the board is modal; GDD §4.4 — 2–4 s).
+      if (hud.get().butchery) return;
       // Input is sampled per step: at most one simulation step of latency.
       game.step(input.sample(inputState), dt);
     },

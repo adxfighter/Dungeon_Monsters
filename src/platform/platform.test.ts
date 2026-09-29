@@ -43,8 +43,20 @@ describe('settings', () => {
 
   it('round-trips and ignores wrongly typed fields', () => {
     const s = memoryStorage();
-    saveSettings(s, { shake: false, haptics: true, buttonsSide: 'left', difficulty: 'hard' });
-    expect(loadSettings(s)).toEqual({ shake: false, haptics: true, buttonsSide: 'left', difficulty: 'hard' });
+    saveSettings(s, {
+      shake: false,
+      haptics: true,
+      buttonsSide: 'left',
+      butcherTaps: true,
+      difficulty: 'hard',
+    });
+    expect(loadSettings(s)).toEqual({
+      shake: false,
+      haptics: true,
+      buttonsSide: 'left',
+      butcherTaps: true,
+      difficulty: 'hard',
+    });
     s.setItem(
       'dm.settings.v2',
       JSON.stringify({ shake: 'no', haptics: false, buttonsSide: 'up', difficulty: 'x' }),
@@ -53,6 +65,7 @@ describe('settings', () => {
       shake: true,
       haptics: false,
       buttonsSide: 'right',
+      butcherTaps: false,
       difficulty: 'medium',
     });
   });

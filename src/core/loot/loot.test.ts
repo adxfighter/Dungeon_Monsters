@@ -100,7 +100,17 @@ const victim: MonsterDef = {
   id: 'victim',
   stats: { ...pouncer.stats, hp: 30, def: 0 },
   ai: { ...pouncer.ai, temperament: 'passive', noticeRange: 0.01 },
-  drops: [{ partId: 'ham', ingredientId: 'toadhog_ham', count: 1 }],
+  drops: [
+    {
+      partId: 'ham',
+      ingredientId: 'toadhog_ham',
+      count: 1,
+      cutLine: [
+        [0.2, 0.5],
+        [0.8, 0.5],
+      ],
+    },
+  ],
 };
 
 function arena() {
@@ -117,6 +127,12 @@ function arena() {
   return { game, input, events, run, w: game.world };
 }
 
+/** Butchers the carcass in reach with a ★2 cut on every part (the mini-game result). */
+function butcherNear(a: ReturnType<typeof arena>, stars: 1 | 2 | 3 = 2) {
+  a.game.butcher(lootableCarcass(a.w, a.game.player), { ham: stars }, false);
+  a.run(2);
+}
+
 /** Kills the victim in front of the hero with the current weapon and butchers the carcass. */
 function killAndButcher(swap: boolean) {
   const a = arena();
@@ -127,7 +143,7 @@ function killAndButcher(swap: boolean) {
   a.run(15, Buttons.Attack);
   const carcass = lootableCarcass(a.w, a.game.player);
   expect(carcass).toBeGreaterThanOrEqual(0);
-  a.run(2, Buttons.Action);
+  butcherNear(a);
   return a;
 }
 
@@ -136,7 +152,7 @@ describe('butchering a carcass', () => {
     const a = killAndButcher(false);
     const loot = a.events.find((e) => e.type === 'LootTaken');
     expect(loot?.type === 'LootTaken' && loot.items).toEqual([
-      { ingredientId: 'toadhog_ham', stars: 3, count: 1, stored: 1 }, // placeholder cut ★2 + clean blade kill
+      { ingredientId: 'toadhog_ham', stars: 3, count: 1, stored: 1 }, // cut ★2 + clean blade kill
     ]);
     expect(a.w.require(a.game.player, Backpack).stacks).toEqual([
       { ingredientId: 'toadhog_ham', stars: 3, count: 1 },
@@ -158,13 +174,13 @@ describe('butchering a carcass', () => {
     const v = a.game.spawnMonster(victim, 4.5, 4.3);
     a.w.require(v, Health).hp = 0;
     a.run(2);
-    a.run(2, Buttons.Action);
+    butcherNear(a);
     const loot = a.events.find((e) => e.type === 'LootTaken');
     expect(loot?.type === 'LootTaken' && loot.items[0]?.stored).toBe(0);
     expect(bag.stacks).toEqual([]);
     expect(a.w.query(Carrion).length).toBe(1); // the ham is still on it
     bag.maxWeight = 30;
-    a.run(2, Buttons.Action);
+    butcherNear(a);
     expect(bag.stacks.map((s) => s.ingredientId)).toEqual(['toadhog_ham']);
     expect(a.w.query(Carrion).length).toBe(0);
   });
@@ -178,7 +194,7 @@ describe('butchering a carcass', () => {
     const status = a.w.require(a.game.player, Status);
     status.heldBy = holder;
     status.heldT = 5;
-    a.run(1, Buttons.Action);
+    butcherNear(a);
     expect(a.events.some((e) => e.type === 'LootTaken')).toBe(false);
     expect(a.w.query(Carrion).length).toBe(1);
   });
@@ -197,7 +213,8 @@ describe('butchering a carcass', () => {
     game.world.require(game.player, Transform).rot = 0;
     game.spawnMonster(victim, 4.5, 4.3);
     for (let i = 0; i < 20; i++) {
-      input.buttons = i === 0 ? Buttons.Attack : i === 18 ? Buttons.Action : 0;
+      input.buttons = i === 0 ? Buttons.Attack : 0;
+      if (i === 18) game.butcher(lootableCarcass(game.world, game.player), { ham: 2 });
       game.step(input, DT);
     }
     const c = game.world.require(game.player, Backpack).stacks[0];
@@ -212,9 +229,65 @@ describe('butchering a carcass', () => {
     a.w.require(e, Health).hp = 0;
     a.run(2);
     expect(a.w.query(Carrion).length).toBe(1);
-    a.run(2, Buttons.Action);
+    butcherNear(a);
     expect(a.events.some((ev) => ev.type === 'LootTaken')).toBe(false);
     expect(a.w.query(Carrion).length).toBe(1);
+  });
+});
+
+describe('butchery results', () => {
+  it('each part takes its own cut; a skipped butchery is ★1 for everything', () => {
+    const two: MonsterDef = {
+      ...victim,
+      id: 'two',
+      drops: [
+        {
+          partId: 'ham',
+          ingredientId: 'toadhog_ham',
+          count: 1,
+          cutLine: [
+            [0, 0],
+            [1, 1],
+          ],
+        },
+        {
+          partId: 'legs',
+          ingredientId: 'toadhog_legs',
+          count: 1,
+          cutLine: [
+            [0, 1],
+            [1, 0],
+          ],
+        },
+      ],
+    };
+    const kill = (cuts: Record<string, 1 | 2 | 3>, skipped: boolean) => {
+      const game = new Game({ room, player: tavi, monsters: { ...monsters, two }, ingredients, seed: 2 });
+      const e = game.spawnMonster(two, 4.5, 4.3);
+      game.world.require(e, Health).hp = 0;
+      const input = createInputState();
+      game.step(input, DT);
+      game.butcher(lootableCarcass(game.world, game.player), cuts, skipped);
+      game.step(input, DT);
+      return game.world.require(game.player, Backpack).stacks.map((s) => `${s.ingredientId}:${s.stars}`);
+    };
+    // A debug kill is 'blunt' (no modifier for ham, none for legs): the cut is the star rating.
+    expect(kill({ ham: 3, legs: 1 }, false)).toEqual(['toadhog_ham:3', 'toadhog_legs:1']);
+    expect(kill({ ham: 3, legs: 3 }, true)).toEqual(['toadhog_ham:1', 'toadhog_legs:1']);
+    expect(kill({}, false)).toEqual(['toadhog_ham:1', 'toadhog_legs:1']); // no result → ★1
+  });
+
+  it('a command for a carcass out of reach is ignored', () => {
+    const game = new Game({ room, player: tavi, monsters: { ...monsters, victim }, ingredients, seed: 2 });
+    const e = game.spawnMonster(victim, 7.5, 5.5);
+    game.world.require(e, Health).hp = 0;
+    const input = createInputState();
+    game.step(input, DT);
+    const c = game.world.query(Carrion)[0] ?? -1;
+    game.butcher(c, { ham: 3 });
+    game.step(input, DT);
+    expect(game.world.query(Carrion).length).toBe(1);
+    expect(game.world.require(game.player, Backpack).stacks).toEqual([]);
   });
 });
 
@@ -241,7 +314,8 @@ describe('arena end', () => {
     expect(game.world.query(Carrion).length).toBe(1);
     expect(game.status).toBe('playing'); // the carcass is still there to butcher
     expect(game.awaitingCarcasses).toBe(true); // the UI shows the "butcher them" hint
-    step(Buttons.Action);
+    game.butcher(lootableCarcass(game.world, game.player), { ham: 2 });
+    step();
     step();
     expect(game.status).toBe('cleared');
     expect(game.awaitingCarcasses).toBe(false);
