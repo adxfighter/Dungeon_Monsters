@@ -121,8 +121,9 @@
 .gear {
   pointer-events: auto;
   order: 3;
-  width: 40px;
-  height: 40px;
+  /* ≥ 48 dp touch target (mobile checklist). */
+  width: 48px;
+  height: 48px;
   border: 2px solid #1a1414;
   border-radius: 50%;
   background: rgb(26 20 20 / 55%);
@@ -156,7 +157,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 40px;
+  min-height: 48px;
 }
 
 .settings input {

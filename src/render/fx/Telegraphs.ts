@@ -11,7 +11,7 @@ const COLOR = 0xff5a3c;
 const LANE_MARGIN = 0.08;
 
 /** Flat geometry on the floor plane (XZ), pointing along local +Z from the attacker. */
-function footprint(def: AttackDef): BufferGeometry {
+export function footprint(def: AttackDef): BufferGeometry {
   const lungeDist = (def.lungeSpeed ?? 0) * def.active;
   if (def.projectile) {
     // One lane per projectile across the fan.

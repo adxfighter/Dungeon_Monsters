@@ -23,6 +23,9 @@ test('HUD shows hero HP, wave counter and Russian action buttons', async ({ page
   await expect(page.getByTestId('btn-dodge')).toHaveText('Рывок');
   const attack = await page.getByTestId('btn-attack').boundingBox();
   expect(attack?.width).toBeGreaterThanOrEqual(64); // ≥ 64 dp touch target
+  const gear = await page.getByTestId('btn-settings').boundingBox();
+  expect(gear?.width).toBeGreaterThanOrEqual(48); // ≥ 48 dp
+  expect(gear?.height).toBeGreaterThanOrEqual(48);
 });
 
 test('the attack button damages a monster in front of the hero', async ({ page }) => {

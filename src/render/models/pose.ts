@@ -1,4 +1,4 @@
-import type { MeshToonMaterial } from 'three';
+import type { Group, MeshToonMaterial } from 'three';
 
 /** What an entity is doing this frame, derived from core components (read-only) for procedural animation. */
 export interface Pose {
@@ -12,17 +12,9 @@ export interface Pose {
   staggered: boolean;
 }
 
-export const IDLE_POSE: Readonly<Pose> = {
-  phase: 'none',
-  t01: 0,
-  whiffed: false,
-  guarding: false,
-  staggered: false,
-};
-
 /** A procedurally animated model: characters and monsters share this shape. */
 export interface Rig {
-  readonly root: import('three').Group;
+  readonly root: Group;
   /** Toon materials that flash white on hit. */
   readonly materials: readonly MeshToonMaterial[];
   update(dtSeconds: number, speed01: number, pose: Readonly<Pose>): void;
