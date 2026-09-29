@@ -112,8 +112,8 @@ function fugu(def: MonsterDef): MonsterRig {
   const fins = new Mesh(
     merge([
       // Flat pectoral fins, swept back (cones read as spikes).
-      placed(finDisc(0.09, 0.8, 1), 0.33, -0.02, -0.02, 0, 0.5, 0),
-      placed(finDisc(0.09, 0.8, 1), -0.33, -0.02, -0.02, 0, -0.5, 0),
+      placed(finDisc(0.09, 0.8, 1), 0.33, -0.02, -0.02, 0, -0.5, 0),
+      placed(finDisc(0.09, 0.8, 1), -0.33, -0.02, -0.02, 0, 0.5, 0),
       ...fuguTail(),
       placed(new TorusGeometry(0.045, 0.02, 6, 12), 0, -0.07, 0.32), // round "o" lips
     ]),
